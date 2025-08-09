@@ -38,14 +38,7 @@ export function useLsCodemirror({ path }: { path: string }): {
       setTransport(newTransport);
       setLsClient(newClient);
 
-      try {
-        await newTransport.connect();
-        await newClient.initialize(true);
-      } catch (error) {
-        setTransport(null);
-        setLsClient(null);
-        throw error;
-      }
+      await newTransport.connect();
     },
     [transport],
   );

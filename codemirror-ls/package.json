@@ -17,7 +17,7 @@
   },
   "peerDependencies": {
     "codemirror": "^6.0.0",
-    "@codemirror/view": "^6.38.1"
+    "@codemirror/view": "^6.0.0"
   },
   "devDependencies": {
     "typescript": "^5.9.2"

@@ -1,46 +1,52 @@
-import { useEffect, useRef, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { javascript } from "@codemirror/lang-javascript";
-import { EditorState } from "@codemirror/state";
+import { Compartment, Facet } from "@codemirror/state";
 import { useLsCodemirror } from "./useLsCodemirror";
-import { EditorView } from "@codemirror/view";
+import { useCodeMirror } from '@uiw/react-codemirror';
 
 const DEFAULT_CODE = "console.log('hello world!');\n\n\n";
 
 export default function App() {
   const editor = useRef<HTMLDivElement>(null);
-  const editorView = useRef<EditorView | null>(null);
+  const lsCompartment = useRef(new Compartment());
   const [url, setUrl] = useState(
     `ws://localhost:5002?session=${crypto.randomUUID()}`,
   );
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [value, setValue] = useState(DEFAULT_CODE);
 
-  const { extensions, connect, disconnect, isConnected } = useLsCodemirror({
+  const { extensions: lsExtensions, connect, disconnect, isConnected } = useLsCodemirror({
     path: "/demo.ts",
   });
 
+  const extensions = useMemo(() => {
+    return [
+      javascript(),
+      lsCompartment.current.of(lsExtensions || [])
+    ];
+  }, [lsExtensions]);
+
+  const { setContainer, view } = useCodeMirror({
+    container: editor.current,
+    extensions,
+    value,
+    onChange: setValue,
+  });
+
   useEffect(() => {
-    if (editor.current && !editorView.current) {
-      const allExtensions = [javascript(), ...(extensions ? [extensions] : [])];
+    if (editor.current) {
+      setContainer(editor.current);
+    }
+  }, [setContainer]);
 
-      const state = EditorState.create({
-        doc: DEFAULT_CODE,
-        extensions: allExtensions,
-      });
-
-      editorView.current = new EditorView({
-        state,
-        parent: editor.current,
+  useEffect(() => {
+    if (view && lsExtensions) {
+      view.dispatch({
+        effects: lsCompartment.current.reconfigure(lsExtensions)
       });
     }
-
-    return () => {
-      if (editorView.current) {
-        editorView.current.destroy();
-        editorView.current = null;
-      }
-    };
-  }, [extensions]);
+  }, [view, lsExtensions]);
 
   const handleConnect = async () => {
     if (isConnected) {
