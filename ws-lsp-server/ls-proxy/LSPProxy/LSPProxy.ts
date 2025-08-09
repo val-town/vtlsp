@@ -2,7 +2,6 @@
 
 import * as rpc from "vscode-jsonrpc/node.js";
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
-import { assert } from "@std/assert";
 import fs from "node:fs";
 import type {
   CatchAllHandlerFunction,
@@ -409,7 +408,9 @@ export class LSPProxy {
       }
 
       // Send the request to the server
-      assert(this.procConn, "LSP process connection not initialized");
+      if (!this.procConn)
+        throw new Error("LSP process connection not initialized");
+
       const transformedParams = replaceFileUris(
         params,
         this.#uriConverters.toProcUri,

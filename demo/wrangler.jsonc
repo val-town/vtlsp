@@ -36,7 +36,8 @@
       "name": "vtlsp-demo-container",
       "class_name": "VTLSPDemoContainer",
       "instance_type": "standard",
-      "image": "./deploy/Dockerfile"
+      "image": "./deploy/Dockerfile",
+      "image_build_context": "../.."
     }
   ],
   "migrations": [
