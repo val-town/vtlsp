@@ -2,22 +2,16 @@ import { Container, getContainer } from "@cloudflare/containers";
 import { Hono } from "hono";
 import { logger as honoLogger } from "hono/logger";
 
-export class VTLSPContainer extends Container {
+export class VTLSPDemoContainer extends Container {
   public override sleepAfter = 30; // seconds
   public override defaultPort = 5002;
 }
 
-interface AppEnv {
-  LSP_CONTAINER: DurableObjectNamespace<VTLSPContainer>;
-}
-
-interface Env extends AppEnv {}
-
 export default {
-  fetch: new Hono<{ Bindings: AppEnv }>()
+  fetch: new Hono<{ Bindings: Env }>()
     .use(honoLogger())
     .all("/lsp/*", async (c) => {
-      const container = getContainer(c.env.LSP_CONTAINER, c.req.path);
+      const container = getContainer(c.env.VTLSP_DEMO_CONTAINER, c.req.path);
       return container.fetch(c.req.raw);
     }).fetch,
 } satisfies ExportedHandler<Env>;

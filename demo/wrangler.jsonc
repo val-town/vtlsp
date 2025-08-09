@@ -2,7 +2,7 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "account_id": "0c98b133158df53222b825aafd746596",
   "compatibility_date": "2025-05-19",
-  "name": "lsp",
+  "name": "cf-vtlsp-demo",
   "main": "deploy/main.ts",
   "compatibility_flags": ["nodejs_compat"],
   "observability": {
@@ -25,16 +25,16 @@
   "durable_objects": {
     "bindings": [
       {
-        "class_name": "VTLSPContainer",
-        "name": "LSP_CONTAINER"
+        "class_name": "VTLSPDemoContainer",
+        "name": "VTLSP_DEMO_CONTAINER"
       }
     ]
   },
   "containers": [
     {
       "max_instances": 5,
-      "name": "lsp-container",
-      "class_name": "VTLSPContainer",
+      "name": "vtlsp-demo-container",
+      "class_name": "VTLSPDemoContainer",
       "instance_type": "standard",
       "image": "./deploy/Dockerfile"
     }
@@ -42,7 +42,7 @@
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["VTLSPContainer"]
+      "new_sqlite_classes": ["VTLSPDemoContainer"]
     }
   ]
 }

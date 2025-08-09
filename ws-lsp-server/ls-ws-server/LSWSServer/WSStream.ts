@@ -11,17 +11,11 @@
 
 import { Readable, Writable } from "node:stream";
 import { Buffer } from "node:buffer";
-import { logger } from "~/logger.ts";
+import { logger } from "../logger.ts";
 
-interface WebSocketWritableStreamOptions {
+interface WebSocketStreamOptions {
   chunkSize?: number;
 }
-
-// deno-lint-ignore no-empty-interface
-interface WebSocketReadableStreamOptions {
-}
-
-type WebSocketStreamOptions = WebSocketWritableStreamOptions & WebSocketReadableStreamOptions;
 
 class WebSocketReadableStream extends Readable {
   #websocket: WebSocket;
@@ -47,11 +41,14 @@ class WebSocketReadableStream extends Readable {
     ws.addEventListener("error", errorHandler);
 
     const closeHandler = ((event: CloseEvent) => {
-      logger.info({
-        code: event.code,
-        reason: event.reason,
-        wasClean: event.wasClean,
-      }, "WebSocketReadableStream received close event");
+      logger.info(
+        {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+        },
+        "WebSocketReadableStream received close event",
+      );
       // stream.push(null) signals EOF
       this.push(null);
     }) as EventListener;
@@ -68,7 +65,10 @@ class WebSocketReadableStream extends Readable {
     error: Error | null,
     callback: (error?: Error | null) => void,
   ) {
-    logger.debug({ error: error?.message }, "WebSocketReadableStream is getting destroyed");
+    logger.debug(
+      { error: error?.message },
+      "WebSocketReadableStream is getting destroyed",
+    );
     // Clean up event listeners
     for (const [event, listener] of this.#listeners) {
       this.#websocket.removeEventListener(event, listener);
@@ -86,17 +86,23 @@ class WebSocketWritableStream extends Writable {
   #chunkSize: number;
   #buffer: Buffer = Buffer.alloc(0);
 
-  constructor(ws: WebSocket, { chunkSize = 100 * 1024 }: WebSocketWritableStreamOptions = {}) {
+  constructor(
+    ws: WebSocket,
+    { chunkSize = 100 * 1024 }: WebSocketStreamOptions = {},
+  ) {
     super();
     this.#websocket = ws;
     this.#chunkSize = chunkSize;
 
     this.#websocket.addEventListener("close", (event: CloseEvent) => {
-      logger.info({
-        code: event.code,
-        reason: event.reason,
-        wasClean: event.wasClean,
-      }, "WebSocketWritableStream received close event");
+      logger.info(
+        {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+        },
+        "WebSocketWritableStream received close event",
+      );
     });
 
     logger.debug({ chunkSize }, "WebSocketWritableStream initialized");
@@ -107,7 +113,10 @@ class WebSocketWritableStream extends Writable {
     _encoding: string,
     callback: (error?: Error | null) => void,
   ) {
-    logger.debug({ bytes: chunk.length }, "WebSocketWritableStream writing data");
+    logger.debug(
+      { bytes: chunk.length },
+      "WebSocketWritableStream writing data",
+    );
 
     if (this.#websocket.readyState === WebSocket.OPEN) {
       try {
@@ -121,7 +130,10 @@ class WebSocketWritableStream extends Writable {
         this.#clearBuffer();
         callback();
       } catch (err) {
-        logger.error({ error: err }, "WebSocketWritableStream: error during write");
+        logger.error(
+          { error: err },
+          "WebSocketWritableStream: error during write",
+        );
         callback(err instanceof Error ? err : new Error(String(err)));
       }
     } else {
@@ -137,10 +149,13 @@ class WebSocketWritableStream extends Writable {
 
   #appendToBuffer(chunk: Buffer) {
     this.#buffer = Buffer.concat([this.#buffer, chunk]);
-    logger.debug({
-      newBufferSize: this.#buffer.length,
-      addedBytes: chunk.length,
-    }, "WebSocketWritableStream buffer updated");
+    logger.debug(
+      {
+        newBufferSize: this.#buffer.length,
+        addedBytes: chunk.length,
+      },
+      "WebSocketWritableStream buffer updated",
+    );
   }
 
   #clearBuffer() {
@@ -170,7 +185,10 @@ class WebSocketWritableStream extends Writable {
     error: Error | null,
     callback: (error?: Error | null) => void,
   ) {
-    logger.debug({ error: error?.message }, "WebSocketWritableStream is getting destroyed");
+    logger.debug(
+      { error: error?.message },
+      "WebSocketWritableStream is getting destroyed",
+    );
     // Let application handle WebSocket close
     callback(error);
   }

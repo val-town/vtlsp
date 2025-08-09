@@ -1,13 +1,68 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@std/assert@^1.0.13": "1.0.13",
+    "jsr:@std/data-structures@^1.0.9": "1.0.9",
+    "jsr:@std/expect@^1.0.16": "1.0.16",
+    "jsr:@std/fs@^1.0.19": "1.0.19",
+    "jsr:@std/internal@^1.0.10": "1.0.10",
+    "jsr:@std/internal@^1.0.6": "1.0.10",
+    "jsr:@std/internal@^1.0.7": "1.0.10",
+    "jsr:@std/internal@^1.0.9": "1.0.10",
+    "jsr:@std/path@^1.1.1": "1.1.1",
+    "jsr:@std/testing@^1.0.15": "1.0.15",
     "npm:@types/node@*": "22.15.15",
     "npm:execa@*": "9.6.0",
     "npm:execa@^9.6.0": "9.6.0",
+    "npm:json-rpc-2.0@^1.7.1": "1.7.1",
     "npm:pino@^9.6.0": "9.8.0",
     "npm:vscode-jsonrpc@^8.2.1": "8.2.1",
     "npm:vscode-languageserver-protocol@^3.17.5": "3.17.5",
     "npm:vscode-uri@^3.1.0": "3.1.0"
+  },
+  "jsr": {
+    "@std/assert@1.0.13": {
+      "integrity": "ae0d31e41919b12c656c742b22522c32fb26ed0cba32975cb0de2a273cb68b29",
+      "dependencies": [
+        "jsr:@std/internal@^1.0.6"
+      ]
+    },
+    "@std/data-structures@1.0.9": {
+      "integrity": "033d6e17e64bf1f84a614e647c1b015fa2576ae3312305821e1a4cb20674bb4d"
+    },
+    "@std/expect@1.0.16": {
+      "integrity": "ceeef6dda21f256a5f0f083fcc0eaca175428b523359a9b1d9b3a1df11cc7391",
+      "dependencies": [
+        "jsr:@std/assert",
+        "jsr:@std/internal@^1.0.7"
+      ]
+    },
+    "@std/fs@1.0.19": {
+      "integrity": "051968c2b1eae4d2ea9f79a08a3845740ef6af10356aff43d3e2ef11ed09fb06",
+      "dependencies": [
+        "jsr:@std/internal@^1.0.9",
+        "jsr:@std/path"
+      ]
+    },
+    "@std/internal@1.0.10": {
+      "integrity": "e3be62ce42cab0e177c27698e5d9800122f67b766a0bea6ca4867886cbde8cf7"
+    },
+    "@std/path@1.1.1": {
+      "integrity": "fe00026bd3a7e6a27f73709b83c607798be40e20c81dde655ce34052fd82ec76",
+      "dependencies": [
+        "jsr:@std/internal@^1.0.9"
+      ]
+    },
+    "@std/testing@1.0.15": {
+      "integrity": "a490169f5ccb0f3ae9c94fbc69d2cd43603f2cffb41713a85f99bbb0e3087cbc",
+      "dependencies": [
+        "jsr:@std/assert",
+        "jsr:@std/data-structures",
+        "jsr:@std/fs",
+        "jsr:@std/internal@^1.0.10",
+        "jsr:@std/path"
+      ]
+    }
   },
   "npm": {
     "@sec-ant/readable-stream@0.4.1": {
@@ -80,6 +135,9 @@
     },
     "isexe@2.0.0": {
       "integrity": "sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw=="
+    },
+    "json-rpc-2.0@1.7.1": {
+      "integrity": "sha512-JqZjhjAanbpkXIzFE7u8mE/iFblawwlXtONaCvRqI+pyABVz7B4M1EUNpyVW+dZjqgQ2L5HFmZCmOCgUKm00hg=="
     },
     "npm-run-path@6.0.0": {
       "integrity": "sha512-9qny7Z9DsQU8Ou39ERsPU4OZQlSTP47ShQzuKZ6PRXpYLtIFgl/DEBYEXKlvcEa+9tHVcK8CF81Y2V72qaZhWA==",
@@ -255,7 +313,13 @@
   },
   "workspace": {
     "dependencies": [
+      "jsr:@std/assert@^1.0.13",
+      "jsr:@std/expect@^1.0.16",
+      "jsr:@std/fs@^1.0.19",
+      "jsr:@std/path@^1.1.1",
+      "jsr:@std/testing@^1.0.15",
       "npm:execa@^9.6.0",
+      "npm:json-rpc-2.0@^1.7.1",
       "npm:pino@^9.6.0",
       "npm:vscode-jsonrpc@^8.2.1",
       "npm:vscode-languageserver-protocol@^3.17.5",

@@ -2,7 +2,6 @@ import { chunkByteArray, createWebSocketStreams } from "./WSStream.ts";
 import { afterEach, beforeEach, describe, it } from "@std/testing/bdd";
 import { expect } from "@std/expect";
 import * as fs from "node:fs";
-import { file } from "zod/v4";
 
 describe("chunkByteArray", () => {
   it("provides evenly divisible chunks", () => {

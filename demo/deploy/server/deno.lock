@@ -1,0 +1,45 @@
+{
+  "version": "5",
+  "specifiers": {
+    "npm:@hono/zod-validator@~0.7.2": "0.7.2_hono@4.9.0_zod@4.0.17",
+    "npm:hono@^4.9.0": "4.9.0",
+    "npm:vscode-languageserver-protocol@^3.17.5": "3.17.5",
+    "npm:zod@^4.0.17": "4.0.17"
+  },
+  "npm": {
+    "@hono/zod-validator@0.7.2_hono@4.9.0_zod@4.0.17": {
+      "integrity": "sha512-ub5eL/NeZ4eLZawu78JpW/J+dugDAYhwqUIdp9KYScI6PZECij4Hx4UsrthlEUutqDDhPwRI0MscUfNkvn/mqQ==",
+      "dependencies": [
+        "hono",
+        "zod"
+      ]
+    },
+    "hono@4.9.0": {
+      "integrity": "sha512-JAUc4Sqi3lhby2imRL/67LMcJFKiCu7ZKghM7iwvltVZzxEC5bVJCsAa4NTnSfmWGb+N2eOVtFE586R+K3fejA=="
+    },
+    "vscode-jsonrpc@8.2.0": {
+      "integrity": "sha512-C+r0eKJUIfiDIfwJhria30+TYWPtuHJXHtI7J0YlOmKAo7ogxP20T0zxB7HZQIFhIyvoBPwWskjxrvAtfjyZfA=="
+    },
+    "vscode-languageserver-protocol@3.17.5": {
+      "integrity": "sha512-mb1bvRJN8SVznADSGWM9u/b07H7Ecg0I3OgXDuLdn307rl/J3A9YD6/eYOssqhecL27hK1IPZAsaqh00i/Jljg==",
+      "dependencies": [
+        "vscode-jsonrpc",
+        "vscode-languageserver-types"
+      ]
+    },
+    "vscode-languageserver-types@3.17.5": {
+      "integrity": "sha512-Ld1VelNuX9pdF39h2Hgaeb5hEZM2Z3jUrrMgWQAu82jMtZp7p3vJT3BzToKtZI7NgQssZje5o0zryOrhQvzQAg=="
+    },
+    "zod@4.0.17": {
+      "integrity": "sha512-1PHjlYRevNxxdy2JZ8JcNAw7rX8V9P1AKkP+x/xZfxB0K5FYfuV+Ug6P/6NVSR2jHQ+FzDDoDHS04nYUsOIyLQ=="
+    }
+  },
+  "workspace": {
+    "dependencies": [
+      "npm:@hono/zod-validator@~0.7.2",
+      "npm:hono@^4.9.0",
+      "npm:vscode-languageserver-protocol@^3.17.5",
+      "npm:zod@^4.0.17"
+    ]
+  }
+}

@@ -6,7 +6,8 @@ import {
   StreamMessageReader,
   StreamMessageWriter,
 } from "vscode-jsonrpc/node.js";
-import { BASE_URL } from "~/consts.ts";
+
+const BASE_URL = Deno.env.get("BASE_URL") || "http://localhost:5002";
 
 describe({
   name: "LSWSServer",
@@ -55,6 +56,7 @@ describe({
         expect(response).toBeDefined();
         expect(response.capabilities).toBeDefined();
       } catch (error) {
+        // biome-ignore lint/suspicious/noConsole: debugging
         console.error("LSP Initialization Error:", error);
         throw error; // Re-throw the error to fail the test
       } finally {

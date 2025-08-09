@@ -4,12 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "docker:build": "docker build -t codemirror-cf-lsp-demo .",
+    "deploy": "npm run build && wrangler deploy",
+    "build": "vite build",
+    "docker:build": "docker build -t codemirror-cf-lsp-demo ./deploy/server",
     "docker:run": "docker run -p 5002:5002 -v $(pwd):/app codemirror-cf-lsp-demo",
-    "lint": "eslint .",
-    "preview": "vite preview",
     "gen-types": "wrangler types"
   },
   "dependencies": {

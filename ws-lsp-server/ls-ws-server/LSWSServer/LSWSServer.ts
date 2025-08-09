@@ -1,5 +1,5 @@
 import { PassThrough, type Readable, type Writable } from "node:stream";
-import { logger } from "~/logger.ts";
+import { logger } from "../logger.ts";
 import type { LSProc } from "./procs/LSProc.ts";
 import { LSProcManager } from "./procs/LSProcManager.ts";
 import { createWebSocketStreams } from "./WSStream.ts";
