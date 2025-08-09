@@ -4,18 +4,15 @@
     "@lsp-server": "./lsp-server/main.ts",
     "@lsp-proxy": "./lsp-ls/main.ts"
   },
-  "tasks": {
-    "check": "deno check ./lsp-server ./lsp-ls",
-    "server": "deno run -A ./lsp-server/main.ts --ls-command=deno --ls-args=run,-A,./lsp-ls/main.ts --max-processes=1",
-    "docker:build": "docker build -t vtlsp-server:latest .",
-    "docker:run": "docker run -p 5002:5002 -e ESM_TOWN_HOSTNAME=module.localhost:3001 vtlsp-server:latest",
-    "lint": "deno task check",
-    "test:ci": "deno run -A ./test.ts 5002"
-  },
   "imports": {
     "execa": "npm:execa@^9.6.0",
     "pino": "npm:pino@^9.6.0",
-    "lsp-jsonrpc/": "./lsp-jsonrpc/"
+    "lsp-jsonrpc/": "./lsp-jsonrpc/",
+    "vscode-jsonrpc": "npm:vscode-jsonrpc@^8.2.1",
+    "vscode-languageserver-protocol": "npm:vscode-languageserver-protocol@^3.17.5",
+    "vscode-uri": "npm:vscode-uri@^3.1.0"
   },
-  "exclude": ["./codemirror-lsp", "./cloudflare", "./common"]
+  "lint": {
+    "no-explicit-any": "off"
+  }
 }

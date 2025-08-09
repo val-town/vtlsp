@@ -6,21 +6,31 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "docker:build": "docker build -t codemirror-cf-lsp-demo .",
+    "docker:run": "docker run -p 5002:5002 -v $(pwd):/app codemirror-cf-lsp-demo",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "gen-types": "wrangler types"
   },
   "dependencies": {
+    "@cloudflare/containers": "^0.0.25",
     "@cloudflare/wrangler": "^1.21.0",
     "@codemirror/lang-javascript": "^6.2.4",
+    "@hono/zod-validator": "^0.7.2",
     "@tailwindcss/vite": "^4.1.11",
     "@uiw/react-codemirror": "^4.24.2",
+    "hono": "^4.9.0",
     "lowlight": "^3.3.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "tailwindcss": "^4.1.11"
+    "tailwindcss": "^4.1.11",
+    "wrangler": "^4.28.1",
+    "zod": "^4.0.17"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250809.0",
     "@eslint/js": "^9.32.0",
+    "@types/node": "^24.2.1",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^4.7.0",

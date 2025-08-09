@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
-import { useCodeMirror } from '@uiw/react-codemirror';
-import { javascript } from '@codemirror/lang-javascript';
+import { useEffect, useRef } from "react";
+import { useCodeMirror } from "@uiw/react-codemirror";
+import { javascript } from "@codemirror/lang-javascript";
 
 const code = "console.log('hello world!');\n\n\n";
 const extensions = [javascript()];

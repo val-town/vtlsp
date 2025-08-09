@@ -1,0 +1,13 @@
+{
+  "tasks": {
+    "start": "deno run -A ./lsp-server.ts"
+  },
+  "imports": {
+    "@hono/zod-validator": "npm:@hono/zod-validator@^0.7.2",
+    "hono": "npm:hono@^4.9.0",
+    "lsp-proxy": "../../../ws-lsp-server/ls-proxy/mod.ts",
+    "lsp-server": "../../../ws-lsp-server/ls-ws-server/mod.ts",
+    "vscode-languageserver-protocol": "npm:vscode-languageserver-protocol@^3.17.5",
+    "zod": "npm:zod@^4.0.17"
+  }
+}

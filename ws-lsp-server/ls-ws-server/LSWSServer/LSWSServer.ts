@@ -1,0 +1,658 @@
+import { PassThrough, type Readable, type Writable } from "node:stream";
+import { logger } from "~/logger.ts";
+import type { LSProc } from "./procs/LSProc.ts";
+import { LSProcManager } from "./procs/LSProcManager.ts";
+import { createWebSocketStreams } from "./WSStream.ts";
+import { join } from "@std/path";
+import { pipeLsInToLsOut } from "./LSTransform.ts";
+import { isJSONRPCRequest, isJSONRPCResponse } from "json-rpc-2.0";
+
+interface ConnectionData {
+  /**
+   * Consumer stream for the LSP process output.
+   *
+   * This is a PassThrough stream for this connection that reads from the
+   * multicast stream of the LSP process's stdout.
+   */
+  procOutConsumer: PassThrough;
+
+  /**
+   * Map of UUID request IDs to their original numerical IDs.
+   */
+  requestIDTranslationMap: Map<string, number>;
+}
+
+interface LSWSServerSessionData {
+  conns: Map<WebSocket, ConnectionData>;
+  proc: LSProc;
+  createProcOutConsumer: () => PassThrough;
+  createStdinProducer: () => PassThrough;
+}
+
+interface LSWSServerOptions {
+  lsCommand: string;
+  lsArgs: string[];
+  lsLogPath: string;
+  maxProcs?: number;
+  maxSessionConns?: number;
+  /** Shutdown after this many seconds of inactivity */
+  shutdownAfter?: number;
+  onProcError?: (sessionId: string, error: Error) => void;
+  onProcExit?: (sessionId: string, code: number | null) => void;
+}
+
+/**
+ * WebSocket server for managing Language Server Protocol (LSP) processes with
+ * associated sessions using multicast streams.
+ *
+ * When a new WebSocket connection is received:
+ * - handleNewWebsocket() is called with the request and session ID.
+ * - If the session already exists, it reuses the existing LSP process and multicast.
+ * - If the session does not exist, it creates a new LSP process and multicast streams.
+ * - Each WebSocket gets its own consumer streams from the multicast.
+ * - The WebSocket connection is registered in the session's connection map.
+ * - When the WebSocket closes, it deregisters the consumer and cleans up streams.
+ *
+ * Multicast streams allow multiple WebSocket connections to independently read
+ * the same data from the LSP process, enabling multi-tab editing.
+ */
+export class LSWSServer {
+  public readonly lsProcManager: LSProcManager;
+  public acceptingConnections = true;
+
+  private sessionMap = new Map<string, LSWSServerSessionData>();
+  private maxSessionConns?: number;
+  private shutdownTimeoutId?: number;
+  public shutdownAfter?: number;
+
+  public onProcError?: (sessionId: string, error: Error) => void;
+  public onProcExit?: (sessionId: string, code: number | null) => void;
+
+  constructor({
+    lsCommand,
+    lsArgs,
+    lsLogPath,
+    maxProcs,
+    maxSessionConns,
+    shutdownAfter,
+    onProcError,
+    onProcExit,
+  }: LSWSServerOptions) {
+    logger.info(
+      {},
+      `Initializing LSWSServer with command: ${lsCommand} ${lsArgs.join(" ")}`,
+    );
+    logger.info(
+      {},
+      `Log path: ${lsLogPath}, Max processes: ${maxProcs || "unlimited"}`,
+    );
+
+    this.onProcError = onProcError;
+    this.onProcExit = onProcExit;
+    this.shutdownAfter = shutdownAfter;
+
+    this.lsProcManager = new LSProcManager({
+      lsStdoutLogPath: join(lsLogPath, "vtlsp-lsp-stdout.log"),
+      lsStderrLogPath: join(lsLogPath, "vtlsp-lsp-stderr.log"),
+      lsCommand,
+      lsArgs,
+      maxProcs,
+      onProcError: (sessionId: string, error: Error): void => {
+        logger.error(
+          { sessionId, error: error.stack || error.message },
+          `LSP process error for session ${sessionId}: ${error.message}`,
+        );
+
+        this.onProcError?.(sessionId, error);
+      },
+      onProcExit: async (sessionId, code, signal, proc): Promise<void> => {
+        const logLineCount = Number.parseInt(
+          Deno.env.get("CRASH_LOG_LINE_COUNT") ?? "1000",
+        );
+
+        // biome-ignore lint/suspicious/noConsole: for crash reporting
+        console.error(
+          { sessionId, exitCode: code, signal },
+          `LSP process for session ${sessionId} exited with code ${code}`,
+        );
+
+        const [lastLogsStdout, lastLogsStderr] = await proc
+          .getLogTail(logLineCount);
+
+        const crashReport = `=== LSP Exit Report ===\n` +
+          `Session ID: ${sessionId}\n` +
+          `Exit code: ${code}\n` +
+          `LSP command: ${lsCommand} ${lsArgs.join(" ")}\n` +
+          `Last ${logLineCount} lines of stdout:\n${lastLogsStdout}\n` +
+          `Last ${logLineCount} lines of stderr:\n${lastLogsStderr}\n` +
+          `=== End of Exit Report ===\n`;
+
+        // biome-ignore lint/suspicious/noConsole: for crash reporting
+        console.error(crashReport);
+
+        if (
+          Deno.env.get("EXIT_ON_LS_BAD_EXIT") === "1" &&
+          this.sessionMap.has(sessionId) &&
+          code !== null
+        ) {
+          // If the session map doesn't have the proc that means we manually killed it
+          Deno.exit(code);
+        }
+
+        // Close the session immediately when the process exits
+        await this.closeSession(sessionId, 1012, `LSP process exited (code ${code})`);
+        this.onProcExit?.(sessionId, code);
+      },
+    });
+
+    this.maxSessionConns = maxSessionConns;
+
+    logger.info({}, "LSWSServer initialized successfully");
+  }
+
+  public handleNewWebsocket(request: Request, sessionId: string): Response {
+    if (!this.acceptingConnections) {
+      logger.warn({ sessionId }, "New WebSocket connection request rejected");
+      return new Response("Server is not accepting new connections", { status: 503 });
+    }
+
+    logger.info({ sessionId }, "New WebSocket connection request for session");
+
+    let proc: LSProc;
+    let sessionData = this.sessionMap.get(sessionId);
+
+    // Check if we're reconnecting to an existing session
+    if (sessionData?.proc.pid) {
+      // Ensure we don't exceed the maximum connections per session to prevent event
+      // listener leaks
+      this.#enforceMaxConnsPerSession(sessionData, sessionId);
+
+      // Reuse existing process and multicast
+      proc = sessionData.proc;
+      logger.info(
+        { sessionId, pid: proc.pid },
+        "Reconnecting to existing LSP process for session",
+      );
+    } else {
+      logger.info(
+        { sessionId },
+        `Creating new LSP process for session ${sessionId}`,
+      );
+      proc = this.lsProcManager.getOrCreateProc(sessionId);
+      logger.info(
+        { sessionId, pid: proc.pid },
+        `Created LSP process with PID ${proc.pid} for session ${sessionId}`,
+      );
+
+      if (!proc.stdout || !proc.stdin) {
+        logger.error(
+          { sessionId },
+          "Failed to create LSP process streams",
+        );
+        return new Response("Failed to create LSP process streams", { status: 500 });
+      }
+
+      // Create multicast stream for the new process stdout only
+      const createProcOutConsumer = this.#createNewMulticastStream(proc.stdout);
+
+      // Create singlecast stream for stdin handling (many-to-one)
+      const createStdinProducer = this.#createNewSinglecastStream(proc.stdin);
+
+      // Set the maxEventListeners for stdout and stdin based on this.maxSessionConns
+      if (this.maxSessionConns) {
+        proc.stdout.setMaxListeners(this.maxSessionConns + 1); // +1 for the initial consumer
+        proc.stdin.setMaxListeners(this.maxSessionConns + 1);
+      }
+
+      sessionData = {
+        conns: new Map(),
+        proc,
+        createProcOutConsumer,
+        createStdinProducer,
+      };
+      this.sessionMap.set(sessionId, sessionData);
+    }
+
+    if (!sessionData.createProcOutConsumer) {
+      logger.error(
+        { sessionId },
+        "Failed to access multicast streams for LSP process",
+      );
+      return new Response("Failed to create LSP process streams", { status: 500 });
+    }
+
+    const { socket, response } = Deno.upgradeWebSocket(request);
+    logger.debug({ sessionId }, "WebSocket upgraded successfully");
+
+    this.#setupShutdownHandling(socket);
+
+    socket.addEventListener("error", (event) => {
+      logger.error(
+        { sessionId, event },
+        `WebSocket error for session ${sessionId}`,
+      );
+      this.#closeWebSocket(socket, sessionId, 1011, "WebSocket error occurred");
+    });
+
+    const { readable: webSocketIn, writable: webSocketOut } = createWebSocketStreams(socket);
+
+    // Register new proxies for this WebSocket
+    const procOutConsumer = sessionData.createProcOutConsumer();
+    const stdinProducer = sessionData.createStdinProducer();
+
+    // Register this connection with its consumer
+    const connData: ConnectionData = {
+      procOutConsumer,
+      requestIDTranslationMap: new Map(),
+    };
+    sessionData.conns.set(socket, connData);
+
+    try {
+      // Connect the process output consumer to this WebSocket's output with connection-specific middleware
+      pipeLsInToLsOut(
+        procOutConsumer,
+        webSocketOut,
+        this.#createConnectionOutMiddleware(connData),
+      );
+
+      // Connect the WebSocket input to the stdin producer through connection-specific middleware
+      pipeLsInToLsOut(
+        webSocketIn,
+        stdinProducer,
+        this.#createInboundMiddleware(connData),
+      );
+
+      // Set up error handling for the streams
+      procOutConsumer.on("error", (error) => {
+        logger.error(
+          { sessionId, error: error.stack || error.message },
+          "Process output consumer error",
+        );
+        this.#closeWebSocket(socket, sessionId, 1011, "Stream error occurred");
+      });
+      stdinProducer.on("error", (error) => {
+        logger.error({ sessionId, error: error.stack || error.message }, "Stdin producer error");
+        this.#closeWebSocket(socket, sessionId, 1011, "Stream error occurred");
+      });
+
+      // Add error handlers for WebSocket streams to prevent crashes
+      webSocketIn.on("error", (error) => {
+        logger.error(
+          { sessionId, error: error.stack || error.message },
+          "WebSocket input stream error",
+        );
+        this.#closeWebSocket(socket, sessionId, 1011, "WebSocket input error");
+      });
+      webSocketOut.on("error", (error) => {
+        logger.error(
+          { sessionId, error: error.stack || error.message },
+          "WebSocket output stream error",
+        );
+        this.#closeWebSocket(socket, sessionId, 1011, "WebSocket output error");
+      });
+    } catch (err) {
+      if (!(Error.isError(err))) throw err;
+      logger.error({ sessionId, error: err.stack || err.message }, "Error setting up stream pipes");
+      return new Response("Failed to set up WebSocket streams", { status: 500 });
+    }
+
+    socket.onopen = () => {
+      logger.info({ sessionId }, `WebSocket connection opened for session ${sessionId}`);
+    };
+
+    socket.onerror = (event) => {
+      logger.error({ sessionId, event }, `WebSocket error for session ${sessionId}`);
+      this.#closeWebSocket(socket, sessionId, 1011, "WebSocket error occurred");
+    };
+
+    socket.onclose = (event) => {
+      const connData = sessionData.conns.get(socket);
+
+      logger.info(
+        {
+          sessionId,
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+        },
+        "WebSocket closed for session",
+      );
+
+      if (connData) {
+        try {
+          connData.procOutConsumer.destroy();
+          webSocketOut.destroy();
+        } catch (err) {
+          logger.debug(
+            { sessionId, error: err },
+            "Error during connection cleanup",
+          );
+        }
+        sessionData.conns.delete(socket);
+      }
+    };
+
+    logger.info({ sessionId }, `WebSocket connection established for ${sessionId}`);
+    return response;
+  }
+
+  /**
+   * Close a session and all its connections.
+   *
+   * @param sessionId The ID of the session to close.
+   * @param code Optional WebSocket close code (default is 1000).
+   * @param message Optional close message (default is "Session closed by server").
+   */
+  public async closeSession(
+    sessionId: string,
+    code = 1012,
+    message = "Session closed by server",
+  ): Promise<void> {
+    const session = this.sessionMap.get(sessionId);
+    if (!session) return;
+    this.sessionMap.delete(sessionId);
+
+    logger.info(
+      { sessionId, code, message },
+      `Closing session ${sessionId} with code ${code}: ${message}`,
+    );
+
+    for (const [ws, connData] of session.conns) {
+      logger.debug({ sessionId, code, message }, "Closing WebSocket connection");
+
+      // Close the WebSocket first, before destroying streams
+      this.#closeWebSocket(ws, sessionId, code, message);
+
+      try {
+        logger.trace({ sessionId }, "Destroying consumer streams");
+        connData.procOutConsumer.destroy();
+      } catch (err) {
+        logger.debug(
+          { sessionId, error: err },
+          "Error while closing consumer streams during session close",
+        );
+      }
+    }
+
+    await this.lsProcManager.releaseProc(sessionId);
+
+    logger.info(
+      { sessionId },
+      `Session ${sessionId} closed successfully`,
+    );
+  }
+
+  /**
+   * Shutdown the server and all sessions.
+   *
+   * This method gracefully closes all sessions and their connections,
+   * ensuring that all resources are cleaned up properly.
+   *
+   * @param code Optional WebSocket close code (default is 1012).
+   * @returns A promise that resolves when the server has shut down.
+   */
+  public async shutdown(code = 1012, message = "Server shutting down") {
+    this.acceptingConnections = false;
+
+    logger.info("Shutting down LSWSServer and all sessions");
+
+    // Close all sessions gracefully
+    for (const sessionId of this.sessionMap.keys()) {
+      await this.closeSession(sessionId, code, message);
+    }
+  }
+
+  #createInboundMiddleware(connData: ConnectionData) {
+    return (chunk: string): string | null => {
+      try {
+        const message = JSON.parse(chunk);
+
+        // Change the inbound message numerical ID to a UUID, and put the UUID in our map
+        if (isJSONRPCRequest(message) && typeof message.id === "number") {
+          logger.debug({ messageId: message.id }, "Processing LSP message with ID");
+          const newUuid = crypto.randomUUID();
+          connData.requestIDTranslationMap.set(newUuid, message.id);
+          message.id = newUuid;
+        }
+
+        return JSON.stringify(message);
+      } catch (error) {
+        logger.error("Failed to parse message: ", error);
+        return chunk;
+      }
+    };
+  }
+
+  #createConnectionOutMiddleware(connData: ConnectionData) {
+    return (chunk: string): string | null => {
+      try {
+        const message = JSON.parse(chunk);
+
+        // If the message is a response with a UUID ID, map it back to a numerical ID
+        if (isJSONRPCResponse(message) && typeof message.id === "string") {
+          logger.debug({ messageId: message.id }, "Processing LSP response with ID");
+
+          const originalId = connData.requestIDTranslationMap.get(message.id);
+          if (originalId === undefined) {
+            logger.warn(
+              { messageId: message.id },
+              "No original numerical ID found for UUID ID in response",
+            );
+            // Don't send the message if we can't map it. This is probably a
+            // response to a request for a different session.
+            return null;
+          }
+
+          const oldMessageId = message.id;
+          message.id = originalId;
+          connData.requestIDTranslationMap.delete(oldMessageId);
+        }
+
+        return JSON.stringify(message);
+      } catch (error) {
+        logger.error("Failed to parse message: ", error);
+        return chunk;
+      }
+    };
+  }
+
+  /**
+   * Get a factory for streams that will read from the source stream.
+   *
+   * This creates a multicast stream that allows multiple consumers to read
+   * the same data from the source stream.
+   *
+   * Once the source stream ends or encounters an error, all consumers
+   * will be notified, and no new consumers can be created.
+   */
+  #createNewMulticastStream(sourceStream: Readable): () => PassThrough {
+    const consumers = new Set<PassThrough>();
+    let isSourceEnded = false;
+
+    sourceStream.on("data", (chunk) => {
+      consumers.forEach((consumer) => {
+        if (!consumer.destroyed) {
+          consumer.write(chunk);
+        }
+      });
+    });
+
+    sourceStream.on("end", () => {
+      isSourceEnded = true;
+      for (const consumer of consumers) {
+        if (!consumer.destroyed) {
+          consumer.end();
+        }
+      }
+    });
+
+    sourceStream.on("error", (error) => {
+      for (const consumer of consumers) {
+        if (!consumer.destroyed) {
+          consumer.destroy(error);
+        }
+      }
+    });
+
+    return () => {
+      const consumer = new PassThrough();
+      consumers.add(consumer);
+
+      if (isSourceEnded && !consumer.destroyed) {
+        consumer.end();
+      }
+
+      consumer.on("close", () => {
+        consumers.delete(consumer);
+      });
+
+      return consumer;
+    };
+  }
+
+  /**
+   * Get a factory for streams that will write to the target stream.
+   *
+   * This creates a singlecast stream that allows multiple producers to write to
+   * the same target stream.
+   *
+   * Once the target stream is closed or encounters an error, all producers
+   * will be destroyed with the same error, and no new producers can be created.
+   */
+  #createNewSinglecastStream(targetStream: Writable): () => PassThrough {
+    const producers = new Set<PassThrough>();
+    let isTargetDestroyed = false;
+
+    const destroyAllProducers = () => {
+      for (const producer of producers) {
+        if (!producer.destroyed) {
+          producer.destroy();
+        }
+      }
+    };
+
+    targetStream.on("error", (error) => {
+      logger.error({ error }, "Error in target stream");
+      isTargetDestroyed = true;
+      destroyAllProducers();
+    });
+
+    targetStream.on("close", () => {
+      logger.info("Target stream closed");
+      isTargetDestroyed = true;
+      destroyAllProducers();
+    });
+
+    const unpipeAndDestroyProducer = (producer: PassThrough) => {
+      producer.unpipe(targetStream);
+      if (!producer.destroyed) {
+        producer.destroy();
+      }
+      producers.delete(producer);
+    };
+
+    return () => {
+      const producer = new PassThrough();
+      producers.add(producer);
+
+      if (!isTargetDestroyed) {
+        producer.pipe(targetStream, { end: false });
+      }
+
+      producer.on("error", (error) => {
+        logger.debug({ error }, "Error in stdin producer stream");
+        unpipeAndDestroyProducer(producer);
+      });
+
+      producer.on("close", () => {
+        unpipeAndDestroyProducer(producer);
+      });
+
+      if (isTargetDestroyed && !producer.destroyed) {
+        producer.destroy();
+      }
+
+      return producer;
+    };
+  }
+
+  #closeWebSocket(socket: WebSocket, sessionId: string, code: number, reason: string): void {
+    try {
+      if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+        logger.debug({
+          sessionId,
+          code,
+          reason,
+          readyState: socket.readyState,
+        }, "Attempting to close WebSocket");
+        socket.close(code, reason);
+      } else {
+        logger.debug({
+          sessionId,
+          readyState: socket.readyState,
+          attemptedCode: code,
+        }, "WebSocket already closed or closing");
+      }
+    } catch (error) {
+      logger.error({
+        sessionId,
+        error: error instanceof Error ? error.message : String(error),
+      }, "Error while closing WebSocket");
+    }
+  }
+
+  #enforceMaxConnsPerSession(sessionData: LSWSServerSessionData, sessionId: string): void {
+    if (!this.maxSessionConns) return;
+
+    while (sessionData.conns.size >= this.maxSessionConns) {
+      const firstConnection = sessionData.conns.keys().next().value;
+      if (firstConnection) {
+        logger.info(
+          { sessionId, currentConns: sessionData.conns.size, maxConns: this.maxSessionConns },
+          "Connection limit reached, closing first connection",
+        );
+
+        this.#closeWebSocket(firstConnection, sessionId, 1000, "Connection limit exceeded");
+        sessionData.conns.delete(firstConnection);
+      } else {
+        break;
+      }
+    }
+  }
+
+  #setupShutdownHandling(socket: WebSocket): void {
+    const abortController = new AbortController();
+    const { signal } = abortController;
+
+    const resetShutdownTimeout = () => {
+      if (this.shutdownAfter) {
+        if (this.shutdownTimeoutId) {
+          clearTimeout(this.shutdownTimeoutId);
+          this.shutdownTimeoutId = undefined;
+        }
+
+        this.shutdownTimeoutId = setTimeout(async () => {
+          await this.shutdown(1012, "Server shutting down due to inactivity");
+          // biome-ignore lint/suspicious/noConsole: for shutdown logging
+          console.error(`Shutting down after inactivity`);
+          Deno.exit(1);
+        }, this.shutdownAfter * 1000);
+      }
+    };
+
+    resetShutdownTimeout(); // when a new socket is enabled, clear any existing timeout
+
+    const messageHandler = () => {
+      resetShutdownTimeout();
+    };
+
+    const closeHandler = () => {
+      resetShutdownTimeout();
+      abortController.abort();
+    };
+
+    socket.addEventListener("message", messageHandler, { signal });
+    socket.addEventListener("close", closeHandler, { signal });
+  }
+}
+

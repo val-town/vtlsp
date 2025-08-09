@@ -3,95 +3,46 @@
   "account_id": "0c98b133158df53222b825aafd746596",
   "compatibility_date": "2025-05-19",
   "name": "lsp",
-  "main": "main.ts",
+  "main": "deploy/main.ts",
   "compatibility_flags": ["nodejs_compat"],
   "observability": {
     "enabled": true
   },
-  "env": {
-    "dev": {
-      "vars": {
-        "NODE_ENV": "development",
-        "COOKIE_DOMAIN": "lsp-dev.val.town"
-      },
-      "routes": [
-        {
-          "zone_id": "e796668d8e57b32b438365f4a42730bf",
-          "pattern": "lsp-dev.val.town"
-        }
-      ],
-      "durable_objects": {
-        "bindings": [
-          {
-            "class_name": "VTLSPContainer",
-            "name": "DEV_LSP_CONTAINER"
-          }
-        ]
-      },
-      "containers": [
-        {
-          "instances": 5,
-          "name": "lsp-container-dev",
-          "class_name": "VTLSPContainer",
-          "configuration": {
-            "image": "../Dockerfile",
-            "disk": {
-              "size": "1GB"
-            },
-            "memory": "1GB",
-            "vcpu": 1
-          }
-        }
-      ],
-      "migrations": [
-        {
-          "tag": "v1",
-          "new_sqlite_classes": ["VTLSPContainer"]
-        }
-      ],
-      "logpush": true
-    },
-    "prod": {
-      "vars": {
-        "NODE_ENV": "production",
-        "COOKIE_DOMAIN": "lsp.val.town"
-      },
-      "routes": [
-        {
-          "zone_id": "e796668d8e57b32b438365f4a42730bf",
-          "pattern": "lsp.val.town"
-        }
-      ],
-      "durable_objects": {
-        "bindings": [
-          {
-            "class_name": "VTLSPContainer",
-            "name": "PROD_LSP_CONTAINER"
-          }
-        ]
-      },
-      "containers": [
-        {
-          "instances": 80,
-          "name": "lsp-container-prod",
-          "class_name": "VTLSPContainer",
-          "configuration": {
-            "image": "../Dockerfile",
-            "disk": {
-              "size": "1GB"
-            },
-            "memory": "1GB",
-            "vcpu": 1
-          }
-        }
-      ],
-      "migrations": [
-        {
-          "tag": "v2",
-          "new_sqlite_classes": ["VTLSPContainer"]
-        }
-      ],
-      "logpush": true
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  "vars": {
+    "NODE_ENV": "production",
+    "COOKIE_DOMAIN": "lsp.val.town"
+  },
+  "routes": [
+    {
+      "zone_id": "e796668d8e57b32b438365f4a42730bf",
+      "pattern": "lsp.val.town"
     }
-  }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "VTLSPContainer",
+        "name": "LSP_CONTAINER"
+      }
+    ]
+  },
+  "containers": [
+    {
+      "max_instances": 5,
+      "name": "lsp-container",
+      "class_name": "VTLSPContainer",
+      "instance_type": "standard",
+      "image": "./deploy/Dockerfile"
+    }
+  ],
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["VTLSPContainer"]
+    }
+  ]
 }

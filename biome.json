@@ -5,6 +5,13 @@
     "clientKind": "git",
     "useIgnoreFile": false
   },
+  "files": {
+    "includes": [
+      "./demo/**/*{ts,tsx,js,jsx,json,html,css}",
+      "./ws-lsp-server/**/*{ts,tsx,js,jsx,json,html,css}",
+      "./codemirror-lsp/**/*{ts,tsx,js,jsx,json,html,css}"
+    ]
+  },
   "formatter": {
     "enabled": true,
     "indentStyle": "space"
