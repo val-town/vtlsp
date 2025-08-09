@@ -127,9 +127,11 @@ async function requestRename({
       const currentWord = doc.sliceString(from, to);
 
       // Check if dialog is already open
-      let panel = getDialog(view, "cm-lsp-rename-panel");
+      const panel = getDialog(view, "cm-lsp-rename-panel");
       if (panel) {
-        let input = panel.dom.querySelector("[name=name]") as HTMLInputElement;
+        const input = panel.dom.querySelector(
+          "[name=name]",
+        ) as HTMLInputElement;
         input.value = currentWord;
         input.select();
       } else {
@@ -142,7 +144,7 @@ async function requestRename({
           scrollIntoView: true,
         });
 
-        let { close, result } = showDialog(view, {
+        const { close, result } = showDialog(view, {
           label: "New name",
           input: { name: "name", value: currentWord },
           focus: true,
@@ -215,8 +217,10 @@ function prepareRenameFallback({
   let match: RegExpExecArray | null;
   let start = character;
   let end = character;
+
   // Find all word matches in the line
-  while ((match = wordRegex.exec(lineText)) !== null) {
+  match = wordRegex.exec(lineText);
+  while (match !== null) {
     const matchStart = match.index;
     const matchEnd = match.index + match[0].length;
 
@@ -226,6 +230,7 @@ function prepareRenameFallback({
       end = matchEnd;
       break;
     }
+    match = wordRegex.exec(lineText);
   }
 
   if (start === character && end === character) {

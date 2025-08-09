@@ -312,7 +312,6 @@ function createReferencePanel(
       const endPos = posToOffset(view.state.doc, ref.range.end);
 
       if (startPos && endPos) {
-        view.focus();
         view.dispatch({
           selection: { anchor: startPos, head: endPos },
           scrollIntoView: true,

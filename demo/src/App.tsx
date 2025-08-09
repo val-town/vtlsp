@@ -1,52 +1,53 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { javascript } from "@codemirror/lang-javascript";
-import { Compartment } from "@codemirror/state";
+import { EditorView, basicSetup } from "codemirror";
+import { EditorState } from "@codemirror/state";
 import { useLsCodemirror } from "./useLsCodemirror";
-import { useCodeMirror } from '@uiw/react-codemirror';
-
-const DEFAULT_CODE = "console.log('hello world!');\n\n\n";
 
 export default function App() {
   const editor = useRef<HTMLDivElement>(null);
-  const lsCompartment = useRef(new Compartment());
-  const [url, setUrl] = useState(
-    `ws://localhost:5002?session=${crypto.randomUUID()}`,
-  );
+  const view = useRef<EditorView | null>(null);
+  const [url, setUrl] = useState(`ws://localhost:5002?session=${crypto.randomUUID()}`);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [value, setValue] = useState(DEFAULT_CODE);
 
-  const { extensions: lsExtensions, connect, disconnect, isConnected } = useLsCodemirror({
+  const {
+    extensions: lsExtensions,
+    connect,
+    disconnect,
+    isConnected
+  } = useLsCodemirror({
     path: "/demo.ts",
   });
 
-  const extensions = useMemo(() => {
-    return [
-      javascript(),
-      lsCompartment.current.of(lsExtensions || [])
-    ];
-  }, [lsExtensions]);
-
-  const { setContainer, view } = useCodeMirror({
-    container: editor.current,
-    extensions,
-    value,
-    onChange: setValue,
-  });
-
   useEffect(() => {
-    if (editor.current) {
-      setContainer(editor.current);
-    }
-  }, [setContainer]);
+    if (editor.current && !view.current && lsExtensions) {
+      const state = EditorState.create({
+        doc: "console.log('hello world!');\n\n\n",
+        extensions: [
+          basicSetup,
+          javascript({ jsx: true, typescript: true }),
+          lsExtensions,
+          EditorView.updateListener.of((update) => {
+            // biome-ignore lint/suspicious/noConsole: debugging
+            console.log("Editor updated:", update);
+          })
+        ]
+      });
 
-  useEffect(() => {
-    if (view && lsExtensions) {
-      view.dispatch({
-        effects: lsCompartment.current.reconfigure(lsExtensions)
+      view.current = new EditorView({
+        state,
+        parent: editor.current
       });
     }
-  }, [view, lsExtensions]);
+
+    return () => {
+      if (view.current) {
+        view.current.destroy();
+        view.current = null;
+      }
+    };
+  }, [lsExtensions]);
 
   const handleConnect = async () => {
     if (isConnected) {
@@ -60,9 +61,7 @@ export default function App() {
     try {
       await connect(url);
     } catch (error) {
-      // biome-ignore lint/suspicious/noConsole: debugging
-      console.error("Failed to connect:", error);
-      setError("Connection failed");
+      setError(`Connection failed ${error instanceof Error ? `: ${error.message}` : ""}`);
     } finally {
       setIsConnecting(false);
     }

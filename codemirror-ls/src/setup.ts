@@ -33,17 +33,17 @@ export function languageServerWithClient(options: LanguageServerOptions) {
     window: { render: asyncNoop },
     ...options.features,
   } satisfies LanguageServerFeatures;
+  const extensions: Extension[] = [];
 
   const lsClient = options.client;
 
-  const extensions: Extension[] = [
-    LSPlugin.of({
-      client: lsClient,
-      documentUri: options.documentUri,
-      languageId: options.languageId,
-      sendDidOpen: options.sendDidOpen ?? true,
-    }),
-  ];
+  const lsPlugin = LSPlugin.of({
+    client: lsClient,
+    documentUri: options.documentUri,
+    languageId: options.languageId,
+    sendDidOpen: options.sendDidOpen ?? true,
+  });
+  extensions.push(lsPlugin);
 
   if (!features.signatureHelp.disabled) {
     extensions.push(
