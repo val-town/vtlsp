@@ -1,0 +1,39 @@
+export const defaultDenoJsonConfig = {
+  "lock": false,
+  "compilerOptions": {
+    "noImplicitAny": false,
+    "strict": false,
+    "types": [
+      "https://www.val.town/types/valtown.d.ts",
+    ],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "dom.asynciterable",
+      "deno.ns",
+      "deno.unstable",
+    ],
+  },
+  "lint": {
+    "files": {
+      "include": [
+        "deno:/https/esm.town/**/*",
+      ],
+    },
+    "rules": {
+      "exclude": [
+        "no-explicit-any",
+      ],
+    },
+  },
+  "node_modules_dir": false,
+  "experimental": {
+    "unstable-node-globals": true,
+    "unstable-temporal": true,
+    "unstable-worker-options": true,
+    "unstable-sloppy-imports": true,
+  },
+  "exclude": [
+    "../../app",
+  ],
+};

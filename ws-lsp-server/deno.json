@@ -1,0 +1,27 @@
+{
+  "name": "vtlsp-server",
+  "exports": {
+    "@lsp-server": "./lsp-server/main.ts",
+    "@lsp-proxy": "./lsp-ls/main.ts"
+  },
+  "tasks": {
+    "check": "deno check ./lsp-server ./lsp-ls",
+    "server": "deno run -A ./lsp-server/main.ts --ls-command=deno --ls-args=run,-A,./lsp-ls/main.ts --max-processes=1",
+    "docker:build": "docker build -t vtlsp-server:latest .",
+    "docker:run": "docker run -p 5002:5002 -e ESM_TOWN_HOSTNAME=module.localhost:3001 vtlsp-server:latest",
+    "docker:exec": "docker exec $(docker ps -q --filter ancestor=vtlsp-server:latest) /bin/sh -c",
+    "lint": "deno task check",
+    "test": "deno task lint && deno task test:only",
+    "test:only": "deno test -A --trace-leaks ./lsp-server ./lsp-ls --ignore=cloudflare --ignore=codemirror-lsp",
+    "test:ci": "deno run -A ./test.ts 5002",
+    "lsp": "deno run -A ./lsp-ls/main.ts",
+    "dev": "deno run -A ./lsp-server/main.ts"
+  },
+  "unstable": ["detect-cjs"],
+  "imports": {
+    "execa": "npm:execa@^9.6.0",
+    "pino": "npm:pino@^9.6.0",
+    "lsp-jsonrpc/": "./lsp-jsonrpc/"
+  },
+  "exclude": ["./codemirror-lsp", "./cloudflare", "./common"]
+}

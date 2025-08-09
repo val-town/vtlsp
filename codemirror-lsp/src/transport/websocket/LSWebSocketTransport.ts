@@ -1,0 +1,447 @@
+import {
+  Emitter,
+  type MessageReader,
+  type MessageWriter,
+  ReadableStreamMessageReader,
+  WriteableStreamMessageWriter,
+  type Disposable,
+  type RAL,
+  type MessageConnection,
+  createMessageConnection,
+} from "vscode-jsonrpc";
+import pTimeout from "p-timeout";
+import type { LSITransport } from "./LSITransport";
+import WebSocket, {
+  type Event,
+  type CloseEvent,
+  type ErrorEvent, // isomorphic-ws provides better type safety than vanilla WebSockets
+} from "isomorphic-ws";
+
+const MAX_CHUNK = 900 * 1024;
+
+interface LSWebSocketTransportOptions {
+  onWSOpen?: (e: Event) => void;
+  onWSClose?: (e: CloseEvent) => void;
+  onWSError?: (error: ErrorEvent) => void;
+  onLSHealthy?: () => void;
+}
+
+export class LSWebSocketTransport implements LSITransport {
+  public connection?: WebSocket;
+  public uri: string;
+
+  public onWSOpen?: (e: Event) => void;
+  public onWSClose?: (e: CloseEvent) => void;
+  public onWSError?: (error: ErrorEvent) => void;
+  public onLSHealthy?: () => void;
+
+  #messageConnection: MessageConnection | null = null;
+  #connectingPromise: Promise<void> | null = null;
+  #disposed = false;
+
+  #notifyBuffer: [string, unknown][] = [];
+  #requestBuffer: [
+    string,
+    unknown,
+    number | undefined,
+    (result: unknown) => void,
+    (error: unknown) => void,
+  ][] = [];
+
+  #errorEmitter = new Emitter<Error>();
+  #notifyEmitter = new Emitter<{ method: string; params: unknown }>();
+  #requestEmitter = new Emitter<{ method: string; params: unknown }>();
+
+  constructor(
+    uri: string,
+    {
+      onWSOpen,
+      onWSClose,
+      onLSHealthy,
+      onWSError,
+    }: LSWebSocketTransportOptions = {}
+  ) {
+    this.uri = uri.replace("http", "ws");
+    this.onLSHealthy = onLSHealthy;
+    this.onWSOpen = onWSOpen;
+    this.onWSClose = onWSClose;
+    this.onWSError = onWSError;
+  }
+
+  async sendRequest(
+    method: string,
+    params?: unknown,
+    timeout?: number
+  ): Promise<unknown> {
+    this.#errorIfDisposed();
+
+    if (this.#messageConnection) {
+      const promise = this.#messageConnection.sendRequest(method, params);
+      return timeout ? pTimeout(promise, { milliseconds: timeout }) : promise;
+    } else {
+      return new Promise((resolve, reject) => {
+        this.#requestBuffer.push([method, params, timeout, resolve, reject]);
+      });
+    }
+  }
+
+  public onRequest(handler: (method: string, params: unknown) => unknown) {
+    this.#errorIfDisposed();
+    return this.#requestEmitter.event(({ method, params }) =>
+      handler(method, params)
+    ).dispose;
+  }
+
+  public sendNotification(method: string, params?: unknown): void {
+    this.#errorIfDisposed();
+
+    if (this.#messageConnection) {
+      this.#messageConnection.sendNotification(method, params);
+    } else {
+      this.#notifyBuffer.push([method, params]);
+    }
+  }
+
+  public onNotification(handler: (method: string, params: unknown) => void) {
+    this.#errorIfDisposed();
+    return this.#notifyEmitter.event(({ method, params }) =>
+      handler(method, params)
+    ).dispose;
+  }
+
+  public onError(handler: (error: unknown) => void) {
+    this.#errorIfDisposed();
+    return this.#errorEmitter.event(handler).dispose;
+  }
+
+  public dispose(): void {
+    this.connection?.close(1000, "Transport disposed");
+    this.#disposed = true;
+    this.#errorEmitter.dispose();
+    this.#notifyEmitter.dispose();
+    this.#requestEmitter.dispose();
+  }
+
+  public close(): void {
+    // Impl for LSITransport.close
+    this.dispose();
+  }
+
+  public connected(): boolean {
+    return this.connection?.readyState === WebSocket.OPEN;
+  }
+
+  public connect(): Promise<void> {
+    this.#errorIfDisposed();
+
+    if (this.#connectingPromise) {
+      return this.#connectingPromise;
+    }
+
+    if (this.connected()) {
+      return Promise.resolve();
+    }
+
+    this.connection = new WebSocket(this.uri);
+
+    this.#connectingPromise = new Promise<void>((resolve, reject) => {
+      const onOpenCb = (e: Event) => {
+        this.#errorIfDisposed();
+
+        this.connection?.removeEventListener("open", onOpenCb);
+        this.connection?.removeEventListener("error", onErrorCb);
+
+        this.#setupMessageConnection();
+        this.onWSOpen?.(e);
+        this.#connectingPromise = null;
+        resolve();
+      };
+      this.connection?.addEventListener("open", onOpenCb);
+
+      const onCloseCb = (e: CloseEvent) => {
+        this.#errorIfDisposed();
+
+        try {
+          this.connection?.removeEventListener("close", onCloseCb);
+          this.#messageConnection?.dispose();
+          this.#messageConnection = null;
+          this.onWSClose?.(e);
+        } finally {
+          this.dispose();
+        }
+      };
+      this.connection?.addEventListener("close", onCloseCb);
+
+      const onErrorCb = (error: ErrorEvent) => {
+        this.#errorIfDisposed();
+
+        this.connection?.removeEventListener("open", onOpenCb);
+        this.connection?.removeEventListener("error", onErrorCb);
+        this.onWSError?.(error);
+        this.#connectingPromise = null;
+        reject(error);
+      };
+      this.connection?.addEventListener("error", onErrorCb);
+    });
+
+    return this.#connectingPromise;
+  }
+
+  public async sendHeartbeat(timeout = 3_000): Promise<boolean> {
+    this.#errorIfDisposed();
+
+    try {
+      const resp = await this.sendRequest("vtlsp/ping", {}, timeout);
+      return Boolean(
+        resp &&
+          typeof resp === "object" &&
+          resp !== null &&
+          "status" in resp &&
+          resp.status === "pong"
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  #errorIfDisposed(): void {
+    if (this.#disposed) {
+      throw new WebSocketJSONRPCClientDisposedError();
+    }
+  }
+
+  #setupMessageConnection(): void {
+    if (!this.connection || this.connection.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    const { reader, writer } = createWebSocketConnection(this.connection);
+    this.#messageConnection = createMessageConnection(reader, writer);
+
+    this.#messageConnection.onNotification((method, params) => {
+      if (method === "vtlsp/didFinishCaching") {
+        this.onLSHealthy?.();
+      }
+
+      try {
+        this.#notifyEmitter.fire({ method, params });
+      } catch (error) {
+        this.#errorEmitter.fire(error as Error);
+      }
+    });
+
+    this.#messageConnection.onRequest((method, params) => {
+      try {
+        this.#requestEmitter.fire({ method, params });
+      } catch (error) {
+        this.#errorEmitter.fire(error as Error);
+      }
+    });
+
+    this.#messageConnection.listen();
+
+    for (const [method, params] of this.#notifyBuffer) {
+      this.#messageConnection.sendNotification(method, params);
+    }
+    this.#notifyBuffer = [];
+
+    for (const [method, params, timeout, resolve, reject] of this
+      .#requestBuffer) {
+      try {
+        const promise = this.#messageConnection.sendRequest(method, params);
+        const finalPromise = timeout
+          ? pTimeout(promise, { milliseconds: timeout })
+          : promise;
+        finalPromise.then(resolve).catch(reject);
+      } catch (error) {
+        reject(error);
+      }
+    }
+    this.#requestBuffer = [];
+  }
+}
+
+class WebSocketJSONRPCClientDisposedError extends Error {
+  constructor() {
+    super("WebSocketJSONRPCClient has been disposed");
+    this.name = "WebSocketJSONRPCClientDisposedError";
+  }
+}
+
+class WebSocketWritableStream implements RAL.WritableStream {
+  #socket: WebSocket;
+  #errorEmitter = new Emitter<Error>();
+  #closeEmitter = new Emitter<void>();
+  #pendingContentLength: number | null = null;
+  #pendingBuffer: Uint8Array[] = [];
+  #supportedEncodings: NodeJS.BufferEncoding[] = ["utf-8", "utf8", "ascii"];
+
+  constructor(socket: WebSocket) {
+    this.#socket = socket;
+    this.#socket.binaryType = "arraybuffer";
+    this.#socket.addEventListener("error", (event) => {
+      this.#errorEmitter.fire(new Error(`WebSocket error: ${event}`));
+    });
+    this.#socket.addEventListener("close", () => {
+      this.#closeEmitter.fire(undefined);
+    });
+  }
+
+  async write(data: string | Uint8Array, encoding = "utf-8"): Promise<void> {
+    if (this.#socket.readyState !== WebSocket.OPEN) {
+      throw new Error("WebSocket is not open");
+    }
+
+    let uint8Data: Uint8Array;
+    if (typeof data === "string") {
+      if (
+        encoding &&
+        !this.#supportedEncodings.some((enc) => enc === encoding)
+      ) {
+        throw new Error(`Unsupported encoding: ${encoding}`);
+      }
+      uint8Data = new TextEncoder().encode(data);
+    } else {
+      uint8Data = new Uint8Array(
+        data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
+      );
+    }
+
+    // Check if this is a Content-Length header. If we receive one, then buffer and don't send
+    // until we have the full content length worth of body. Note that this is somewhat coupled
+    // with the way the MessageWriter that vscode-jsonrpc works: it writes two messages every
+    // time it sends a message: the Content-Length header and the actual message body. Ideally
+    // we could handle fragmented headers, etc.
+    const dataStr = new TextDecoder().decode(uint8Data);
+    const contentLengthMatch = dataStr.match(/^Content-Length:\s*(\d+)\s*$/i);
+
+    if (contentLengthMatch) {
+      this.#pendingContentLength = Number.parseInt(contentLengthMatch[1], 10);
+      this.#pendingBuffer = [uint8Data];
+      return;
+    }
+
+    // If we have a pending content length, this should be the message body
+    if (this.#pendingContentLength !== null) {
+      this.#pendingBuffer.push(uint8Data);
+
+      // Combine all pending data and send as one frame
+      const totalLength = this.#pendingBuffer.reduce(
+        (sum, chunk) => sum + chunk.length,
+        0
+      );
+      const combinedData = new Uint8Array(totalLength);
+      let offset = 0;
+
+      for (const chunk of this.#pendingBuffer) {
+        combinedData.set(chunk, offset);
+        offset += chunk.length;
+      }
+
+      // Chunk after we've loaded up the full content length header + body Uint8Array
+      for (const chunk of chunkByteArray(combinedData, MAX_CHUNK)) {
+        this.#socket.send(chunk.buffer);
+      }
+
+      // Reset state
+      this.#pendingContentLength = null;
+      this.#pendingBuffer = [];
+    } else {
+      // Send normally if no pending content length
+      for (const chunk of chunkByteArray(uint8Data, MAX_CHUNK)) {
+        this.#socket.send(chunk.buffer);
+      }
+    }
+  }
+
+  public end(): void {
+    this.#socket.close();
+  }
+
+  public onError(callback: (error: Error) => void): Disposable {
+    return this.#errorEmitter.event(callback);
+  }
+
+  public onClose(callback: () => void): Disposable {
+    return this.#closeEmitter.event(callback);
+  }
+
+  public onEnd(callback: () => void): Disposable {
+    return this.#closeEmitter.event(callback);
+  }
+}
+
+class WebSocketReadableStream implements RAL.ReadableStream {
+  #dataEmitter = new Emitter<Uint8Array>();
+  #errorEmitter = new Emitter<Error>();
+  #closeEmitter = new Emitter<void>();
+
+  constructor(socket: WebSocket) {
+    socket.binaryType = "arraybuffer";
+    socket.addEventListener("message", (event) => {
+      try {
+        let data: Uint8Array;
+        if (event.data instanceof ArrayBuffer) {
+          data = new Uint8Array(event.data);
+        } else if (typeof event.data === "string") {
+          data = new TextEncoder().encode(event.data);
+        } else {
+          throw new Error(
+            `Unsupported message data format: ${typeof event.data}`
+          );
+        }
+        this.#dataEmitter.fire(data);
+      } catch (e) {
+        this.#errorEmitter.fire(e as Error);
+      }
+    });
+
+    socket.addEventListener("error", (event) => {
+      this.#errorEmitter.fire(new Error(`WebSocket error: ${event}`));
+    });
+
+    socket.addEventListener("close", () => {
+      this.#closeEmitter.fire(undefined);
+    });
+  }
+
+  public onData(callback: (data: Uint8Array) => void): Disposable {
+    return this.#dataEmitter.event(callback);
+  }
+
+  public onError(callback: (error: Error) => void): Disposable {
+    return this.#errorEmitter.event(callback);
+  }
+
+  public onClose(callback: () => void): Disposable {
+    return this.#closeEmitter.event(callback);
+  }
+
+  public onEnd(callback: () => void): Disposable {
+    return this.#closeEmitter.event(callback);
+  }
+}
+
+function createWebSocketConnection(socket: WebSocket): {
+  reader: MessageReader;
+  writer: MessageWriter;
+} {
+  const readableStream = new WebSocketReadableStream(socket);
+  const reader = new ReadableStreamMessageReader(readableStream);
+
+  const writerStream = new WebSocketWritableStream(socket);
+  const writer = new WriteableStreamMessageWriter(writerStream);
+
+  return { reader, writer };
+}
+
+// copied from vtlsp/lsp-server/src/lib/lsp/WSStream.ts
+function* chunkByteArray(
+  byteArray: Uint8Array,
+  chunkSize: number
+): Generator<Uint8Array> {
+  const totalSize = byteArray.byteLength;
+  for (let i = 0; i < totalSize; i += chunkSize) {
+    yield byteArray.slice(i, Math.min(totalSize, i + chunkSize));
+  }
+}
