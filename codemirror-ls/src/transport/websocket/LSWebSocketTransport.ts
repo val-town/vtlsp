@@ -10,7 +10,7 @@ import {
   createMessageConnection,
 } from "vscode-jsonrpc";
 import pTimeout from "p-timeout";
-import type { LSITransport } from "./LSITransport.js";
+import type { LSITransport } from "../LSITransport.js";
 
 const MAX_CHUNK = 900 * 1024;
 

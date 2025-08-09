@@ -13,7 +13,13 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "lib": ["ES2022"],
-    "types": ["./worker-configuration.d.ts", "@types/node"]
+    "types": ["./worker-configuration.d.ts", "@types/node"],
+    "jsx": "react-jsx",
+    "allowImportingTsExtensions": true,
+    "paths": {                                                                                                                                                                                                                  
+      "codemirror-ls": ["../codemirror-ls/src"],                                                                                                                                                                                
+      "codemirror-ls/*": ["../codemirror-ls/src/*"]                                                                                                                                                                             
+    }    
   },
   "include": ["deploy/**/*", "src/**/*", "*.ts", "*.js"],
   "exclude": ["node_modules", "dist", ".wrangler"]

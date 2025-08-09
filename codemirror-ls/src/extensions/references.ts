@@ -106,7 +106,6 @@ export const getReferencesExtensions: LSExtensionGetter<
     extensions.push(
       EditorView.domEventHandlers({
         mousedown: (event, view) => {
-          console.log(event);
           if (event.button !== 0) return false;
           if (event.detail > 1) return false;
 
@@ -193,6 +192,11 @@ export function handleFindReferences({
 
       if (referenceLocations.length === 1 && goToIfOneOption) {
         const ref = referenceLocations[0];
+        if (!ref) {
+          showDialog(view, { label: `No ${REFERENCE_KIND_LABELS[kind]} found` });
+          return;
+        }
+
         if (ref.uri !== lsPlugin.documentUri) {
           onExternalReference?.(ref);
           return;

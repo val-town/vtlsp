@@ -44,6 +44,7 @@ export {
   getReferencesExtensions,
   handleFindReferences,
   closeReferencePanel,
+  REFERENCE_KIND_LABELS,
   type ReferenceExtensionsArgs,
 } from "./references.js";
 

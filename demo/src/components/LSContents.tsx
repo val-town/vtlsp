@@ -2,10 +2,10 @@ import { createLowlight } from "lowlight";
 import typescript from "highlight.js/lib/languages/typescript";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
-import { isLSPMarkupContent } from "vtlsp/codemirror-lsp/src/utils";
 import { toJsxRuntime } from "hast-util-to-jsx-runtime";
-import { Fragment, jsx, jsxs } from "react/jsx-runtime";
+import { Fragment, type JSX, jsx, jsxs } from "react/jsx-runtime";
 import type * as LSP from "vscode-languageserver-protocol";
+import { isLSPMarkupContent } from "codemirror-ls";
 
 export function LSContents({
   contents,
@@ -21,11 +21,11 @@ export function LSContents({
   } else if (Array.isArray(contents)) {
     return (
       <div>
-        {contents.map((content, index) => {
+        {contents.map((content) => {
           if (typeof content === "string") {
             return (
               <MarkdownContent
-                key={index}
+                key={crypto.randomUUID()}
                 content={content}
                 className={className}
               />
@@ -35,7 +35,7 @@ export function LSContents({
             if (content.kind === "markdown") {
               return (
                 <MarkdownContent
-                  key={index}
+                  key={crypto.randomUUID()}
                   content={content.value}
                   className={className}
                 />
@@ -43,7 +43,7 @@ export function LSContents({
             }
 
             return (
-              <div key={index}>
+              <div key={crypto.randomUUID()}>
                 <LowLightCodeBlock
                   code={content.value}
                   language={content.language || "typescript"}

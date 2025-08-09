@@ -32,7 +32,7 @@ Deno.addSignalListener("SIGTERM", gracefulShutdown("SIGTERM", 143));
 function getApp(lsWsServer: LSWSServer) {
   return new Hono()
     .get(
-      "/ws",
+      "/",
       zValidator(
         "query",
         z.object({

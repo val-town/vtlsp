@@ -1,6 +1,5 @@
-import type { ContextMenuCallbacks } from "vtlsp/codemirror-lsp/src/extensions/contextMenu";
+import type { ContextMenuCallbacks } from "codemirror-ls";
 import { MousePointer2, Type, Code2, Edit3, Search } from "lucide-react";
-import { styles as dropdownStyles } from "app/components/ui/Dropdown";
 
 export function LSContextMenu({
   goToDefinition,
@@ -54,7 +53,6 @@ function LSContextMenuButton({
   return (
     <button
       onClick={onClick}
-      className={dropdownStyles.item({ className: "py-1" })}
       type="button"
     >
       {icon}

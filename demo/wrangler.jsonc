@@ -12,16 +12,6 @@
     "directory": "./dist",
     "binding": "ASSETS"
   },
-  "vars": {
-    "NODE_ENV": "production",
-    "COOKIE_DOMAIN": "lsp.val.town"
-  },
-  "routes": [
-    {
-      "zone_id": "e796668d8e57b32b438365f4a42730bf",
-      "pattern": "lsp.val.town"
-    }
-  ],
   "durable_objects": {
     "bindings": [
       {
@@ -36,8 +26,8 @@
       "name": "vtlsp-demo-container",
       "class_name": "VTLSPDemoContainer",
       "instance_type": "standard",
-      "image": "./deploy/Dockerfile",
-      "image_build_context": "../.."
+      "image": "./deploy/server/app.Dockerfile",
+      "image_build_context": "../",
     }
   ],
   "migrations": [

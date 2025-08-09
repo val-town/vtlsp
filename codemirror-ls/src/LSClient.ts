@@ -1,6 +1,6 @@
 import type * as LSP from "vscode-languageserver-protocol";
 import type { LSCore } from "./LSPlugin.js";
-import type { LSITransport } from "./transport/websocket/LSITransport.js";
+import type { LSITransport } from "./transport/LSITransport.js";
 import { Emitter } from "vscode-jsonrpc";
 
 export class LSClient {
