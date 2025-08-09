@@ -17,7 +17,6 @@
   },
   "peerDependencies": {
     "codemirror": "^6.0.0",
-    "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.38.1"
   },
   "devDependencies": {

@@ -31,17 +31,13 @@ Deno.addSignalListener("SIGTERM", gracefulShutdown("SIGTERM", 143));
 
 function getApp(lsWsServer: LSWSServer) {
   return new Hono()
-    .get(
-      "/",
-      zValidator(
-        "query",
-        z.object({
-          session: z.string(),
-        }),
-      ),
-      (c) =>
-        lsWsServer.handleNewWebsocket(c.req.raw, c.req.valid("query").session),
-    )
+    .get("/", zValidator("query", z.object({ session: z.string() })), (c) => {
+      console.log("Received request:", c.req.raw.method, c.req.raw.url);
+      return lsWsServer.handleNewWebsocket(
+        c.req.raw,
+        c.req.valid("query").session,
+      );
+    })
     .use(async (c, next) => {
       c.header("Content-Encoding", "Identity");
       await next();

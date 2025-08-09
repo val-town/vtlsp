@@ -17,7 +17,6 @@
     "@codemirror/lang-javascript": "^6.2.4",
     "@hono/zod-validator": "^0.7.2",
     "@tailwindcss/vite": "^4.1.11",
-    "@uiw/react-codemirror": "^4.24.2",
     "codemirror-ls": "file:../codemirror-ls",
     "hast-util-to-jsx-runtime": "^2.3.6",
     "hono": "^4.9.0",

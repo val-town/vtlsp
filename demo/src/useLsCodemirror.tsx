@@ -6,7 +6,11 @@ import { LSSignatureHelp } from "./components/LSSignatureHelp";
 import { LSGoTo } from "./components/LSGoTo";
 import { LSWindow } from "./components/LSWindow";
 import type * as LSP from "vscode-languageserver-protocol";
-import { languageServerWithClient, LSClient, LSWebSocketTransport } from "codemirror-ls";
+import {
+  languageServerWithClient,
+  LSClient,
+  LSWebSocketTransport,
+} from "codemirror-ls";
 
 export function useLsCodemirror({ path }: { path: string }): {
   extensions: ReturnType<typeof languageServerWithClient> | null;
@@ -17,38 +21,34 @@ export function useLsCodemirror({ path }: { path: string }): {
   const [lsClient, setLsClient] = useState<LSClient | null>(null);
   const [transport, setTransport] = useState<LSWebSocketTransport | null>(null);
 
-  const connect = useCallback(async (url: string) => {
-    if (transport) {
-      transport.dispose();
-      setTransport(null);
-      setLsClient(null);
-    }
+  const connect = useCallback(
+    async (url: string) => {
+      if (transport) {
+        transport.dispose();
+        setTransport(null);
+        setLsClient(null);
+      }
 
-    const newTransport = new LSWebSocketTransport(url, {});
-    const newClient = new LSClient({
-      transport: newTransport,
-      workspaceFolders: [{ uri: "file:///demo", name: "Demo" }],
-      autoClose: false,
-      initializationOptions: {
-        preferences: {
-          includeCompletionsForModuleExports: true,
-          includeCompletionsWithInsertText: true,
-        },
-      },
-    });
+      const newTransport = new LSWebSocketTransport(url, {});
+      const newClient = new LSClient({
+        transport: newTransport,
+        workspaceFolders: [{ uri: "file:///demo", name: "Demo" }],
+      });
 
-    setTransport(newTransport);
-    setLsClient(newClient);
+      setTransport(newTransport);
+      setLsClient(newClient);
 
-    try {
-      await newTransport.connect();
-      await newClient.initialize(true);
-    } catch (error) {
-      setTransport(null);
-      setLsClient(null);
-      throw error;
-    }
-  }, [transport]);
+      try {
+        await newTransport.connect();
+        await newClient.initialize(true);
+      } catch (error) {
+        setTransport(null);
+        setLsClient(null);
+        throw error;
+      }
+    },
+    [transport],
+  );
 
   const disconnect = useCallback(() => {
     transport?.dispose();
@@ -61,7 +61,11 @@ export function useLsCodemirror({ path }: { path: string }): {
 
     const renderContents = async (
       dom: HTMLElement,
-      contents: string | LSP.MarkupContent | LSP.MarkedString | LSP.MarkedString[]
+      contents:
+        | string
+        | LSP.MarkupContent
+        | LSP.MarkedString
+        | LSP.MarkedString[],
     ) => {
       const root = ReactDOM.createRoot(dom);
       root.render(<LSContents contents={contents} />);

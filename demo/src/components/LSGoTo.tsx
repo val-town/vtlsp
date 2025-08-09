@@ -56,9 +56,9 @@ export function LSGoTo({ locations, kind, goTo, onClose }: LSGoToProps) {
             </div>
 
             <div className="space-y-1">
-              {refs.map((ref, index) => (
+              {refs.map((ref) => (
                 <ReferenceItem
-                  key={index}
+                  key={crypto.randomUUID()}
                   reference={ref}
                   isSelected={false}
                   onClick={() => goTo(ref)}
@@ -85,10 +85,11 @@ function ReferenceItem({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full text-left flex items-center gap-2 px-2 py-1 rounded text-xs font-mono transition-colors ${isSelected
+      className={`w-full text-left flex items-center gap-2 px-2 py-1 rounded text-xs font-mono transition-colors ${
+        isSelected
           ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300"
           : "text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 dark:hover:text-blue-300"
-        }`}
+      }`}
     >
       <span className="text-blue-600 dark:text-blue-400 min-w-[2rem]">
         {reference.range.start.line + 1}:

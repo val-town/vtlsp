@@ -1,5 +1,6 @@
 import type * as LSP from "vscode-languageserver-protocol";
 import { LowLightCodeBlock, LSContents } from "./LSContents";
+import type { JSX } from "react";
 
 interface LSPContentsProps {
   data: LSP.SignatureHelp;
@@ -11,12 +12,11 @@ export function LSSignatureHelp({
   data,
   activeParameter,
 }: LSPContentsProps): JSX.Element {
-  console.log("Rendering signature help", data, activeParameter);
   return (
     <div>
-      {data.signatures.map((line, index) => (
+      {data.signatures.map((line) => (
         <LSSignatureHelpLine
-          key={index}
+          key={data.signatures.indexOf(line)}
           line={line}
           activeParameterIndex={activeParameter}
         />

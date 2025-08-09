@@ -1,37 +1,46 @@
 import { useEffect, useRef, useState } from "react";
-import { useCodeMirror } from "@uiw/react-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
+import { EditorState } from "@codemirror/state";
 import { useLsCodemirror } from "./useLsCodemirror";
+import { EditorView } from "@codemirror/view";
 
 const DEFAULT_CODE = "console.log('hello world!');\n\n\n";
-const DEFAULT_LS_URL = "ws://localhost:5002/session=123";
 
 export default function App() {
-  const editor = useRef(null);
-  const [url, setUrl] = useState(DEFAULT_LS_URL);
+  const editor = useRef<HTMLDivElement>(null);
+  const editorView = useRef<EditorView | null>(null);
+  const [url, setUrl] = useState(
+    `ws://localhost:5002?session=${crypto.randomUUID()}`,
+  );
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const { extensions, connect, disconnect, isConnected } = useLsCodemirror({
-    path: "/demo.ts"
-  });
-
-  const allExtensions = [
-    javascript(),
-    ...(extensions ? [extensions] : [])
-  ];
-
-  const { setContainer } = useCodeMirror({
-    container: editor.current,
-    extensions: allExtensions,
-    value: DEFAULT_CODE,
+    path: "/demo.ts",
   });
 
   useEffect(() => {
-    if (editor.current) {
-      setContainer(editor.current);
+    if (editor.current && !editorView.current) {
+      const allExtensions = [javascript(), ...(extensions ? [extensions] : [])];
+
+      const state = EditorState.create({
+        doc: DEFAULT_CODE,
+        extensions: allExtensions,
+      });
+
+      editorView.current = new EditorView({
+        state,
+        parent: editor.current,
+      });
     }
-  }, [setContainer]);
+
+    return () => {
+      if (editorView.current) {
+        editorView.current.destroy();
+        editorView.current = null;
+      }
+    };
+  }, [extensions]);
 
   const handleConnect = async () => {
     if (isConnected) {

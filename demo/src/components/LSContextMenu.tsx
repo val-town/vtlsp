@@ -51,10 +51,7 @@ function LSContextMenuButton({
   icon?: React.ReactNode;
 }) {
   return (
-    <button
-      onClick={onClick}
-      type="button"
-    >
+    <button onClick={onClick} type="button">
       {icon}
       {children}
     </button>
