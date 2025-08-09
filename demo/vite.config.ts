@@ -9,6 +9,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "codemirror-ls": path.resolve(__dirname, "../codemirror-ls/src/index.ts"),
+      '@codemirror/state': path.resolve(__dirname, 'node_modules/@codemirror/state')
     },
   },
 });

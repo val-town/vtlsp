@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { javascript } from "@codemirror/lang-javascript";
-import { Compartment, Facet } from "@codemirror/state";
+import { Compartment } from "@codemirror/state";
 import { useLsCodemirror } from "./useLsCodemirror";
 import { useCodeMirror } from '@uiw/react-codemirror';
 
