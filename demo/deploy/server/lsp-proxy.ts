@@ -1,4 +1,4 @@
-import { LSPProxy, utils } from "lsp-proxy";
+import { LSPProxy, utils } from "vtls-server";
 
 const TEMP_DIR = await Deno.makeTempDir({ prefix: "vtlsp-proxy" });
 

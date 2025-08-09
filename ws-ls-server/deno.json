@@ -1,9 +1,6 @@
 {
-  "name": "vtlsp-server",
-  "exports": {
-    "@lsp-server": "./lsp-server/main.ts",
-    "@lsp-proxy": "./lsp-ls/main.ts"
-  },
+  "name": "vtls-server",
+  "exports": "./mod.ts",
   "imports": {
     "@std/assert": "jsr:@std/assert@^1.0.13",
     "@std/expect": "jsr:@std/expect@^1.0.16",

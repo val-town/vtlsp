@@ -1,9 +1,9 @@
 import type { EditorView, Tooltip } from "@codemirror/view";
 import { hoverTooltip } from "@codemirror/view";
-import { offsetToPos, posToOffset, isEmptyDocumentation } from "../utils";
+import { offsetToPos, posToOffset, isEmptyDocumentation } from "../utils.js";
 import type * as LSP from "vscode-languageserver-protocol";
-import type { LSExtensionGetter, Renderer } from "./types";
-import { LSCore } from "../LSPlugin";
+import type { LSExtensionGetter, Renderer } from "./types.js";
+import { LSCore } from "../LSPlugin.js";
 
 export type RenderHover = Renderer<
   [contents: string | LSP.MarkupContent | LSP.MarkedString | LSP.MarkedString[]]

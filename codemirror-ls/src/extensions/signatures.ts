@@ -4,9 +4,9 @@ import type { EditorView, Tooltip, ViewUpdate } from "@codemirror/view";
 import { ViewPlugin, showTooltip } from "@codemirror/view";
 import { StateField, StateEffect } from "@codemirror/state";
 import type * as LSP from "vscode-languageserver-protocol";
-import { offsetToPos } from "../utils";
-import type { LSExtensionGetter } from "./types";
-import { LSCore } from "../LSPlugin";
+import { offsetToPos } from "../utils.js";
+import type { LSExtensionGetter } from "./types.js";
+import { LSCore } from "../LSPlugin.js";
 
 export interface SignatureSuggestionArgs {
   render: RenderSignatureHelp;

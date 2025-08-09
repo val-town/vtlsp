@@ -13,9 +13,9 @@ import {
   posToOffset,
   posToOffsetOrZero,
   prefixMatch,
-} from "../utils";
-import type { LSExtensionGetter } from "./types";
-import { LSCore } from "../LSPlugin";
+} from "../utils.js";
+import type { LSExtensionGetter } from "./types.js";
+import { LSCore } from "../LSPlugin.js";
 
 export interface CompletionExtensionsArgs {
   render: CompletionRenderer;

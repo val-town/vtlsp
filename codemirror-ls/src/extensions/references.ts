@@ -9,9 +9,9 @@ import {
   showDialog,
 } from "@codemirror/view";
 import { StateField, StateEffect, type Extension } from "@codemirror/state";
-import { offsetToPos, posToOffset, posToOffsetOrZero } from "../utils";
-import type { LSExtensionGetter, Renderer } from "./types";
-import { LSCore } from "../LSPlugin";
+import { offsetToPos, posToOffset, posToOffsetOrZero } from "../utils.js";
+import type { LSExtensionGetter, Renderer } from "./types.js";
+import { LSCore } from "../LSPlugin.js";
 
 export type OnExternalReferenceCallback = (location: ReferenceLocation) => void;
 

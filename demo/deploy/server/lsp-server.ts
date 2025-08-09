@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/suspicious/noConsole: debug logging */
 
-import { LSWSServer } from "lsp-server";
+import { LSWSServer } from "vtls-server";
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";

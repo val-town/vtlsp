@@ -1,5 +1,5 @@
 import { LSProc } from "./LSProc.ts";
-import { logger } from "../../../logger.ts";
+import { logger } from "../../logger.ts";
 
 export interface LSProcManagerOptions {
   lsCommand: string;

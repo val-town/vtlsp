@@ -6,4 +6,4 @@ RUN deno cache .
 
 EXPOSE 5002
 
-CMD ["deno", "run", "-A", "server/lsp-server.ts"]
+CMD ["deno", "run", "-A", "lsp-server.ts"]

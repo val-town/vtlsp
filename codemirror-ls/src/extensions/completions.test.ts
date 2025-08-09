@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import { toCodemirrorCompletion, toCodemirrorSnippet } from "./completions";
-import { sortCompletionItems } from "./completions";
+import { toCodemirrorCompletion, toCodemirrorSnippet } from "./completions.js";
+import { sortCompletionItems } from "./completions.js";
 import type * as LSP from "vscode-languageserver-protocol";
 import { CompletionItemKind } from "vscode-languageserver-protocol";
 

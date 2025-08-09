@@ -8,7 +8,7 @@ import {
   type TransformOptions,
   type Writable,
 } from "node:stream";
-import { logger } from "../../logger.ts";
+import { logger } from "../logger.ts";
 
 type ReceiveState = "content-length" | "jsonrpc";
 

@@ -1,5 +1,5 @@
 {
-    "deno.enablePaths": ["./ws-lsp-server", "./demo/deploy/server"],
+    "deno.enablePaths": ["./ws-ls-server", "./demo/deploy/server"],
     "[typescript]": {
         "editor.defaultFormatter": "biomejs.biome"
     },

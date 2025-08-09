@@ -5,25 +5,25 @@ export {
   sortCompletionItems,
   type CompletionExtensionsArgs,
   type CompletionRenderer,
-} from "./completions";
+} from "./completions.js";
 
 export {
   getRenameExtensions,
   handleRename,
   type RenameExtensionsArgs,
-} from "./renames";
+} from "./renames.js";
 
 export {
   getSignatureExtensions,
   type RenderSignatureHelp,
   type SignatureSuggestionArgs,
-} from "./signatures";
+} from "./signatures.js";
 
 export {
   getHoversExtensions,
   type RenderHover,
   type HoverExtensionArgs,
-} from "./hovers";
+} from "./hovers.js";
 
 export {
   getContextMenuExtensions,
@@ -32,25 +32,25 @@ export {
   type ContextMenuRenderer,
   type ContextMenuCallbacks,
   type ContextMenuArgs,
-} from "./contextMenu";
+} from "./contextMenu.js";
 
 export {
   getLintingExtensions,
   type LintingRenderer,
   type DiagnosticArgs,
-} from "./linting";
+} from "./linting.js";
 
 export {
   getReferencesExtensions,
   handleFindReferences,
   closeReferencePanel,
   type ReferenceExtensionsArgs,
-} from "./references";
+} from "./references.js";
 
 export {
   getWindowExtensions,
   type WindowExtensionArgs,
   type WindowRenderer,
-} from "./window";
+} from "./window.js";
 
-export type { Renderer } from "./types";
+export type { Renderer } from "./types.js";
