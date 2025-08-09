@@ -9,7 +9,7 @@ export function LSContextMenu({
   rename,
 }: ContextMenuCallbacks) {
   return (
-    <div className="flex flex-col bg-white rounded shadow dark:bg-gray-800 z-10 min-w-[128px] max-h-[80vh] overflow-auto">
+    <div className="flex flex-col border rounded shadow min-w-[128px]">
       <LSContextMenuButton
         onClick={goToDefinition}
         icon={<MousePointer2 size={14} />}
@@ -51,7 +51,11 @@ function LSContextMenuButton({
   icon?: React.ReactNode;
 }) {
   return (
-    <button onClick={onClick} type="button">
+    <button
+      onClick={onClick}
+      type="button"
+      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 first:rounded-t last:rounded-b"
+    >
       {icon}
       {children}
     </button>
