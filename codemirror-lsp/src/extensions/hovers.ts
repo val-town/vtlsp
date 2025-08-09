@@ -29,7 +29,7 @@ export const getHoversExtensions: LSExtensionGetter<HoverExtensionArgs> = ({
           render,
         });
       },
-      { hoverTime }
+      { hoverTime },
     ),
   ];
 };

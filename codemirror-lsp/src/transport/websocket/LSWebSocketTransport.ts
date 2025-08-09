@@ -10,12 +10,7 @@ import {
   createMessageConnection,
 } from "vscode-jsonrpc";
 import pTimeout from "p-timeout";
-import type { LSITransport } from "./LSITransport";
-import WebSocket, {
-  type Event,
-  type CloseEvent,
-  type ErrorEvent, // isomorphic-ws provides better type safety than vanilla WebSockets
-} from "isomorphic-ws";
+import type { LSITransport } from "./LSITransport.js";
 
 const MAX_CHUNK = 900 * 1024;
 
@@ -59,7 +54,7 @@ export class LSWebSocketTransport implements LSITransport {
       onWSClose,
       onLSHealthy,
       onWSError,
-    }: LSWebSocketTransportOptions = {}
+    }: LSWebSocketTransportOptions = {},
   ) {
     this.uri = uri.replace("http", "ws");
     this.onLSHealthy = onLSHealthy;
@@ -71,7 +66,7 @@ export class LSWebSocketTransport implements LSITransport {
   async sendRequest(
     method: string,
     params?: unknown,
-    timeout?: number
+    timeout?: number,
   ): Promise<unknown> {
     this.#errorIfDisposed();
 
@@ -88,7 +83,7 @@ export class LSWebSocketTransport implements LSITransport {
   public onRequest(handler: (method: string, params: unknown) => unknown) {
     this.#errorIfDisposed();
     return this.#requestEmitter.event(({ method, params }) =>
-      handler(method, params)
+      handler(method, params),
     ).dispose;
   }
 
@@ -105,7 +100,7 @@ export class LSWebSocketTransport implements LSITransport {
   public onNotification(handler: (method: string, params: unknown) => void) {
     this.#errorIfDisposed();
     return this.#notifyEmitter.event(({ method, params }) =>
-      handler(method, params)
+      handler(method, params),
     ).dispose;
   }
 
@@ -172,7 +167,7 @@ export class LSWebSocketTransport implements LSITransport {
       };
       this.connection?.addEventListener("close", onCloseCb);
 
-      const onErrorCb = (error: ErrorEvent) => {
+      const onErrorCb = ((error: ErrorEvent) => {
         this.#errorIfDisposed();
 
         this.connection?.removeEventListener("open", onOpenCb);
@@ -180,7 +175,7 @@ export class LSWebSocketTransport implements LSITransport {
         this.onWSError?.(error);
         this.#connectingPromise = null;
         reject(error);
-      };
+      }) as EventListener;
       this.connection?.addEventListener("error", onErrorCb);
     });
 
@@ -197,7 +192,7 @@ export class LSWebSocketTransport implements LSITransport {
           typeof resp === "object" &&
           resp !== null &&
           "status" in resp &&
-          resp.status === "pong"
+          resp.status === "pong",
       );
     } catch {
       return false;
@@ -274,7 +269,7 @@ class WebSocketWritableStream implements RAL.WritableStream {
   #closeEmitter = new Emitter<void>();
   #pendingContentLength: number | null = null;
   #pendingBuffer: Uint8Array[] = [];
-  #supportedEncodings: NodeJS.BufferEncoding[] = ["utf-8", "utf8", "ascii"];
+  #supportedEncodings: string[] = ["utf-8", "utf8", "ascii"];
 
   constructor(socket: WebSocket) {
     this.#socket = socket;
@@ -303,7 +298,7 @@ class WebSocketWritableStream implements RAL.WritableStream {
       uint8Data = new TextEncoder().encode(data);
     } else {
       uint8Data = new Uint8Array(
-        data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
+        data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength),
       );
     }
 
@@ -315,7 +310,7 @@ class WebSocketWritableStream implements RAL.WritableStream {
     const dataStr = new TextDecoder().decode(uint8Data);
     const contentLengthMatch = dataStr.match(/^Content-Length:\s*(\d+)\s*$/i);
 
-    if (contentLengthMatch) {
+    if (contentLengthMatch?.[1]) {
       this.#pendingContentLength = Number.parseInt(contentLengthMatch[1], 10);
       this.#pendingBuffer = [uint8Data];
       return;
@@ -328,7 +323,7 @@ class WebSocketWritableStream implements RAL.WritableStream {
       // Combine all pending data and send as one frame
       const totalLength = this.#pendingBuffer.reduce(
         (sum, chunk) => sum + chunk.length,
-        0
+        0,
       );
       const combinedData = new Uint8Array(totalLength);
       let offset = 0;
@@ -387,7 +382,7 @@ class WebSocketReadableStream implements RAL.ReadableStream {
           data = new TextEncoder().encode(event.data);
         } else {
           throw new Error(
-            `Unsupported message data format: ${typeof event.data}`
+            `Unsupported message data format: ${typeof event.data}`,
           );
         }
         this.#dataEmitter.fire(data);
@@ -438,7 +433,7 @@ function createWebSocketConnection(socket: WebSocket): {
 // copied from vtlsp/lsp-server/src/lib/lsp/WSStream.ts
 function* chunkByteArray(
   byteArray: Uint8Array,
-  chunkSize: number
+  chunkSize: number,
 ): Generator<Uint8Array> {
   const totalSize = byteArray.byteLength;
   for (let i = 0; i < totalSize; i += chunkSize) {

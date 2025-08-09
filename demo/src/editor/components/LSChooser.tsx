@@ -2,7 +2,6 @@ import { atom, useAtom, useSetAtom } from "jotai";
 import * as Dialog from "app/components/ui/Dialog";
 import { NavigationMenu, VisuallyHidden } from "radix-ui";
 import { button } from "app/style";
-import { cva } from "class-variance-authority";
 import { useCallback } from "react";
 
 interface LSChooserConfig {
@@ -66,7 +65,7 @@ export function LSChooser() {
       <Dialog.Portal>
         <Dialog.Overlay />
 
-        <Dialog.Content className={styles.dialogContent()} width="medium">
+        <Dialog.Content className="relative mx-auto min-w-[400px] max-w-[600px]" width="medium">
           <VisuallyHidden.Root>
             <Dialog.Title>{chooserConfig.title}</Dialog.Title>
             <Dialog.Description>{chooserConfig.title}</Dialog.Description>
@@ -87,11 +86,11 @@ function LSChooserContent({
   onChoice: (choice: number) => void;
 }) {
   return (
-    <div className={styles.chooserContainer()}>
-      <h3 className={styles.chooserTitle()}>{config.title}</h3>
+    <div className="p-4">
+      <h3 className="text-lg font-semibold mb-4 text-gray-900">{config.title}</h3>
 
       <NavigationMenu.Root orientation="vertical">
-        <NavigationMenu.List className={styles.chooserList()}>
+        <NavigationMenu.List className="space-y-2">
           {config.options.map((option, index) => (
             <NavigationMenu.Item key={index}>
               <NavigationMenu.Link asChild>
@@ -101,7 +100,7 @@ function LSChooserContent({
                   className={button({
                     type: "secondary",
                     size: "sm",
-                    className: styles.chooserButton(),
+                    className: "!text-left !justify-start !items-center w-full !p-3 hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:bg-gray-50 border border-gray-200 rounded-md transition-colors",
                   })}
                 >
                   {option}
@@ -115,24 +114,3 @@ function LSChooserContent({
   );
 }
 
-const styles = {
-  dialogContent: cva(["relative", "mx-auto", "min-w-[400px]", "max-w-[600px]"]),
-  chooserContainer: cva(["p-4"]),
-  chooserTitle: cva(["text-lg", "font-semibold", "mb-4", "text-gray-900"]),
-  chooserList: cva(["space-y-2"]),
-  chooserButton: cva([
-    "!text-left",
-    "!justify-start",
-    "!items-center",
-    "w-full",
-    "!p-3",
-    "hover:bg-gray-50",
-    "focus:ring-2",
-    "focus:ring-blue-500",
-    "focus:bg-gray-50",
-    "border",
-    "border-gray-200",
-    "rounded-md",
-    "transition-colors",
-  ]),
-};

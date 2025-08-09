@@ -60,7 +60,7 @@ export const getContextMenuExtensions: LSExtensionGetter<ContextMenuArgs> = ({
         view.dispatch(
           view.state.update({
             annotations: contextMenuActivated.of({ event, pos }),
-          })
+          }),
         );
 
         event.preventDefault();
@@ -118,7 +118,7 @@ export function handleContextMenu({
 function getContextMenuTooltip(
   pos: number,
   render: ContextMenuRenderer,
-  referencesArgs: ReferenceExtensionsArgs
+  referencesArgs: ReferenceExtensionsArgs,
 ): readonly Tooltip[] {
   return [
     {
@@ -141,7 +141,7 @@ function getContextMenuTooltip(
           () => {
             dom.remove();
           },
-          { signal: removedAbortController.signal }
+          { signal: removedAbortController.signal },
         );
 
         // If they press escape, remove it
@@ -153,7 +153,7 @@ function getContextMenuTooltip(
               removedAbortController.abort();
             }
           },
-          { signal: removedAbortController.signal }
+          { signal: removedAbortController.signal },
         );
 
         return {

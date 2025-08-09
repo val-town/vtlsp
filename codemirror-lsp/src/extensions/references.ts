@@ -99,7 +99,7 @@ export const getReferencesExtensions: LSExtensionGetter<
         preventDefault: true,
       })),
       { key: "Escape", run: closeReferencePanel },
-    ])
+    ]),
   );
 
   if (modClickForDefinition) {
@@ -124,7 +124,7 @@ export const getReferencesExtensions: LSExtensionGetter<
           }
           return false;
         },
-      })
+      }),
     );
   }
 
@@ -209,7 +209,7 @@ export function handleFindReferences({
           lsPlugin.documentUri,
           kind,
           onExternalReference,
-          render
+          render,
         );
       }
     })
@@ -235,7 +235,7 @@ function hopToDefinition({
         anchor: posToOffsetOrZero(view.state.doc, range.start),
         head: posToOffset(view.state.doc, range.end),
       },
-    })
+    }),
   );
 }
 
@@ -268,14 +268,14 @@ function displayReferences(
   documentUri: string,
   kind: ReferenceKind,
   onExternalReference?: OnExternalReferenceCallback,
-  render?: ReferencesRenderer
+  render?: ReferencesRenderer,
 ) {
   const panel = createReferencePanel(
     locs,
     documentUri,
     kind,
     onExternalReference,
-    render
+    render,
   );
   const effect =
     view.state.field(referencePanel, false) === undefined
@@ -289,7 +289,7 @@ function createReferencePanel(
   documentUri: string,
   kind: ReferenceKind,
   onExternalReference?: OnExternalReferenceCallback,
-  render?: ReferencesRenderer
+  render?: ReferencesRenderer,
 ): PanelConstructor {
   return (view) => {
     const locations: LSP.Location[] = locs.map((loc) => ({

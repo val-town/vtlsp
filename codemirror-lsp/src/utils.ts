@@ -6,7 +6,7 @@ import * as LSP from "vscode-languageserver-protocol";
 
 export function posToOffset(
   doc: Text,
-  pos: { line: number; character: number }
+  pos: { line: number; character: number },
 ): number | undefined {
   if (pos.line >= doc.lines) {
     // Next line (implying the end of the document)
@@ -24,14 +24,14 @@ export function posToOffset(
 
 export function posToOffsetOrZero(
   doc: Text,
-  pos: { line: number; character: number }
+  pos: { line: number; character: number },
 ): number {
   return posToOffset(doc, pos) || 0;
 }
 
 export function offsetToPos(
   doc: Text,
-  offset: number
+  offset: number,
 ): { character: number; line: number } {
   const line = doc.lineAt(offset);
   return {
@@ -45,7 +45,7 @@ export function defaultContentFormatter(
     | LSP.MarkupContent
     | LSP.MarkedString
     | LSP.MarkedString[]
-    | undefined
+    | undefined,
 ): HTMLElement {
   const element = document.createElement("div");
   if (!contents) {
@@ -132,7 +132,7 @@ export function prefixMatch(items: LSP.CompletionItem[]) {
 }
 
 export function isLSPMarkupContent(
-  contents: LSP.MarkupContent | LSP.MarkedString | LSP.MarkedString[]
+  contents: LSP.MarkupContent | LSP.MarkedString | LSP.MarkedString[],
 ): contents is LSP.MarkupContent {
   return (
     (contents as LSP.MarkupContent).kind !== undefined || // TODO: Make sure this check is right
@@ -145,7 +145,7 @@ export function isEmptyDocumentation(
     | LSP.MarkupContent
     | LSP.MarkedString
     | LSP.MarkedString[]
-    | undefined
+    | undefined,
 ) {
   if (documentation == null) {
     return true;
@@ -184,7 +184,7 @@ function isEmptyIshValue(value: unknown) {
  */
 export function eventsFromChangeSet(
   doc: Text,
-  changes: ChangeSet
+  changes: ChangeSet,
 ): LSP.TextDocumentContentChangeEvent[] {
   const events: {
     range?: LSP.Range;
@@ -207,9 +207,7 @@ export function eventsFromChangeSet(
 
   // Sort in reverse order to prevent index shift
   events.sort((a, b) => {
-    // biome-ignore lint/style/noNonNullAssertion: we have ensured that a.range exists
     const arange = a.range!;
-    // biome-ignore lint/style/noNonNullAssertion: we have ensured that b.range exists
     const brange = b.range!;
     if (arange.start.line !== brange.start.line) {
       return brange.start.line - arange.start.line;
@@ -223,7 +221,7 @@ export function eventsFromChangeSet(
 export function getCompletionTriggerKind(
   context: CompletionContext,
   triggerCharacters: string[],
-  matchBeforePattern?: RegExp
+  matchBeforePattern?: RegExp,
 ) {
   const { state, pos, explicit } = context;
   const line = state.doc.lineAt(pos);
@@ -262,7 +260,7 @@ export function getCompletionTriggerKind(
  */
 export function isInCurrentDocumentBounds(
   range: LSP.Range,
-  view: EditorView
+  view: EditorView,
 ): boolean {
   const { start, end } = range;
   return (

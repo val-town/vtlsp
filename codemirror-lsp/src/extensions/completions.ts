@@ -24,7 +24,7 @@ export interface CompletionExtensionsArgs {
 
 export type CompletionRenderer = (
   element: HTMLElement,
-  contents: LSP.MarkupContent | LSP.MarkedString | LSP.MarkedString[] | string
+  contents: LSP.MarkupContent | LSP.MarkedString | LSP.MarkedString[] | string,
 ) => Promise<void>;
 
 export const getCompletionsExtensions: LSExtensionGetter<
@@ -65,7 +65,7 @@ async function handleCompletion({
   const result = getCompletionTriggerKind(
     context,
     lsPlugin.client.capabilities?.completionProvider?.triggerCharacters ?? [],
-    completionMatchBefore
+    completionMatchBefore,
   );
 
   if (result == null) return null;
@@ -119,7 +119,7 @@ async function handleCompletion({
         // biome-ignore lint/style/noNonNullAssertion: We know it can resolve
         return (await lsPlugin.requestWithLock(
           "completionItem/resolve",
-          item
+          item,
         ))!;
       },
       render,
@@ -134,7 +134,7 @@ async function handleCompletion({
 }
 
 const CompletionItemKindMap = Object.fromEntries(
-  Object.entries(LSP.CompletionItemKind).map(([key, value]) => [value, key])
+  Object.entries(LSP.CompletionItemKind).map(([key, value]) => [value, key]),
 ) as Record<LSP.CompletionItemKind, string>;
 
 export function toCodemirrorSnippet(snippet: string): string {
@@ -145,7 +145,7 @@ export function toCodemirrorSnippet(snippet: string): string {
   return result.replaceAll(
     /(\$(\d+))/g,
     // biome-ignore lint/style/useTemplate: reads better
-    (_match, _p1, p2) => "${" + p2 + "}"
+    (_match, _p1, p2) => "${" + p2 + "}",
   );
 }
 
@@ -155,7 +155,7 @@ export function toCodemirrorCompletion(
     hasResolveProvider: boolean;
     resolveItem: (item: LSP.CompletionItem) => Promise<LSP.CompletionItem>;
     render: CompletionRenderer;
-  }
+  },
 ): Completion {
   let {
     detail,
@@ -193,8 +193,8 @@ export function toCodemirrorCompletion(
               view.state,
               textEdit.newText.replace(/\$1/g, ""),
               posToOffsetOrZero(view.state.doc, textEdit.range.start),
-              posToOffsetOrZero(view.state.doc, textEdit.range.end)
-            )
+              posToOffsetOrZero(view.state.doc, textEdit.range.end),
+            ),
           );
         } else if (LSP.InsertReplaceEdit.is(textEdit)) {
           const { insert, replace } = textEdit;
@@ -232,7 +232,7 @@ export function toCodemirrorCompletion(
         } else {
           // By default it is PlainText
           view.dispatch(
-            insertCompletionText(view.state, insertText || label, from, to)
+            insertCompletionText(view.state, insertText || label, from, to),
           );
         }
       }
@@ -256,7 +256,7 @@ export function toCodemirrorCompletion(
             return -1;
           }
           return 0;
-        }
+        },
       );
 
       for (const textEdit of sortedEdits) {
@@ -267,7 +267,7 @@ export function toCodemirrorCompletion(
               to: posToOffset(view.state.doc, textEdit.range.end),
               insert: textEdit.newText,
             },
-          })
+          }),
         );
       }
     },
@@ -349,7 +349,7 @@ export function toCodemirrorCompletion(
 
 export function sortCompletionItems(
   items: LSP.CompletionItem[],
-  matchBefore: string | undefined
+  matchBefore: string | undefined,
 ): LSP.CompletionItem[] {
   // Create an array of sort functions to apply in order
   const sortFunctions = [

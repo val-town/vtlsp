@@ -4,9 +4,23 @@
   "description": "Val Town editor Codemirror LSP client",
   "main": "index.js",
   "type": "module",
-  "author": "",
+  "author": "Val Town",
   "license": "ISC",
+  "scripts": {
+    "format": "biome format --write ."
+  },
+  "peerDependencies": {
+    "codemirror": "^6.0.0"
+  },
   "devDependencies": {
     "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.38.1",
+    "es-toolkit": "^1.39.8",
+    "p-queue": "^8.1.0",
+    "vscode-jsonrpc": "^8.2.1",
+    "vscode-languageserver-protocol": "^3.17.5"
   }
 }

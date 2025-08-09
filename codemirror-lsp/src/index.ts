@@ -1,5 +1,5 @@
-import { LSPlugin } from "./LSPlugin";
-import type { LSClient } from "./LSClient";
+import { LSPlugin } from "./LSPlugin.js";
+import type { LSClient } from "./LSClient.js";
 import {
   getCompletionsExtensions,
   getRenameExtensions,
@@ -16,8 +16,8 @@ import {
   type SignatureSuggestionArgs,
   type ReferenceExtensionsArgs,
   type WindowExtensionArgs,
-} from "./extensions";
-import type { ContextMenuArgs } from "./extensions/contextMenu";
+} from "./extensions/index.js";
+import type { ContextMenuArgs } from "./extensions/contextMenu.js";
 import type { Extension } from "@codemirror/state";
 import { asyncNoop } from "es-toolkit";
 
@@ -49,7 +49,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
     extensions.push(
       ...getSignatureExtensions({
         render: features.signatureHelp.render,
-      })
+      }),
     );
   }
 
@@ -58,7 +58,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
       getHoversExtensions({
         render: features.hovers.render,
         hoverTime: features.hovers.hoverTime,
-      })
+      }),
     );
   }
 
@@ -67,7 +67,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
       getCompletionsExtensions({
         render: features.completion.render,
         completionMatchBefore: features.completion?.completionMatchBefore,
-      })
+      }),
     );
   }
 
@@ -76,7 +76,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
       ...getReferencesExtensions({
         ...features.references,
         render: features.references.render,
-      })
+      }),
     );
   }
 
@@ -85,7 +85,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
       ...getRenameExtensions({
         shortcuts: features.renames.shortcuts,
         ...features.renames,
-      })
+      }),
     );
   }
 
@@ -97,7 +97,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
           render: features.references.render,
           ...features.contextMenu.referencesArgs,
         },
-      })
+      }),
     );
   }
 
@@ -107,7 +107,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
         languageId: options.languageId,
         onExternalFileChange: features.linting.onExternalFileChange,
         render: options.features.linting?.render,
-      })
+      }),
     );
   }
 
@@ -115,7 +115,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
     extensions.push(
       ...getWindowExtensions({
         render: features.window.render,
-      })
+      }),
     );
   }
 

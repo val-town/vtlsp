@@ -17,7 +17,7 @@ export type OnRenameCallback = (
     | LSP.TextDocumentEdit
     | LSP.CreateFile
     | LSP.RenameFile
-    | LSP.DeleteFile
+    | LSP.DeleteFile,
 ) => void;
 export type OnExternalRenameCallback = OnRenameCallback;
 
@@ -38,7 +38,7 @@ export const getRenameExtensions: LSExtensionGetter<RenameExtensionsArgs> = ({
             onRename,
           });
         },
-      }))
+      })),
     ),
   ];
 };
@@ -173,7 +173,7 @@ async function requestRename({
                     textDocument: { uri: documentUri },
                     position: { line, character },
                     newName,
-                  }
+                  },
                 );
 
                 await applyRenameEdit(
@@ -181,28 +181,22 @@ async function requestRename({
                   edit,
                   documentUri,
                   onExternalRename,
-                  onRename
+                  onRename,
                 );
               });
             } catch (error) {
-              showDialog(
-                view,
-                {
-                  label: `Rename failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-                }
-              );
+              showDialog(view, {
+                label: `Rename failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+              });
             }
           }
         });
       }
     });
   } catch (error) {
-    showDialog(
-      view,
-      {
-        label: `Rename failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-      }
-    );
+    showDialog(view, {
+      label: `Rename failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+    });
   }
 }
 
@@ -252,7 +246,7 @@ async function applyRenameEdit(
   edit: LSP.WorkspaceEdit | null,
   documentUri: string,
   onExternalRename?: OnExternalRenameCallback,
-  onRename?: OnRenameCallback
+  onRename?: OnRenameCallback,
 ): Promise<boolean> {
   if (!edit) {
     showDialog(view, { label: "No edit returned from language server" });
@@ -301,10 +295,10 @@ async function applyRenameEdit(
 
       // This is a CreateFile, RenameFile, or DeleteFile operation
       onExternalRename?.(docChange);
-      showDialog(
-        view,
-        { label: "File creation, deletion, or renaming operations not supported yet" }
-      );
+      showDialog(view, {
+        label:
+          "File creation, deletion, or renaming operations not supported yet",
+      });
       return false;
     }
   } // Fall back to changes if documentChanges is not available

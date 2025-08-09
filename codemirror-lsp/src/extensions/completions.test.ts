@@ -138,7 +138,7 @@ describe("convertCompletionItem", () => {
 describe("sortCompletionItems", () => {
   const createItem = (
     label: string,
-    sortText?: string
+    sortText?: string,
   ): LSP.CompletionItem => ({
     label,
     sortText,
@@ -300,7 +300,7 @@ describe("convertSnippet", () => {
       "try {\n\t$1\n} catch (error$2) {\n\t$3\n} finally {\n\t$4\n}";
     const result = toCodemirrorSnippet(input);
     expect(result).toBe(
-      "try {\n\t${1}\n} catch (error${2}) {\n\t${3}\n} finally {\n\t${4}\n}"
+      "try {\n\t${1}\n} catch (error${2}) {\n\t${3}\n} finally {\n\t${4}\n}",
     );
   });
 

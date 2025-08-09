@@ -6,8 +6,6 @@ import { eventsFromChangeSet } from "./utils.js";
 import type { LSClient } from "./LSClient.js";
 import { ChangeSet } from "@codemirror/state";
 import * as LSP from "vscode-languageserver-protocol";
-import type { LSPRequestMap } from "vtlsp/lsp-ls/src/types/lspTypes.js";
-import { resolve } from "node:path";
 
 interface LSPluginArgs {
   client: LSClient;
@@ -99,11 +97,9 @@ class LSCoreBase {
         (params.type === LSP.MessageType.Error ||
           params.type === LSP.MessageType.Warning)
       ) {
-        let view: EditorView | undefined = this.#view;
-        console.warn(`LSP Notification: ${method}`, params);
         // Show a dialog with the message
-        if (view) {
-          showDialog(view, {
+        if (this.#view) {
+          showDialog(this.#view, {
             label: params.message,
             top: true,
           });
@@ -120,7 +116,7 @@ class LSCoreBase {
    * @returns The result of the callback.
    */
   public async doWithLock<T>(
-    callback: (doc: Text) => T | Promise<T>
+    callback: (doc: Text) => T | Promise<T>,
   ): Promise<T> {
     this.#sendChangesDispatchQueue.pause();
     try {
@@ -128,7 +124,7 @@ class LSCoreBase {
       return await Promise.race([
         callback(this.#view.state.doc),
         new Promise<T>((_, reject) =>
-          setTimeout(() => reject(new Error("Lock timed out")), 5000)
+          window.setTimeout(() => reject(new Error("Lock timed out")), 5000),
         ),
       ]);
     } finally {
@@ -139,10 +135,12 @@ class LSCoreBase {
   /**
    * Make an LSP request while ensuring that no other changes are sent during the request.
    */
-  public async requestWithLock<K extends keyof LSPRequestMap>(
-    method: K,
-    params: LSPRequestMap[K][0]
-  ): Promise<LSPRequestMap[K][1]> {
+  public async requestWithLock(
+    method: string,
+    // biome-ignore lint/suspicious/noExplicitAny: TODO: bring back lsp types
+    params: any,
+    // biome-ignore lint/suspicious/noExplicitAny: TODO: bring back lsp types
+  ): Promise<any> {
     return this.doWithLock(async (_doc) => {
       return await this.client.request(method, params);
     });
@@ -180,7 +178,7 @@ class LSCoreBase {
         this.#lastSyncedDoc = this.#view.state.doc;
         this.#pendingChanges = ChangeSet.empty(this.#view.state.doc.length);
       },
-      { priority: this.documentVersion } // more recent = higher priority
+      { priority: this.documentVersion }, // more recent = higher priority
     );
   }
 

@@ -16,7 +16,7 @@ export type RenderSignatureHelp = (
   element: HTMLElement,
   data: LSP.SignatureHelp,
   activeSignature: number,
-  activeParameter?: number
+  activeParameter?: number,
 ) => Promise<void>;
 
 export const getSignatureExtensions: LSExtensionGetter<
@@ -29,8 +29,8 @@ function createSignaturePlugin(
   render: (
     element: HTMLElement,
     data: LSP.SignatureHelp,
-    active: number
-  ) => Promise<void>
+    active: number,
+  ) => Promise<void>,
 ) {
   return ViewPlugin.fromClass(
     class {
@@ -47,7 +47,7 @@ function createSignaturePlugin(
             this.activeRequest = null;
           } else if (update.docChanged) {
             this.activeRequest.pos = update.changes.mapPos(
-              this.activeRequest.pos
+              this.activeRequest.pos,
             );
           }
         }
@@ -61,7 +61,7 @@ function createSignaturePlugin(
         ) {
           const serverConf = client.capabilities?.signatureHelpProvider;
           const triggers = (serverConf?.triggerCharacters || []).concat(
-            (sigState && serverConf?.retriggerCharacters) || []
+            (sigState && serverConf?.retriggerCharacters) || [],
           );
 
           if (triggers) {
@@ -72,7 +72,7 @@ function createSignaturePlugin(
                   for (let ch of triggers) {
                     if (ins.indexOf(ch) > -1) triggerCharacter = ch;
                   }
-              }
+              },
             );
           }
         }
@@ -160,7 +160,7 @@ function createSignaturePlugin(
             },
             context.triggerKind === 1 /* Invoked */
               ? (err) => console.error("Signature request failed", err)
-              : undefined
+              : undefined,
           );
       }
 
@@ -168,7 +168,7 @@ function createSignaturePlugin(
         if (this.delayedRequest) clearTimeout(this.delayedRequest);
         if (this.activeRequest) this.activeRequest.drop = true;
       }
-    }
+    },
   );
 }
 
@@ -180,7 +180,7 @@ function sameSignatures(a: LSP.SignatureHelp, b: LSP.SignatureHelp) {
 function sameActiveParam(
   a: LSP.SignatureHelp,
   b: LSP.SignatureHelp,
-  active: number
+  active: number,
 ) {
   return (
     (a.signatures[active].activeParameter ?? a.activeParameter) ===
@@ -192,7 +192,7 @@ class SignatureState {
   constructor(
     readonly data: LSP.SignatureHelp,
     readonly active: number,
-    readonly tooltip: Tooltip
+    readonly tooltip: Tooltip,
   ) {}
 }
 
@@ -213,7 +213,7 @@ const signatureState = StateField.define<SignatureState | null>({
               activeParameter: e.value.activeParameter,
               pos: e.value.pos,
               render: e.value.render,
-            })
+            }),
           );
         } else {
           return null;

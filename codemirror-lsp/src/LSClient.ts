@@ -1,9 +1,5 @@
 import type * as LSP from "vscode-languageserver-protocol";
 import type { LSCore } from "./LSPlugin.js";
-import type {
-  LSPNotifyMap,
-  LSPRequestMap,
-} from "vtlsp/lsp-ls/src/types/lspTypes.js";
 import type { LSITransport } from "./transport/websocket/LSITransport.js";
 import { Emitter } from "vscode-jsonrpc";
 
@@ -23,8 +19,11 @@ export class LSClient {
 
   public plugins: LSCore[];
 
+  // biome-ignore lint/suspicious/noExplicitAny: for all handlers
   #requestEmitter = new Emitter<{ method: string; params: any }>();
+  // biome-ignore lint/suspicious/noExplicitAny: for all handlers
   #notificationEmitter = new Emitter<{ method: string; params: any }>();
+  // biome-ignore lint/suspicious/noExplicitAny: for all handlers
   #errorEmitter = new Emitter<any>();
 
   constructor({
@@ -174,23 +173,18 @@ export class LSClient {
   }
 
   public async initialize(andPlugins = false) {
-    try {
-      const response = await this.request(
-        "initialize",
-        this.getInitializationOptions()
-      );
+    const response = await this.request(
+      "initialize",
+      this.getInitializationOptions(),
+    );
 
-      if (response === null || response === undefined) {
-        throw new Error("Initialization response is null or undefined");
-      }
-
-      this.capabilities = response.capabilities;
-      await this.notify("initialized", {});
-      this.ready = true;
-    } catch (error) {
-      console.error("Failed to initialize language server:", error);
-      throw error;
+    if (response === null || response === undefined) {
+      throw new Error("Initialization response is null or undefined");
     }
+
+    this.capabilities = response.capabilities;
+    await this.notify("initialized", {});
+    this.ready = true;
 
     this.resolveInitialize?.();
 
@@ -206,10 +200,12 @@ export class LSClient {
     this.#errorEmitter.dispose();
   }
 
-  public async request<K extends keyof LSPRequestMap>(
-    method: K,
-    params: LSPRequestMap[K][0]
-  ): Promise<LSPRequestMap[K][1]> {
+  public async request(
+    method: string,
+    // biome-ignore lint/suspicious/noExplicitAny: TODO: bring back lsp types
+    params: any,
+    // biome-ignore lint/suspicious/noExplicitAny: TODO: bring back lsp types
+  ): Promise<any> {
     if (method !== "initialize" && !this.ready) {
       await this.initializePromise;
     }
@@ -217,35 +213,41 @@ export class LSClient {
     return this.requestUnsafe(method, params);
   }
 
+  // biome-ignore lint/suspicious/noExplicitAny: explicitly for unsafe requests
   public async requestUnsafe(method: string, params: any): Promise<any> {
     return await this.transport.sendRequest(method, params);
   }
 
-  public notify<K extends keyof LSPNotifyMap>(
-    method: K,
-    params: LSPNotifyMap[K]
+  public notify(
+    method: string,
+    // biome-ignore lint/suspicious/noExplicitAny: TODO: bring back lsp types
+    params: any,
   ): Promise<void> {
     return this.notifyUnsafe(method, params);
   }
 
+  // biome-ignore lint/suspicious/noExplicitAny: explicitly for unsafe notifications
   public async notifyUnsafe(method: string, params: any): Promise<any> {
     return this.transport.sendNotification(method, params);
   }
 
+  // biome-ignore lint/suspicious/noExplicitAny: for all handlers
   public onRequest(handler: (method: string, params: any) => any): () => void {
     return this.#requestEmitter.event(({ method, params }) =>
-      handler(method, params)
+      handler(method, params),
     ).dispose;
   }
 
   public onNotification(
-    handler: (method: string, params: any) => void
+    // biome-ignore lint/suspicious/noExplicitAny: for all handlers
+    handler: (method: string, params: any) => void,
   ): () => void {
     return this.#notificationEmitter.event(({ method, params }) =>
-      handler(method, params)
+      handler(method, params),
     ).dispose;
   }
 
+  // biome-ignore lint/suspicious/noExplicitAny: for all handlers
   public onError(handler: (error: any) => void): () => void {
     return this.#errorEmitter.event(handler).dispose;
   }
@@ -266,7 +268,7 @@ export interface LanguageServerClientOptions {
   capabilities?:
     | LSP.InitializeParams["capabilities"]
     | ((
-        defaultCapabilities: LSP.InitializeParams["capabilities"]
+        defaultCapabilities: LSP.InitializeParams["capabilities"],
       ) => LSP.InitializeParams["capabilities"]);
   /** Additional initialization options to send to the language server */
   initializationOptions?: LSP.InitializeParams["initializationOptions"];

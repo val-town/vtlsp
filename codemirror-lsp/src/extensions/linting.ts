@@ -43,7 +43,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
                 onExternalFileChange,
                 render,
               });
-            }
+            },
           );
         }
 
@@ -98,7 +98,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
                     return {
                       name:
                         "command" in action &&
-                          typeof action.command === "object"
+                        typeof action.command === "object"
                           ? action.command?.title || action.title
                           : action.title,
                       apply: async () => {
@@ -123,17 +123,17 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
                             resolvedAction.edit?.documentChanges?.some(
                               (change) =>
                                 "textDocument" in change &&
-                                change.textDocument.uri !== lsPlugin.documentUri
+                                change.textDocument.uri !==
+                                  lsPlugin.documentUri,
                             );
 
                           if (hasExternalFileChanges) {
                             if (onExternalFileChange) {
                               onExternalFileChange(resolvedAction.edit);
                             } else {
-                              showDialog(
-                                view,
-                                { label: "External file changes not supported" }
-                              );
+                              showDialog(view, {
+                                label: "External file changes not supported",
+                              });
                             }
                             return;
                           } else {
@@ -158,15 +158,15 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
                                 changes: {
                                   from: posToOffsetOrZero(
                                     view.state.doc,
-                                    change.range.start
+                                    change.range.start,
                                   ),
                                   to: posToOffset(
                                     view.state.doc,
-                                    change.range.end
+                                    change.range.end,
                                   ),
                                   insert: change.newText,
                                 },
-                              })
+                              }),
                             );
                           }
                         } else if (
@@ -177,8 +177,8 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
                         }
                       },
                     };
-                  }
-                )
+                  },
+                ),
               )
             ).filter(Boolean) as Action[];
 
@@ -189,10 +189,10 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
               message: message,
               renderMessage: render
                 ? () => {
-                  const dom = document.createElement("div");
-                  render(dom, message);
-                  return dom;
-                }
+                    const dom = document.createElement("div");
+                    render(dom, message);
+                    return dom;
+                  }
                 : undefined,
               source: languageId,
               actions: codemirrorActions,
@@ -218,7 +218,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
         private async requestCodeActions(diagnostic: LSP.Diagnostic): Promise<{
           actions: (LSP.Command | LSP.CodeAction)[] | null;
           resolveAction: (
-            action: LSP.Command | LSP.CodeAction
+            action: LSP.Command | LSP.CodeAction,
           ) => Promise<LSP.Command | LSP.CodeAction>;
         }> {
           const lsPlugin = LSCore.ofOrThrow(this.view);
@@ -238,12 +238,12 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
               context: {
                 diagnostics: [diagnostic],
               },
-            }
+            },
           );
 
           // Define the resolver function that will be returned
           const resolveAction = async (
-            action: LSP.Command | LSP.CodeAction
+            action: LSP.Command | LSP.CodeAction,
           ): Promise<LSP.Command | LSP.CodeAction> => {
             // If action has 'data' property and the server supports resolving,
             // resolve the action
@@ -251,12 +251,12 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
               "data" in action &&
               lsPlugin.client.capabilities?.codeActionProvider &&
               typeof lsPlugin.client.capabilities.codeActionProvider !==
-              "boolean" &&
+                "boolean" &&
               lsPlugin.client.capabilities.codeActionProvider.resolveProvider
             ) {
               return (await lsPlugin.requestWithLock(
                 "codeAction/resolve",
-                action as LSP.CodeAction
+                action as LSP.CodeAction,
               )) as LSP.CodeAction;
             }
 
@@ -269,7 +269,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
             resolveAction,
           };
         }
-      }
+      },
     ),
   ];
 };

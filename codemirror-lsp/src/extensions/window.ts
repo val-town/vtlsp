@@ -28,7 +28,7 @@ export const getWindowExtensions: LSExtensionGetter<WindowExtensionArgs> = ({
               if (method === "window/showMessage") {
                 this.showMessage(params as LSP.ShowMessageParams);
               }
-            }
+            },
           );
         }
 
@@ -46,7 +46,7 @@ export const getWindowExtensions: LSExtensionGetter<WindowExtensionArgs> = ({
           render(container, params, onDismiss);
           document.body.appendChild(container);
         }
-      }
+      },
     ),
   ];
 };

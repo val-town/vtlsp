@@ -12,7 +12,7 @@ export interface LSITransport {
    * @return A function to unregister the handler
    */
   onNotification: (
-    handler: (method: string, params: unknown) => void
+    handler: (method: string, params: unknown) => void,
   ) => () => void;
 
   /**
@@ -41,7 +41,7 @@ export interface LSITransport {
    * @return A function to unregister the handler
    */
   onRequest: (
-    handler: (method: string, params: unknown) => unknown
+    handler: (method: string, params: unknown) => unknown,
   ) => () => void;
 
   /**
