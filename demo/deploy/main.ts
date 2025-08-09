@@ -11,7 +11,11 @@ export default {
   fetch: new Hono<{ Bindings: Env }>()
     .use(honoLogger())
     .all("/lsp/*", async (c) => {
-      const container = getContainer(c.env.VTLSP_DEMO_CONTAINER, "/");
-      return container.fetch(c.req.raw);
+      const container = getContainer(
+        c.env.VTLSP_DEMO_CONTAINER,
+        c.req.query("id") || "default",
+      );
+      const req = new Request(new URL("/", c.req.url), c.req.raw);
+      return container.fetch(req);
     }).fetch,
 } satisfies ExportedHandler<Env>;
