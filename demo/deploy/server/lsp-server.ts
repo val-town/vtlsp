@@ -22,7 +22,7 @@ const lsWsServer = new LSWSServer({
 
 const gracefulShutdown = (signal: string, code: number) => async () => {
   console.log(`Received ${signal}, shutting down`);
-  await lsWsServer.shutdown();
+  await lsWsServer.shutdown(1012, `Server received ${signal}`);
   Deno.exit(code);
 };
 
@@ -38,10 +38,6 @@ function getApp(lsWsServer: LSWSServer) {
         c.req.valid("query").session,
       );
     })
-    .use(async (c, next) => {
-      c.header("Content-Encoding", "Identity");
-      await next();
-    });
 }
 
 const app = getApp(lsWsServer);

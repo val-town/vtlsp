@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { logger as honoLogger } from "hono/logger";
 
 export class VTLSPDemoContainer extends Container {
-  public override sleepAfter = 30; // seconds
+  public override sleepAfter = 90; // seconds
   public override defaultPort = 5002;
 }
 
