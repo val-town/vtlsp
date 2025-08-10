@@ -15,7 +15,9 @@ export default {
         c.env.VTLSP_DEMO_CONTAINER,
         c.req.query("id") || "default",
       );
-      const req = new Request(new URL("/", c.req.url), c.req.raw);
+      const url = new URL("/", c.req.url);
+      url.search = c.req.url.split("?")[1] || "";
+      const req = new Request(url, c.req.raw);
       return container.fetch(req);
     }).fetch,
 } satisfies ExportedHandler<Env>;
