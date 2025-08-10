@@ -1,58 +1,17 @@
-export {
-  getCompletionsExtensions,
-  toCodemirrorCompletion,
-  toCodemirrorSnippet as convertSnippet,
-  sortCompletionItems,
-  type CompletionExtensionsArgs,
-  type CompletionRenderer,
-} from "./completions.js";
+export * as completions from "./completions.js";
 
-export {
-  getRenameExtensions,
-  handleRename,
-  type RenameExtensionsArgs,
-} from "./renames.js";
+export * as renames from "./renames.js";
 
-export {
-  getSignatureExtensions,
-  type RenderSignatureHelp,
-  type SignatureSuggestionArgs,
-} from "./signatures.js";
+export * as signatures from "./signatures.js";
 
-export {
-  getHoversExtensions,
-  type RenderHover,
-  type HoverExtensionArgs,
-} from "./hovers.js";
+export * as hovers from "./hovers.js";
 
-export {
-  getContextMenuExtensions,
-  handleContextMenu,
-  contextMenuActivated as contextMenuActivateAnnotation,
-  type ContextMenuRenderer,
-  type ContextMenuCallbacks,
-  type ContextMenuArgs,
-} from "./contextMenu.js";
+export * as contextMenu from "./contextMenu.js";
 
-export {
-  getLintingExtensions,
-  type LintingRenderer,
-  type DiagnosticArgs,
-} from "./linting.js";
+export * as linting from "./linting.js";
 
-export {
-  getReferencesExtensions,
-  handleFindReferences,
-  closeReferencePanel,
-  REFERENCE_KIND_LABELS,
-  type ReferenceKind,
-  type ReferenceExtensionsArgs,
-} from "./references.js";
+export * as references from "./references.js";
 
-export {
-  getWindowExtensions,
-  type WindowExtensionArgs,
-  type WindowRenderer,
-} from "./window.js";
+export * as window from "./window.js";
 
 export type { Renderer } from "./types.js";

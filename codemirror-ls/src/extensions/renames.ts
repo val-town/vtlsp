@@ -132,6 +132,7 @@ async function requestRename({
         const input = panel.dom.querySelector(
           "[name=name]",
         ) as HTMLInputElement;
+        input.classList.add("cm-lsp-rename-input");
         input.value = currentWord;
         input.select();
       } else {

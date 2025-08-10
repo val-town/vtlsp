@@ -26,7 +26,7 @@ export const getWindowExtensions: LSExtensionGetter<WindowExtensionArgs> = ({
           this.#disposeHandler = lsPlugin.client.onNotification(
             async (method, params) => {
               if (method === "window/showMessage") {
-                this.showMessage(params as LSP.ShowMessageParams);
+                this.#showMessage(params as LSP.ShowMessageParams);
               }
             },
           );
@@ -39,7 +39,7 @@ export const getWindowExtensions: LSExtensionGetter<WindowExtensionArgs> = ({
           }
         }
 
-        private showMessage(params: LSP.ShowMessageParams) {
+        #showMessage(params: LSP.ShowMessageParams) {
           const container = document.createElement("div");
           const onDismiss = () => container.remove();
 

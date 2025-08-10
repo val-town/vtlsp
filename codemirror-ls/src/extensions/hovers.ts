@@ -2,7 +2,7 @@ import type { EditorView, Tooltip } from "@codemirror/view";
 import { hoverTooltip } from "@codemirror/view";
 import { offsetToPos, posToOffset, isEmptyDocumentation } from "../utils.js";
 import type * as LSP from "vscode-languageserver-protocol";
-import type { LSExtensionGetter, Renderer } from "./types.js";
+import type { CMLSPClassName, LSExtensionGetter, Renderer } from "./types.js";
 import { LSCore } from "../LSPlugin.js";
 
 export type RenderHover = Renderer<
@@ -74,6 +74,7 @@ async function requestHoverTooltip({
   }
 
   const dom = document.createElement("div");
+  dom.classList.add("cm-lsp-hover");
   await render(dom, contents);
 
   return {

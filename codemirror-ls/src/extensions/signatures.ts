@@ -256,7 +256,8 @@ function signatureTooltip({
     clip: false,
     strictSide: true,
     create: (_view) => {
-      let dom = document.createElement("div");
+      const dom = document.createElement("div");
+      dom.classList.add("cm-lsp-signature-tooltip");
       render(dom, data, activeSignature, activeParameter);
       return { dom };
     },

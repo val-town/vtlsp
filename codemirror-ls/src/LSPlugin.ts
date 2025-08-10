@@ -6,6 +6,7 @@ import { eventsFromChangeSet } from "./utils.js";
 import type { LSClient } from "./LSClient.js";
 import { ChangeSet } from "@codemirror/state";
 import * as LSP from "vscode-languageserver-protocol";
+import type { LSPRequestMap } from "./types.lsp.js";
 
 interface LSPluginArgs {
   client: LSClient;
@@ -42,6 +43,7 @@ class LSCoreBase {
   #sendChangesDispatchQueue = new PQueue({ concurrency: 1 });
   #pendingChanges: ChangeSet;
   #lastSyncedDoc: Text;
+  #currentSyncController: AbortController | null = null;
 
   #languageId: string;
   #view: EditorView;
@@ -75,7 +77,6 @@ class LSCoreBase {
 
     if (this.client.initializePromise) {
       await this.client.initializePromise;
-      this.#setupWindowMessageListeners();
     }
 
     if (this.#sendDidOpen) {
@@ -90,24 +91,6 @@ class LSCoreBase {
     }
   }
 
-  #setupWindowMessageListeners() {
-    this.client.onNotification((method, params: LSP.LogMessageParams) => {
-      if (
-        method === "window/showMessage" &&
-        (params.type === LSP.MessageType.Error ||
-          params.type === LSP.MessageType.Warning)
-      ) {
-        // Show a dialog with the message
-        if (this.#view) {
-          showDialog(this.#view, {
-            label: params.message,
-            top: true,
-          });
-        }
-      }
-    });
-  }
-
   /**
    * Execute a callback with the current document while preventing concurrent modifications.
    * Changes will continue to be queued, but none will be sent to the LSP.
@@ -117,14 +100,15 @@ class LSCoreBase {
    */
   public async doWithLock<T>(
     callback: (doc: Text) => T | Promise<T>,
+    timeout = 5000,
   ): Promise<T> {
     this.#sendChangesDispatchQueue.pause();
     try {
       await this.#sendChangesDispatchQueue.onIdle();
       return await Promise.race([
         callback(this.#view.state.doc),
-        new Promise<T>((_, reject) =>
-          window.setTimeout(() => reject(new Error("Lock timed out")), 5000),
+        new Promise<T>((_, rej) =>
+          window.setTimeout(() => rej(new Error("Lock timed out")), timeout),
         ),
       ]);
     } finally {
@@ -135,12 +119,10 @@ class LSCoreBase {
   /**
    * Make an LSP request while ensuring that no other changes are sent during the request.
    */
-  public async requestWithLock(
-    method: string,
-    // biome-ignore lint/suspicious/noExplicitAny: TODO: bring back lsp types
-    params: any,
-    // biome-ignore lint/suspicious/noExplicitAny: TODO: bring back lsp types
-  ): Promise<any> {
+  public async requestWithLock<K extends keyof LSPRequestMap>(
+    method: K,
+    params: LSPRequestMap[K][0],
+  ): Promise<LSPRequestMap[K][1]> {
     return this.doWithLock(async (_doc) => {
       return await this.client.request(method, params);
     });
@@ -151,21 +133,21 @@ class LSCoreBase {
   }
 
   public async syncChanges() {
-    if (this.#pendingChanges.empty) {
-      return;
-    }
+    if (this.#pendingChanges.empty) return;
+    if (!this.client.ready) return;
 
     const calledAtVersion = this.documentVersion;
 
-    if (!this.client.ready) return;
-
     // If you spam a bunch of changes, the last one will be sent as a delta of
     // the most previously successful sync.
-    // this.#sendChangesDispatchQueue.clear();
+    this.#sendChangesDispatchQueue.clear();
+    await this.#sendChangesDispatchQueue.onIdle();
     return await this.#sendChangesDispatchQueue.add(
       async () => {
         if (calledAtVersion !== this.documentVersion) return;
 
+        this.#currentSyncController?.abort();
+        this.#currentSyncController = new AbortController();
         await this.client.notify("textDocument/didChange", {
           textDocument: {
             uri: this.documentUri,

@@ -1,25 +1,17 @@
 import { LSPlugin } from "./LSPlugin.js";
 import type { LSClient } from "./LSClient.js";
-import {
-  getCompletionsExtensions,
-  getRenameExtensions,
-  getSignatureExtensions,
-  getHoversExtensions,
-  getContextMenuExtensions,
-  getLintingExtensions,
-  getReferencesExtensions,
-  getWindowExtensions,
-  type CompletionExtensionsArgs,
-  type RenameExtensionsArgs,
-  type HoverExtensionArgs,
-  type DiagnosticArgs,
-  type SignatureSuggestionArgs,
-  type ReferenceExtensionsArgs,
-  type WindowExtensionArgs,
-} from "./extensions/index.js";
-import type { ContextMenuArgs } from "./extensions/contextMenu.js";
 import type { Extension } from "@codemirror/state";
 import { asyncNoop } from "es-toolkit";
+import {
+  signatures,
+  completions,
+  contextMenu,
+  hovers,
+  references,
+  renames,
+  linting,
+  window,
+} from "./extensions/index.js";
 
 export function languageServerWithClient(options: LanguageServerOptions) {
   const features = {
@@ -47,7 +39,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
 
   if (!features.signatureHelp.disabled) {
     extensions.push(
-      ...getSignatureExtensions({
+      ...signatures.getSignatureExtensions({
         render: features.signatureHelp.render,
       }),
     );
@@ -55,7 +47,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
 
   if (!features.hovers.disabled) {
     extensions.push(
-      getHoversExtensions({
+      hovers.getHoversExtensions({
         render: features.hovers.render,
         hoverTime: features.hovers.hoverTime,
       }),
@@ -64,7 +56,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
 
   if (!features.completion?.disabled) {
     extensions.push(
-      getCompletionsExtensions({
+      completions.getCompletionsExtensions({
         render: features.completion.render,
         completionMatchBefore: features.completion?.completionMatchBefore,
       }),
@@ -73,7 +65,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
 
   if (!features.references.disabled) {
     extensions.push(
-      ...getReferencesExtensions({
+      ...references.getReferencesExtensions({
         ...features.references,
         render: features.references.render,
       }),
@@ -82,7 +74,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
 
   if (!features.renames.disabled) {
     extensions.push(
-      ...getRenameExtensions({
+      ...renames.getRenameExtensions({
         shortcuts: features.renames.shortcuts,
         ...features.renames,
       }),
@@ -91,7 +83,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
 
   if (!features.contextMenu.disabled) {
     extensions.push(
-      ...getContextMenuExtensions({
+      ...contextMenu.getContextMenuExtensions({
         render: features.contextMenu.render,
         referencesArgs: {
           render: features.references.render,
@@ -103,7 +95,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
 
   if (!options.features.linting?.disabled) {
     extensions.push(
-      ...getLintingExtensions({
+      ...linting.getLintingExtensions({
         languageId: options.languageId,
         onExternalFileChange: features.linting.onExternalFileChange,
         render: options.features.linting?.render,
@@ -113,7 +105,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
 
   if (!features.window.disabled) {
     extensions.push(
-      ...getWindowExtensions({
+      ...window.getWindowExtensions({
         render: features.window.render,
       }),
     );
@@ -128,18 +120,18 @@ type FeatureOption<T> = { disabled?: boolean } & Omit<
 >;
 
 export interface LanguageServerFeatures {
-  signatureHelp: FeatureOption<SignatureSuggestionArgs>;
-  hovers: FeatureOption<HoverExtensionArgs>;
-  references: FeatureOption<ReferenceExtensionsArgs>;
-  completion: FeatureOption<CompletionExtensionsArgs>;
-  renames: FeatureOption<RenameExtensionsArgs>;
+  signatureHelp: FeatureOption<signatures.SignatureSuggestionArgs>;
+  hovers: FeatureOption<hovers.HoverExtensionArgs>;
+  references: FeatureOption<references.ReferenceExtensionsArgs>;
+  completion: FeatureOption<completions.CompletionExtensionsArgs>;
+  renames: FeatureOption<renames.RenameExtensionsArgs>;
   contextMenu: FeatureOption<
-    Omit<ContextMenuArgs, "referencesArgs"> & {
-      referencesArgs?: FeatureOption<ReferenceExtensionsArgs>;
+    Omit<contextMenu.ContextMenuArgs, "referencesArgs"> & {
+      referencesArgs?: FeatureOption<references.ReferenceExtensionsArgs>;
     }
   >;
-  linting: FeatureOption<DiagnosticArgs>;
-  window: FeatureOption<WindowExtensionArgs>;
+  linting: FeatureOption<linting.DiagnosticArgs>;
+  window: FeatureOption<window.WindowExtensionArgs>;
 }
 
 /**

@@ -116,7 +116,6 @@ async function handleCompletion({
         lsPlugin.client.capabilities?.completionProvider?.resolveProvider ??
         false,
       resolveItem: async (item: LSP.CompletionItem) => {
-        // biome-ignore lint/style/noNonNullAssertion: We know it can resolve
         return (await lsPlugin.requestWithLock(
           "completionItem/resolve",
           item,
@@ -170,7 +169,7 @@ export function toCodemirrorCompletion(
 
   const { render } = options;
 
-  let detailStr = "";
+  let detailStr: undefined | string;
   if (labelDetails) {
     if (labelDetails.detail) {
       detailStr += labelDetails.detail;
@@ -307,19 +306,16 @@ export function toCodemirrorCompletion(
         if (isEmptyDocumentation(content)) return null;
 
         const dom = document.createElement("div");
-        dom.classList.add("documentation");
+        dom.classList.add("cm-lsp-completion-documentation");
         await render(dom, content);
 
         return dom;
-      } catch (e) {
-        console.error("Failed to resolve completion item:", e);
-        if (isEmptyDocumentation(documentation)) {
-          return null;
-        }
+      } catch {
+        if (isEmptyDocumentation(documentation)) return null;
         // Fallback to existing documentation if resolve fails
         if (documentation) {
           const dom = document.createElement("div");
-          dom.classList.add("documentation");
+          dom.classList.add("cm-lsp-completion-documentation");
           await render(dom, documentation);
           return dom;
         }
@@ -330,7 +326,7 @@ export function toCodemirrorCompletion(
     // Fallback for servers without resolve support
     completion.info = async () => {
       const dom = document.createElement("div");
-      dom.classList.add("documentation");
+      dom.classList.add("cm-lsp-completion-documentation");
 
       let documentationStr = "";
       if (typeof documentation === "string") {

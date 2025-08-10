@@ -130,19 +130,15 @@ function getContextMenuTooltip(
           referencesArgs,
         });
 
-        let dom = document.createElement("div");
+        const dom = document.createElement("div");
+        dom.className = "cm-lsp-context-menu";
         render(dom, contextMenuCallbacks);
 
         const removedAbortController = new AbortController();
 
-        // If they click out, remove it
-        view.dom.addEventListener(
-          "click",
-          () => {
-            dom.remove();
-          },
-          { signal: removedAbortController.signal },
-        );
+        view.dom.addEventListener("click", () => dom.remove(), {
+          signal: removedAbortController.signal,
+        });
 
         // If they press escape, remove it
         view.dom.addEventListener(

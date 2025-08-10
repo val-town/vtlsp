@@ -1,7 +1,3 @@
-/**
- * @vitest-environment happy-dom
- */
-
 import { describe, it, expect, vi } from "vitest";
 import { toCodemirrorCompletion, toCodemirrorSnippet } from "./completions.js";
 import { sortCompletionItems } from "./completions.js";
@@ -70,18 +66,22 @@ describe("convertCompletionItem", () => {
     };
 
     const resolveItem = vi.fn().mockResolvedValue(resolvedItem);
+    const render = vi.fn();
 
     const completion = toCodemirrorCompletion(lspItem, {
       hasResolveProvider: true,
       resolveItem,
-      render: vi.fn(),
+      render,
     });
 
     expect(completion.info).toBeDefined();
     // @ts-expect-error - info is a function
     const info = await completion.info?.();
     expect(info).toBeDefined();
-    expect(info?.textContent).toContain("Resolved documentation");
+    expect(render).toHaveBeenCalledWith(expect.anything(), {
+      kind: "markdown",
+      value: "Resolved documentation",
+    });
     expect(resolveItem).toHaveBeenCalledWith(lspItem);
   });
 
@@ -98,17 +98,22 @@ describe("convertCompletionItem", () => {
       .fn()
       .mockRejectedValue(new Error("Resolution failed"));
 
+    const render = vi.fn();
+
     const completion = toCodemirrorCompletion(lspItem, {
       hasResolveProvider: true,
       resolveItem,
-      render: vi.fn(),
+      render,
     });
 
     expect(completion.info).toBeDefined();
     // @ts-expect-error - info is a function
-    const info = await completion.info?.();
+    const info = await completion.info?.() as HTMLDivElement;
     expect(info).toBeDefined();
-    expect(info?.textContent).toContain("Initial documentation");
+    expect(render).toHaveBeenCalledWith(expect.anything(), {
+      kind: "markdown",
+      value: "Initial documentation",
+    });
   });
 
   it("should handle additional text edits", () => {

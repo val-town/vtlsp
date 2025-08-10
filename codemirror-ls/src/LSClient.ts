@@ -2,6 +2,7 @@ import type * as LSP from "vscode-languageserver-protocol";
 import type { LSCore } from "./LSPlugin.js";
 import type { LSITransport } from "./transport/LSITransport.js";
 import { Emitter } from "vscode-jsonrpc";
+import type { LSPNotifyMap, LSPRequestMap } from "./types.lsp.js";
 
 export class LSClient {
   public ready: boolean;
@@ -200,28 +201,32 @@ export class LSClient {
     this.#errorEmitter.dispose();
   }
 
-  public async request(
-    method: string,
-    // biome-ignore lint/suspicious/noExplicitAny: TODO: bring back lsp types
-    params: any,
-    // biome-ignore lint/suspicious/noExplicitAny: TODO: bring back lsp types
-  ): Promise<any> {
-    if (method !== "initialize" && !this.ready) {
-      await this.initializePromise;
+    public async request<K extends keyof LSPRequestMap>(
+      method: K,
+      params: LSPRequestMap[K][0],
+    ): Promise<LSPRequestMap[K][1]> {
+      if (method !== "initialize" && !this.ready) {
+        await this.initializePromise;
+      }
+
+      return this.requestUnsafe(method, params);
     }
 
-    return this.requestUnsafe(method, params);
-  }
-
-  // biome-ignore lint/suspicious/noExplicitAny: explicitly for unsafe requests
+    // biome-ignore lint/suspicious/noExplicitAny: explicitly for unsafe requests
   public async requestUnsafe(method: string, params: any): Promise<any> {
     return await this.transport.sendRequest(method, params);
   }
 
-  public notify(
-    method: string,
-    // biome-ignore lint/suspicious/noExplicitAny: TODO: bring back lsp types
-    params: any,
+  /**
+   * Send a notification to the LSP server.
+   *
+   * @param method The LSP method to notify
+   * @param params The parameters for the notification method
+   * @returns A promise that resolves when the notification is sent
+   */
+  public notify<T extends keyof LSPNotifyMap>(
+    method: T,
+    params: LSPNotifyMap[T],
   ): Promise<void> {
     return this.notifyUnsafe(method, params);
   }

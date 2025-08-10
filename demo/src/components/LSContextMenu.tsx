@@ -9,7 +9,7 @@ export function LSContextMenu({
   rename,
 }: ContextMenuCallbacks) {
   return (
-    <div className="flex flex-col border rounded shadow min-w-[128px]">
+    <div className="flex flex-col">
       <LSContextMenuButton
         onClick={goToDefinition}
         icon={<MousePointer2 size={14} />}

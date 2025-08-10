@@ -27,10 +27,6 @@ export default defineConfig({
         __dirname,
         "node_modules/@codemirror/autocomplete",
       ),
-      "@codemirror/lint": path.resolve(
-        __dirname,
-        "node_modules/@codemirror/lint",
-      ),
       codemirror: path.resolve(__dirname, "node_modules/codemirror"),
     },
   },

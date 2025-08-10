@@ -323,9 +323,11 @@ function createReferencePanel(
     const onClose = () => closeReferencePanel(view);
 
     const panel = document.createElement("div");
+    panel.classList.add("cm-lsp-references-panel");
     panel.setAttribute("aria-label", `${REFERENCE_KIND_LABELS[kind]} list`);
 
     const dom = document.createElement("div");
+    dom.classList.add("cm-lsp-references-panel");
     dom.appendChild(panel);
     render?.(dom, locations, goToReference, onClose, kind);
 
