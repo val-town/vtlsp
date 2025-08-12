@@ -17,5 +17,3 @@ jobs:
     - name: Run tests
       working-directory: ./ls-ws-server
       run: deno task test:ci
-      working-directory: ./ls-ws-server
-      run: deno task test:ci
