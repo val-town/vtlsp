@@ -36,6 +36,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Install mise
+        uses: jdx/mise-action@v2
+        
       - name: Install dependencies for ls-ws-server
         working-directory: ./ls-ws-server
         run: npm ci
