@@ -32,5 +32,5 @@ jobs:
       working-directory: ./codemirror-ls
       run: npm publish --access public
       env:
-        NPM_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        NPM_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
