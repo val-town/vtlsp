@@ -47,8 +47,10 @@
   "dependencies": {
     "es-toolkit": "^1.39.8",
     "execa": "^9.6.0",
+    "isomorphic-ws": "^5.0.0",
     "p-queue": "^8.1.0",
     "vscode-jsonrpc": "^8.2.1",
-    "vscode-languageserver-protocol": "^3.17.5"
+    "vscode-languageserver-protocol": "^3.17.5",
+    "vscode-uri": "^3.1.0"
   }
 }
