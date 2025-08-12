@@ -1,4 +1,4 @@
-import { pino } from "pino";
+import pino from "pino";
 
 export const logger = pino(
   { level: Deno.env.get("CI") ? "info" : "trace" },

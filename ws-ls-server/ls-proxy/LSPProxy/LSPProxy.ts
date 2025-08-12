@@ -41,7 +41,7 @@ export class LSPProxy {
   public procConn: rpc.MessageConnection | null = null;
 
   /** Connection to the LSP client */
-  public clientConn = rpc.createMessageConnection(
+  public clientConn: rpc.MessageConnection = rpc.createMessageConnection(
     new rpc.StreamMessageReader(process.stdin),
     new rpc.StreamMessageWriter(process.stdout),
   );
@@ -123,12 +123,12 @@ export class LSPProxy {
   public sendNotification<K extends keyof LSPNotifyMap>(
     method: K,
     params: LSPNotifyMap[K],
-  ) {
-    return this.sendNotificationUnsafe(method, params);
+  ): void {
+    this.sendNotificationUnsafe(method, params);
   }
 
   // biome-ignore lint/suspicious/noExplicitAny: explicitly unsafe method
-  public sendNotificationUnsafe(method: string, params: any) {
+  public sendNotificationUnsafe(method: string, params: any): void {
     logger.debug({ method, params }, "Sending notification to process");
 
     this.clientConn.sendNotification(method, params);
@@ -147,8 +147,11 @@ export class LSPProxy {
     return await this.sendRequestUnsafe(method, params);
   }
 
-  // biome-ignore lint/suspicious/noExplicitAny: explicitly unsafe method
-  public async sendRequestUnsafe(method: string, params: any) {
+  public async sendRequestUnsafe(
+    method: string,
+    // biome-ignore lint/suspicious/noExplicitAny: explicitly unsafe method
+    params: any,
+  ): Promise<unknown> {
     logger.debug({ method, params }, "Sending request to process");
 
     if (!this.procConn) {
@@ -161,13 +164,13 @@ export class LSPProxy {
   /**
    * Send a shutdown notification to the LSP process.
    */
-  public sendShutdown() {
+  public sendShutdown(): void {
     logger.debug("Sending shutdown notification to process");
 
     this.clientConn.sendNotification("shutdown");
   }
 
-  private async startProc() {
+  private async startProc(): Promise<void> {
     if (this.process) {
       logger.debug("LSP process already running");
       return;
@@ -244,7 +247,7 @@ export class LSPProxy {
     this.processRunningResolve();
   }
 
-  private setupProcToClient() {
+  private setupProcToClient(): void {
     if (!this.procConn)
       throw new Error("LSP process connection not initialized");
 

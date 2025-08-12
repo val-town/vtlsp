@@ -116,10 +116,11 @@ export class LSWSServer {
           `LSP process for session ${sessionId} exited with code ${code}`,
         );
 
-        const [lastLogsStdout, lastLogsStderr] = await proc
-          .getLogTail(logLineCount);
+        const [lastLogsStdout, lastLogsStderr] =
+          await proc.getLogTail(logLineCount);
 
-        const crashReport = `=== LSP Exit Report ===\n` +
+        const crashReport =
+          `=== LSP Exit Report ===\n` +
           `Session ID: ${sessionId}\n` +
           `Exit code: ${code}\n` +
           `LSP command: ${lsCommand} ${lsArgs.join(" ")}\n` +
@@ -140,7 +141,11 @@ export class LSWSServer {
         }
 
         // Close the session immediately when the process exits
-        await this.closeSession(sessionId, 1012, `LSP process exited (code ${code})`);
+        await this.closeSession(
+          sessionId,
+          1012,
+          `LSP process exited (code ${code})`,
+        );
         this.onProcExit?.(sessionId, code);
       },
     });
@@ -153,7 +158,9 @@ export class LSWSServer {
   public handleNewWebsocket(request: Request, sessionId: string): Response {
     if (!this.acceptingConnections) {
       logger.warn({ sessionId }, "New WebSocket connection request rejected");
-      return new Response("Server is not accepting new connections", { status: 503 });
+      return new Response("Server is not accepting new connections", {
+        status: 503,
+      });
     }
 
     logger.info({ sessionId }, "New WebSocket connection request for session");
@@ -185,11 +192,10 @@ export class LSWSServer {
       );
 
       if (!proc.stdout || !proc.stdin) {
-        logger.error(
-          { sessionId },
-          "Failed to create LSP process streams",
-        );
-        return new Response("Failed to create LSP process streams", { status: 500 });
+        logger.error({ sessionId }, "Failed to create LSP process streams");
+        return new Response("Failed to create LSP process streams", {
+          status: 500,
+        });
       }
 
       // Create multicast stream for the new process stdout only
@@ -218,7 +224,9 @@ export class LSWSServer {
         { sessionId },
         "Failed to access multicast streams for LSP process",
       );
-      return new Response("Failed to create LSP process streams", { status: 500 });
+      return new Response("Failed to create LSP process streams", {
+        status: 500,
+      });
     }
 
     const { socket, response } = Deno.upgradeWebSocket(request);
@@ -234,7 +242,8 @@ export class LSWSServer {
       this.#closeWebSocket(socket, sessionId, 1011, "WebSocket error occurred");
     });
 
-    const { readable: webSocketIn, writable: webSocketOut } = createWebSocketStreams(socket);
+    const { readable: webSocketIn, writable: webSocketOut } =
+      createWebSocketStreams(socket);
 
     // Register new proxies for this WebSocket
     const procOutConsumer = sessionData.createProcOutConsumer();
@@ -271,7 +280,10 @@ export class LSWSServer {
         this.#closeWebSocket(socket, sessionId, 1011, "Stream error occurred");
       });
       stdinProducer.on("error", (error) => {
-        logger.error({ sessionId, error: error.stack || error.message }, "Stdin producer error");
+        logger.error(
+          { sessionId, error: error.stack || error.message },
+          "Stdin producer error",
+        );
         this.#closeWebSocket(socket, sessionId, 1011, "Stream error occurred");
       });
 
@@ -291,17 +303,28 @@ export class LSWSServer {
         this.#closeWebSocket(socket, sessionId, 1011, "WebSocket output error");
       });
     } catch (err) {
-      if (!(Error.isError(err))) throw err;
-      logger.error({ sessionId, error: err.stack || err.message }, "Error setting up stream pipes");
-      return new Response("Failed to set up WebSocket streams", { status: 500 });
+      if (!Error.isError(err)) throw err;
+      logger.error(
+        { sessionId, error: err.stack || err.message },
+        "Error setting up stream pipes",
+      );
+      return new Response("Failed to set up WebSocket streams", {
+        status: 500,
+      });
     }
 
     socket.onopen = () => {
-      logger.info({ sessionId }, `WebSocket connection opened for session ${sessionId}`);
+      logger.info(
+        { sessionId },
+        `WebSocket connection opened for session ${sessionId}`,
+      );
     };
 
     socket.onerror = (event) => {
-      logger.error({ sessionId, event }, `WebSocket error for session ${sessionId}`);
+      logger.error(
+        { sessionId, event },
+        `WebSocket error for session ${sessionId}`,
+      );
       this.#closeWebSocket(socket, sessionId, 1011, "WebSocket error occurred");
     };
 
@@ -332,7 +355,10 @@ export class LSWSServer {
       }
     };
 
-    logger.info({ sessionId }, `WebSocket connection established for ${sessionId}`);
+    logger.info(
+      { sessionId },
+      `WebSocket connection established for ${sessionId}`,
+    );
     return response;
   }
 
@@ -358,7 +384,10 @@ export class LSWSServer {
     );
 
     for (const [ws, connData] of session.conns) {
-      logger.debug({ sessionId, code, message }, "Closing WebSocket connection");
+      logger.debug(
+        { sessionId, code, message },
+        "Closing WebSocket connection",
+      );
 
       // Close the WebSocket first, before destroying streams
       this.#closeWebSocket(ws, sessionId, code, message);
@@ -376,10 +405,7 @@ export class LSWSServer {
 
     await this.lsProcManager.releaseProc(sessionId);
 
-    logger.info(
-      { sessionId },
-      `Session ${sessionId} closed successfully`,
-    );
+    logger.info({ sessionId }, `Session ${sessionId} closed successfully`);
   }
 
   /**
@@ -409,7 +435,10 @@ export class LSWSServer {
 
         // Change the inbound message numerical ID to a UUID, and put the UUID in our map
         if (isJSONRPCRequest(message) && typeof message.id === "number") {
-          logger.debug({ messageId: message.id }, "Processing LSP message with ID");
+          logger.debug(
+            { messageId: message.id },
+            "Processing LSP message with ID",
+          );
           const newUuid = crypto.randomUUID();
           connData.requestIDTranslationMap.set(newUuid, message.id);
           message.id = newUuid;
@@ -417,7 +446,7 @@ export class LSWSServer {
 
         return JSON.stringify(message);
       } catch (error) {
-        logger.error("Failed to parse message: ", error);
+        logger.error(error, "Failed to parse message: ");
         return chunk;
       }
     };
@@ -430,7 +459,10 @@ export class LSWSServer {
 
         // If the message is a response with a UUID ID, map it back to a numerical ID
         if (isJSONRPCResponse(message) && typeof message.id === "string") {
-          logger.debug({ messageId: message.id }, "Processing LSP response with ID");
+          logger.debug(
+            { messageId: message.id },
+            "Processing LSP response with ID",
+          );
 
           const originalId = connData.requestIDTranslationMap.get(message.id);
           if (originalId === undefined) {
@@ -450,7 +482,7 @@ export class LSWSServer {
 
         return JSON.stringify(message);
       } catch (error) {
-        logger.error("Failed to parse message: ", error);
+        logger.error(error, "Failed to parse message");
         return chunk;
       }
     };
@@ -576,43 +608,72 @@ export class LSWSServer {
     };
   }
 
-  #closeWebSocket(socket: WebSocket, sessionId: string, code: number, reason: string): void {
+  #closeWebSocket(
+    socket: WebSocket,
+    sessionId: string,
+    code: number,
+    reason: string,
+  ): void {
     try {
-      if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
-        logger.debug({
-          sessionId,
-          code,
-          reason,
-          readyState: socket.readyState,
-        }, "Attempting to close WebSocket");
+      if (
+        socket.readyState === WebSocket.OPEN ||
+        socket.readyState === WebSocket.CONNECTING
+      ) {
+        logger.debug(
+          {
+            sessionId,
+            code,
+            reason,
+            readyState: socket.readyState,
+          },
+          "Attempting to close WebSocket",
+        );
         socket.close(code, reason);
       } else {
-        logger.debug({
-          sessionId,
-          readyState: socket.readyState,
-          attemptedCode: code,
-        }, "WebSocket already closed or closing");
+        logger.debug(
+          {
+            sessionId,
+            readyState: socket.readyState,
+            attemptedCode: code,
+          },
+          "WebSocket already closed or closing",
+        );
       }
     } catch (error) {
-      logger.error({
-        sessionId,
-        error: error instanceof Error ? error.message : String(error),
-      }, "Error while closing WebSocket");
+      logger.error(
+        {
+          sessionId,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        "Error while closing WebSocket",
+      );
     }
   }
 
-  #enforceMaxConnsPerSession(sessionData: LSWSServerSessionData, sessionId: string): void {
+  #enforceMaxConnsPerSession(
+    sessionData: LSWSServerSessionData,
+    sessionId: string,
+  ): void {
     if (!this.maxSessionConns) return;
 
     while (sessionData.conns.size >= this.maxSessionConns) {
       const firstConnection = sessionData.conns.keys().next().value;
       if (firstConnection) {
         logger.info(
-          { sessionId, currentConns: sessionData.conns.size, maxConns: this.maxSessionConns },
+          {
+            sessionId,
+            currentConns: sessionData.conns.size,
+            maxConns: this.maxSessionConns,
+          },
           "Connection limit reached, closing first connection",
         );
 
-        this.#closeWebSocket(firstConnection, sessionId, 1000, "Connection limit exceeded");
+        this.#closeWebSocket(
+          firstConnection,
+          sessionId,
+          1000,
+          "Connection limit exceeded",
+        );
         sessionData.conns.delete(firstConnection);
       } else {
         break;
@@ -655,4 +716,3 @@ export class LSWSServer {
     socket.addEventListener("close", closeHandler, { signal });
   }
 }
-
