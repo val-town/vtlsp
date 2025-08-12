@@ -1,23 +1,26 @@
 {
   "compilerOptions": {
-    "module": "nodenext",
-    "target": "esnext",
-    "lib": ["esnext", "dom"],
-    "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "inlineSources": true,
+    "jsx": "react",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": false,
-    "strict": true,
-    "jsx": "react-jsx",
-    "verbatimModuleSyntax": true,
-    "allowSyntheticDefaultImports": true,
-    "isolatedModules": true,
-    "noUncheckedSideEffectImports": true,
-    "moduleDetection": "force",
+    "resolveJsonModule": true,
     "skipLibCheck": true,
-    "paths": {
-      "common": ["../common"]
-    }
-  }
+    "sourceMap": true,
+    "strict": true,
+    "target": "es2022",
+    "rootDir": "./src",
+    "outDir": "./dist"
+  },
+  "include": [
+    "./src"
+  ],
+  "exclude": [
+    "./src/**/*.test.ts"
+  ]
 }
