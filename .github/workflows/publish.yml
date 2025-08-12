@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  publish-ls-server:
+  publish:
     runs-on: ubuntu-latest
     
     steps:
@@ -17,12 +17,20 @@ jobs:
     - name: Install mise
       uses: jdx/mise-action@v2
         
-    - name: Install dependencies
+    - name: Install dependencies for codemirror-ls
       working-directory: ./codemirror-ls
       run: npm ci
         
-    - name: Build package
+    - name: Build codemirror-ls package
       working-directory: ./codemirror-ls
+      run: npm run build
+
+    - name: Install dependencies for ls-ws-server
+      working-directory: ./ls-ws-server
+      run: npm ci
+        
+    - name: Build ls-ws-server package
+      working-directory: ./ls-ws-server
       run: npm run build
 
     - name: Publish codemirror-ls package

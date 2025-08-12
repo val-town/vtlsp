@@ -2,7 +2,7 @@
   "version": "5",
   "specifiers": {
     "npm:@hono/zod-validator@~0.7.2": "0.7.2_hono@4.9.1_zod@4.0.17",
-    "npm:@valtown/ls-ws-server@^0.0.1": "0.0.1_@codemirror+autocomplete@6.18.6_@codemirror+lint@6.8.5_@codemirror+state@6.5.2_@codemirror+view@6.38.1_codemirror@6.0.2",
+    "npm:@valtown/ls-ws-server@^0.0.2": "0.0.2_@codemirror+autocomplete@6.18.6_@codemirror+lint@6.8.5_@codemirror+state@6.5.2_@codemirror+view@6.38.1_codemirror@6.0.2",
     "npm:hono@^4.9.1": "4.9.1",
     "npm:vscode-languageserver-protocol@^3.17.5": "3.17.5",
     "npm:zod@^4.0.17": "4.0.17"
@@ -93,8 +93,8 @@
     "@marijn/find-cluster-break@1.0.2": {
       "integrity": "sha512-l0h88YhZFyKdXIFNfSWpyjStDjGHwZ/U7iobcK1cQQD8sejsONdQtTVU+1wVN1PBw40PiiHB1vA5S7VTfQiP9g=="
     },
-    "@valtown/ls-ws-server@0.0.1_@codemirror+autocomplete@6.18.6_@codemirror+lint@6.8.5_@codemirror+state@6.5.2_@codemirror+view@6.38.1_codemirror@6.0.2": {
-      "integrity": "sha512-xDm2Gn0vWik2Z+SPbpkjig45qhLcuJvD7HA/6+JGDNtKU/L5zSUnGTUkhSZokFfNdxzdtI7SOznHpt5XLPXmKw==",
+    "@valtown/ls-ws-server@0.0.2_@codemirror+autocomplete@6.18.6_@codemirror+lint@6.8.5_@codemirror+state@6.5.2_@codemirror+view@6.38.1_codemirror@6.0.2": {
+      "integrity": "sha512-qq5BbB0Qf23Wn1ufa8Tsc1sSw4QCjeOEHCHILF9MmCsZqTQ4DVDbTFRrFKgrxU2pB27dtsPAlZzA9cXhPB0qbg==",
       "dependencies": [
         "@codemirror/autocomplete",
         "@codemirror/lint",
@@ -170,7 +170,7 @@
   "workspace": {
     "dependencies": [
       "npm:@hono/zod-validator@~0.7.2",
-      "npm:@valtown/ls-ws-server@^0.0.1",
+      "npm:@valtown/ls-ws-server@^0.0.2",
       "npm:hono@^4.9.1",
       "npm:vscode-languageserver-protocol@^3.17.5",
       "npm:zod@^4.0.17"
