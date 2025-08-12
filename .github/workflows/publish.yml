@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - codemirror-ls/**
-      - ls-ws-server/**
   workflow_dispatch:
 
 jobs:
