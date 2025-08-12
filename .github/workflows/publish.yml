@@ -25,34 +25,15 @@ jobs:
       working-directory: ./codemirror-ls
       run: npm run build
 
-    - name: Publish package
+    - name: Publish codemirror-ls package
       working-directory: ./codemirror-ls
       run: npm publish --access public
       env:
         NPM_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-
-  publish-codemirror-ls:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Install mise
-      uses: jdx/mise-action@v2
-        
-    - name: Install dependencies
-      working-directory: ./codemirror-ls
-      run: npm ci
-        
-    - name: Build package
-      working-directory: ./codemirror-ls
-      run: npm run build
-
-    - name: Publish package
-      working-directory: ./codemirror-ls
+    - name: Publish ls-ws-server package
+      working-directory: ./ls-ws-server
       run: npm publish --access public
       env:
         NPM_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
