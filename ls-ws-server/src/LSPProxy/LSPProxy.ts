@@ -16,11 +16,11 @@ import type {
   ParamsMiddlewareFunction,
   ResultMiddlewareFunction,
   UriConverters,
-} from "./types.d.ts";
+} from "./types";
 import process from "node:process";
 import { isLspParamsLike, isLspRespLike, replaceFileUris } from "./utils.ts";
 import { logger } from "../logger.ts";
-import type { LSPNotifyMap, LSPRequestMap } from "./types.lsp.d.ts";
+import type { LSPNotifyMap, LSPRequestMap } from "./types.lsp";
 import { hasALsProxyCode } from "./codes.ts";
 
 /**
@@ -31,8 +31,8 @@ import { hasALsProxyCode } from "./codes.ts";
  * messages. Then, it rebroadcasts the messages to act as an LSP.
  */
 export class LSPProxy {
-  /** The temp directory that the LSP process is running in. */
-  public tempDir: string;
+  /** The working directory for the LSP process. */
+  public cwd: string;
 
   /** The spawned language server process */
   public process: ChildProcessWithoutNullStreams | null = null;
@@ -41,10 +41,7 @@ export class LSPProxy {
   public procConn: rpc.MessageConnection | null = null;
 
   /** Connection to the LSP client */
-  public clientConn: rpc.MessageConnection = rpc.createMessageConnection(
-    new rpc.StreamMessageReader(process.stdin),
-    new rpc.StreamMessageWriter(process.stdout),
-  );
+  public clientConn: rpc.MessageConnection;
 
   /** Configuration for the language server executable */
   #execOptions: LSPExec;
@@ -66,7 +63,7 @@ export class LSPProxy {
   #lsLogStderrPath?: string;
   #lsLogStdoutPath?: string;
 
-  /** Prefix for the temp dir that the LSP runs in. */
+  /** Prefix for the working directory that the LSP runs in. */
   readonly name: string;
 
   /** Promise that resolves when the LSP process is running */
@@ -75,13 +72,15 @@ export class LSPProxy {
 
   constructor({
     exec,
+    inputStream = process.stdin,
+    outputStream = process.stdout,
     clientToProcMiddlewares,
     procToClientMiddlewares,
     clientToProcHandlers,
     procToClientHandlers,
     uriConverters,
     name,
-    tempDir,
+    cwd,
     lsLogStderrPath,
     lsLogStdoutPath,
   }: LSPProxyParams) {
@@ -92,10 +91,16 @@ export class LSPProxy {
     this.#procToClientHandlers = procToClientHandlers ?? {};
     this.#uriConverters = uriConverters;
     this.name = name;
-    this.tempDir = tempDir;
+    this.cwd = cwd;
 
     this.#lsLogStderrPath = lsLogStderrPath;
     this.#lsLogStdoutPath = lsLogStdoutPath;
+
+    // Create client connection with provided streams
+    this.clientConn = rpc.createMessageConnection(
+      new rpc.StreamMessageReader(inputStream),
+      new rpc.StreamMessageWriter(outputStream),
+    );
 
     // Create the process running promise
     this.processRunningPromise = new Promise<void>((resolve) => {
@@ -182,7 +187,7 @@ export class LSPProxy {
     }
 
     this.process = spawn(this.#execOptions.command, this.#execOptions.args, {
-      cwd: this.tempDir,
+      cwd: this.cwd,
       env: {
         ...process.env,
         ...(typeof this.#execOptions.env === "function"

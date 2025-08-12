@@ -1,6 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 
-import type { LSPNotifyMap, LSPRequestMap } from "./types.lsp.d.ts";
+import type { LSPNotifyMap, LSPRequestMap } from "./types.lsp";
 import type { codes } from "./codes.ts";
 
 type MaybePromise<T> = T | Promise<T>;
@@ -87,32 +87,103 @@ export type LSPProxyCallbacks = {
   onRequest?: (method: string, params: any) => MaybePromise<any>;
 };
 
+/**
+ * A set of functions to convert URIs between the language server process format and the consumer client format.
+ * 
+ * One common use case here is to convert file paths between being relative to a
+ * temp path and a virtual root. For example, a user editing files in a browser
+ * may want to convert deal with paths that look like "/bar.ts," but, for
+ * security reasons, on disc want to contain those files in a temporary
+ * directory like `/tmp/ls-proxy/bar.ts`.
+ */
 export type UriConverters = {
+  /**
+   * Converts a URI from the language server process format to the consumer client format.
+   * 
+   * @param uri The URI in the language server process format.
+   * @returns The URI in the consumer client format.
+   */
   toProcUri: (uri: string) => string;
+  /**
+   * Converts a URI from the consumer client format to the language server process format.
+   * 
+   * @param uri The URI in the consumer client format.
+   * @returns The URI in the language server process format.
+   */
   fromProcUri: (uri: string) => string;
 };
 
 export type LSPExec = {
+  /** The command to execute the language server process.  */
   command: string;
+  /** Arguments to pass to the command. If not provided, the default is an empty array.  */
   args?: string[];
+  /**
+   * Either a dictionary of environment variables to set for the process, or a
+   * function that returns a promise that resolves to such a dictionary.
+   */
   env?: () => MaybePromise<{ [K: string]: string }> | Record<string, string>;
+  /**
+   * Lifecycle callbacks for the language server process.
+   */
   callbacks?: {
+    /** Called before the language server process is spawned. */
     preSpawn?: () => MaybePromise<void>;
+    /** Called after the language server process is spawned. */
     postSpawn?: () => MaybePromise<void>;
+    /** Called when the language server process exits. */
     onExit?: (code: number | null) => MaybePromise<void>;
+    /** Called when the language server process encounters an error. */
     onError?: (error: Error) => MaybePromise<void>;
   };
 };
 
 export interface LSPProxyParams {
   name: string;
+  /**
+   * Information to spawn the language server process.
+   */
   exec: LSPExec;
+  /**
+   * Input stream for receiving messages from the LSP client.
+   * 
+   * @default process.stdin
+   */
+  inputStream?: NodeJS.ReadableStream;
+  /**
+   * Output stream for sending messages to the LSP client.
+   * 
+   * @default process.stdout
+   */
+  outputStream?: NodeJS.WritableStream;
+  /**
+   * Callbacks that intercept and maybe transform messages sent from the language server consumer client en route to the language server process.
+   */
   clientToProcMiddlewares?: LSPProxyClientToProcMiddlewares;
+  /**
+   * Callbacks that intercept and maybe transform messages sent from the language server process en route to the language server consumer client.
+   */
   procToClientMiddlewares?: LSPProxyProcToClientMiddlewares;
+  /**
+   * Callbacks that handle messages sent from the language server consumer client en route to the language server process.
+   */
   clientToProcHandlers?: LSPProxyClientToProcHandlers;
+  /**
+   * Callbacks that handle messages sent from the language server process en route to the language server consumer client.
+   */
   procToClientHandlers?: LSPProxyProcToClientHandlers;
+  /**
+   * Callbacks that handle messages sent from the language server consumer client or process.
+   */
   uriConverters: UriConverters;
-  tempDir: string;
+  /**
+   * The working directory for the language server process.
+   * 
+   * Language servers are often finicky about the file system, and in many cases use file system watchers to detect specific types of changes.
+   * 
+   * @default process.cwd()
+   */
+  cwd: string;
   lsLogStderrPath?: string;
   lsLogStdoutPath?: string;
 }

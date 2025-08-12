@@ -1,4 +1,4 @@
-import type { LSProxyCode } from "./types.d.ts";
+import type { LSProxyCode } from "./types";
 
 export const codes = {
   cancel_response: "cancel_response",

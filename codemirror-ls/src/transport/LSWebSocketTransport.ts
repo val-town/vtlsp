@@ -16,10 +16,16 @@ import type { LSITransport } from "./LSITransport.js";
 const MAX_CHUNK = 900 * 1024;
 
 interface LSWebSocketTransportOptions {
+  /** Called when the WebSocket connection is opened */
   onWSOpen?: (e: Event) => void;
+  /** Called when the WebSocket connection is closed */
   onWSClose?: (e: CloseEvent) => void;
+  /** Called when there is a WebSocket error */
   onWSError?: (error: ErrorEvent) => void;
+  /** Called when the language server is considered "healthy" */
   onLSHealthy?: () => void;
+  /** The notification path to listen for to consider the LS "healthy" */
+  healthyNotificationPath?: string;
 }
 
 export class LSWebSocketTransport implements LSITransport {
@@ -30,6 +36,7 @@ export class LSWebSocketTransport implements LSITransport {
   public onWSClose?: (e: CloseEvent) => void;
   public onWSError?: (error: ErrorEvent) => void;
   public onLSHealthy?: () => void;
+  public healthyNotificationPath?: string;
 
   #messageConnection: MessageConnection | null = null;
   #connectingPromise: Promise<void> | null = null;
@@ -57,6 +64,7 @@ export class LSWebSocketTransport implements LSITransport {
       onWSClose,
       onLSHealthy,
       onWSError,
+      healthyNotificationPath,
     }: LSWebSocketTransportOptions = {},
   ) {
     this.uri = uri.replace("http", "ws");
@@ -64,6 +72,7 @@ export class LSWebSocketTransport implements LSITransport {
     this.onWSOpen = onWSOpen;
     this.onWSClose = onWSClose;
     this.onWSError = onWSError;
+    this.healthyNotificationPath = healthyNotificationPath;
   }
 
   async sendRequest(
@@ -200,6 +209,10 @@ export class LSWebSocketTransport implements LSITransport {
     this.#messageConnection = createMessageConnection(reader, writer);
 
     this.#messageConnection.onNotification((method, params) => {
+      if (this.healthyNotificationPath && method === this.healthyNotificationPath) {
+        this.onLSHealthy?.();
+      }
+
       this.#notifyEmitter.fire({ method, params });
     });
 

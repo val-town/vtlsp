@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "@valtown/codemirror-ls",
+  "name": "@valtown/ls-ws-server",
   "version": "0.0.1",
-  "description": "Val Town editor Codemirror LSP client",
+  "description": "Language server WebSocket server and proxy",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/val-town/vtlsp.git"
@@ -29,10 +29,15 @@
     "@codemirror/state": "^6",
     "codemirror": "^6.0.0"
   },
+  "devDependencies": {
+    "happy-dom": "^18.0.1",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  },
   "exports": {
     ".": "./src/index.ts",
-    "./extensions": "./src/extensions/index.ts",
-    "./transport": "./src/transport/index.ts"
+    "./proxy": "./src/LSPProxy",
+    "./server": "./src/LSWSServer"
   },
   "types": "./dist/index.d.ts",
   "type": "module",

@@ -1,0 +1,51 @@
+name: Test All Packages
+
+on:
+  push:
+
+jobs:
+  test-ls-proxy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install mise
+      uses: jdx/mise-action@v2
+        
+    - name: Run tests
+      working-directory: ./ls-proxy
+      run: deno task test:ci
+
+  test-ls-ws-server:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install mise
+      uses: jdx/mise-action@v2
+        
+    - name: Run tests
+      working-directory: ./ls-ws-server
+      run: deno task test:ci
+
+  test-codemirror:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install mise
+      uses: jdx/mise-action@v2
+        
+    - name: Install dependencies
+      working-directory: ./codemirror-ls
+      run: npm install
+        
+    - name: Run tests
+      working-directory: ./codemirror-ls
+      run: npm run test

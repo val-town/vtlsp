@@ -3,7 +3,7 @@ import { logger } from "../logger.ts";
 import type { LSProc } from "./procs/LSProc.ts";
 import { LSProcManager } from "./procs/LSProcManager.ts";
 import { createWebSocketStreams } from "./WSStream.ts";
-import { join } from "@std/path";
+import process from "node:process";
 import { pipeLsInToLsOut } from "./LSTransform.ts";
 import { isJSONRPCRequest, isJSONRPCResponse } from "json-rpc-2.0";
 
@@ -30,14 +30,43 @@ interface LSWSServerSessionData {
 }
 
 interface LSWSServerOptions {
+  /** Command to start the LSP process. */
   lsCommand: string;
+  /** Arguments to pass to the LSP command. */
   lsArgs: string[];
-  lsLogPath: string;
+  /** Path to log LSP stdout output to. **/
+  lsStdoutLogPath?: string;
+  /** Path to log LSP stderr output to. **/
+  lsStderrLogPath?: string;
+  /**
+   * Maximum number of LSP processes to run concurrently.
+   * 
+   * Every new session will spawn a new LSP process, up to this limit. If
+   * additional sessions are requested, the server will wait kill the oldest
+   * sessions up until there is room for the new session under this limit.
+   * 
+   * If -1, there is no limit on the number of processes.
+   * 
+   * @default 3
+   */
   maxProcs?: number;
+  /**
+   * Maximum number of concurrent connections per session.
+   *
+   * If not provided, there is no limit on the number of connections per session.
+   */
   maxSessionConns?: number;
-  /** Shutdown after this many seconds of inactivity */
+  /** Maximum message size for stream processing (in bytes). */
+  maxMessageSize?: number;
+  /** 
+   * Shutdown after this many seconds of inactivity.
+   * 
+   * If not provided, the server will not automatically shut down.
+   **/
   shutdownAfter?: number;
+  /** Callback for when an LSP process encounters an error.  */
   onProcError?: (sessionId: string, error: Error) => void;
+  /** Callback for when an LSP process exits. */
   onProcExit?: (sessionId: string, code: number | null) => void;
 }
 
@@ -63,6 +92,8 @@ export class LSWSServer {
   private sessionMap = new Map<string, LSWSServerSessionData>();
   private maxSessionConns?: number;
   private shutdownTimeoutId?: number;
+  private maxMessageSize?: number;
+
   public shutdownAfter?: number;
 
   public onProcError?: (sessionId: string, error: Error) => void;
@@ -71,29 +102,26 @@ export class LSWSServer {
   constructor({
     lsCommand,
     lsArgs,
-    lsLogPath,
-    maxProcs,
+    lsStdoutLogPath,
+    lsStderrLogPath,
+    maxProcs = 3,
+    maxMessageSize =  500 * 1024, // 500 KB
     maxSessionConns,
     shutdownAfter,
     onProcError,
     onProcExit,
   }: LSWSServerOptions) {
-    logger.info(
-      {},
-      `Initializing LSWSServer with command: ${lsCommand} ${lsArgs.join(" ")}`,
-    );
-    logger.info(
-      {},
-      `Log path: ${lsLogPath}, Max processes: ${maxProcs || "unlimited"}`,
-    );
+    logger.info(`Initializing LSWSServer with command: ${lsCommand} ${lsArgs.join(" ")}`);
+    logger.info(`Log path: ${lsStdoutLogPath}, Max processes: ${maxProcs || "unlimited"}`);
 
     this.onProcError = onProcError;
     this.onProcExit = onProcExit;
     this.shutdownAfter = shutdownAfter;
+    this.maxMessageSize = maxMessageSize;
 
     this.lsProcManager = new LSProcManager({
-      lsStdoutLogPath: join(lsLogPath, "vtlsp-lsp-stdout.log"),
-      lsStderrLogPath: join(lsLogPath, "vtlsp-lsp-stderr.log"),
+      lsStdoutLogPath,
+      lsStderrLogPath,
       lsCommand,
       lsArgs,
       maxProcs,
@@ -107,7 +135,7 @@ export class LSWSServer {
       },
       onProcExit: async (sessionId, code, signal, proc): Promise<void> => {
         const logLineCount = Number.parseInt(
-          Deno.env.get("CRASH_LOG_LINE_COUNT") ?? "1000",
+          process.env.CRASH_LOG_LINE_COUNT ?? "1000",
         );
 
         // biome-ignore lint/suspicious/noConsole: for crash reporting
@@ -132,12 +160,12 @@ export class LSWSServer {
         console.error(crashReport);
 
         if (
-          Deno.env.get("EXIT_ON_LS_BAD_EXIT") === "1" &&
+          process.env.EXIT_ON_LS_BAD_EXIT === "1" &&
           this.sessionMap.has(sessionId) &&
           code !== null
         ) {
           // If the session map doesn't have the proc that means we manually killed it
-          Deno.exit(code);
+          process.exit(code);
         }
 
         // Close the session immediately when the process exits
@@ -155,7 +183,7 @@ export class LSWSServer {
     logger.info({}, "LSWSServer initialized successfully");
   }
 
-  public handleNewWebsocket(request: Request, sessionId: string): Response {
+  public handleNewWebsocket(socket: WebSocket, sessionId: string) {
     if (!this.acceptingConnections) {
       logger.warn({ sessionId }, "New WebSocket connection request rejected");
       return new Response("Server is not accepting new connections", {
@@ -228,8 +256,7 @@ export class LSWSServer {
         status: 500,
       });
     }
-
-    const { socket, response } = Deno.upgradeWebSocket(request);
+    
     logger.debug({ sessionId }, "WebSocket upgraded successfully");
 
     this.#setupShutdownHandling(socket);
@@ -243,7 +270,7 @@ export class LSWSServer {
     });
 
     const { readable: webSocketIn, writable: webSocketOut } =
-      createWebSocketStreams(socket);
+      createWebSocketStreams(socket, {chunkSize: this.maxMessageSize});
 
     // Register new proxies for this WebSocket
     const procOutConsumer = sessionData.createProcOutConsumer();
@@ -355,11 +382,7 @@ export class LSWSServer {
       }
     };
 
-    logger.info(
-      { sessionId },
-      `WebSocket connection established for ${sessionId}`,
-    );
-    return response;
+    logger.info( { sessionId }, `WebSocket connection established for ${sessionId}`);
   }
 
   /**
@@ -696,7 +719,7 @@ export class LSWSServer {
           await this.shutdown(1012, "Server shutting down due to inactivity");
           // biome-ignore lint/suspicious/noConsole: for shutdown logging
           console.error(`Shutting down after inactivity`);
-          Deno.exit(1);
+          process.exit(1);
         }, this.shutdownAfter * 1000);
       }
     };
