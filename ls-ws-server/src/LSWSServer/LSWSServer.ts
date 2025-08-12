@@ -1,10 +1,10 @@
 import { PassThrough, type Readable, type Writable } from "node:stream";
-import { logger } from "../logger.ts";
-import type { LSProc } from "./procs/LSProc.ts";
-import { LSProcManager } from "./procs/LSProcManager.ts";
-import { createWebSocketStreams } from "./WSStream.ts";
+import { logger } from "~/logger.ts";
+import type { LSProc } from "~/procs/LSProc.ts";
+import { LSProcManager } from "~/procs/LSProcManager.ts";
+import { createWebSocketStreams } from "~/WSStream.ts";
 import process from "node:process";
-import { pipeLsInToLsOut } from "./LSTransform.ts";
+import { pipeLsInToLsOut } from "~/LSTransform.ts";
 import { isJSONRPCRequest, isJSONRPCResponse } from "json-rpc-2.0";
 
 interface ConnectionData {

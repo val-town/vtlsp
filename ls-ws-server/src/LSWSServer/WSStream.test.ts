@@ -1,7 +1,10 @@
 import { chunkByteArray, createWebSocketStreams } from "./WSStream.ts";
-import { afterEach, beforeEach, describe, it } from "@std/testing/bdd";
-import { expect } from "@std/expect";
 import * as fs from "node:fs";
+import * as path from "node:path";
+import * as os from "node:os";
+import * as http from "node:http";
+import * as crypto from "node:crypto";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 describe("chunkByteArray", () => {
   it("provides evenly divisible chunks", () => {
@@ -36,34 +39,72 @@ describe("chunkByteArray", () => {
 describe("WSStream", () => {
   let ws: WebSocket | undefined;
   let serverWs: WebSocket | undefined;
-  let server: Deno.HttpServer | undefined;
+  let server: http.Server | undefined;
   let port = 0;
   let testFilePath: string;
 
   beforeEach(async () => {
     // Create a temporary file for testing
-    testFilePath = await Deno.makeTempFile({ prefix: "test-file-", suffix: ".bin" });
+    testFilePath = path.join(os.tmpdir(), `test-file-${Date.now()}-${Math.random().toString(16).slice(2)}.bin`);
+    await fs.promises.writeFile(testFilePath, Buffer.alloc(0));
 
-    server = Deno.serve({
-      port: 0,
-      onListen: (info) => {
-        port = info.port;
-      },
-    }, (req) => {
-      if (req.headers.get("upgrade") !== "websocket") {
-        return new Response("Expected WebSocket connection", { status: 426 });
-      }
+    server = http.createServer();
+    
+    server.on('upgrade', (request, socket, head) => {
+      const key = request.headers['sec-websocket-key'];
+      const acceptKey = crypto
+        .createHash('sha1')
+        .update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
+        .digest('base64');
 
-      const { socket, response } = Deno.upgradeWebSocket(req);
+      const responseHeaders = [
+        'HTTP/1.1 101 Switching Protocols',
+        'Upgrade: websocket',
+        'Connection: Upgrade',
+        `Sec-WebSocket-Accept: ${acceptKey}`,
+        '',
+        ''
+      ].join('\r\n');
 
-      socket.addEventListener("message", (event) => {
-        // Echo messages back to client for testing
-        socket.send(event.data);
+      socket.write(responseHeaders);
+
+      // Create server-side WebSocket manually for testing
+      const mockServerWs = {
+        send: (data: any) => {
+          const frame = Buffer.concat([
+            Buffer.from([0x81]), // FIN + text frame
+            Buffer.from([data.length]),
+            Buffer.from(data)
+          ]);
+          socket.write(frame);
+        }
+      };
+      serverWs = mockServerWs as any;
+
+      socket.on('data', (data) => {
+        // Simple WebSocket frame parsing for testing
+        if (data.length > 2) {
+          const payloadLength = data[1] & 0x7F;
+          const maskStart = 2;
+          const dataStart = maskStart + 4;
+          const mask = data.slice(maskStart, dataStart);
+          const payload = data.slice(dataStart, dataStart + payloadLength);
+          
+          for (let i = 0; i < payload.length; i++) {
+            payload[i] ^= mask[i % 4];
+          }
+          
+          // Echo back to client
+          mockServerWs.send(payload);
+        }
       });
+    });
 
-      serverWs = socket;
-
-      return response;
+    await new Promise<void>((resolve) => {
+      server!.listen(0, () => {
+        port = (server!.address() as any).port;
+        resolve();
+      });
     });
 
     // Create WebSocket client connection
@@ -83,15 +124,15 @@ describe("WSStream", () => {
     }
 
     if (server) {
-      await server.shutdown();
+      await new Promise<void>((resolve) => server!.close(() => resolve()));
       server = undefined;
     }
 
     if (testFilePath) {
       try {
-        await Deno.remove(testFilePath);
+        await fs.promises.unlink(testFilePath);
       } catch (error) {
-        if (error instanceof Deno.errors.NotFound) return;
+        if ((error as any).code === "ENOENT") return;
         else throw error;
       }
     }
@@ -105,13 +146,13 @@ describe("WSStream", () => {
     const { writable } = createWebSocketStreams(ws!);
     const messageToSend = "Hello WebSocket!";
 
-    writable.write(new TextEncoder().encode(messageToSend));
+    writable.write(Buffer.from(messageToSend));
     writable.end();
 
     const messagePromise = new Promise<void>((resolve, reject) => {
       ws!.addEventListener("message", (event) => {
         try {
-          const message = new TextDecoder().decode(event.data as Uint8Array);
+          const message = Buffer.isBuffer(event.data) ? event.data.toString() : new TextDecoder().decode(event.data as ArrayBuffer);
           expect(message).toBe(messageToSend);
           resolve();
         } catch (error) {
@@ -135,22 +176,24 @@ describe("WSStream", () => {
     const { writable } = createWebSocketStreams(ws!);
 
     const fileSizeInBytes = 1024 * 1024; // 1 MB
-    const data = new Uint8Array(fileSizeInBytes);
+    const data = Buffer.alloc(fileSizeInBytes);
     for (let i = 0; i < fileSizeInBytes; i++) {
       data[i] = i % 256;
     }
-    await Deno.writeFile(testFilePath, data);
+    await fs.promises.writeFile(testFilePath, data);
 
     const fileStream = fs.createReadStream(testFilePath, { highWaterMark: 1024 * 64 });
 
     fileStream.pipe(writable);
 
     await new Promise<void>((resolve, reject) => {
-      writable.on("finish", () => {
-        fs.unlink(testFilePath, (err) => {
-          if (err) reject(err);
-          else resolve();
-        });
+      writable.on("finish", async () => {
+        try {
+          await fs.promises.unlink(testFilePath);
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
       });
 
       writable.on("error", (error) => {
@@ -161,11 +204,11 @@ describe("WSStream", () => {
 
   it("should be able to use a file stream destination", async () => {
     const fileSizeInBytes = 209715; // 0.2 MB
-    const data = new Uint8Array(fileSizeInBytes);
+    const data = Buffer.alloc(fileSizeInBytes);
     for (let i = 0; i < fileSizeInBytes; i++) {
       data[i] = i % 256;
     }
-    await Deno.writeFile(testFilePath, data);
+    await fs.promises.writeFile(testFilePath, data);
 
     const fileStream = fs.createReadStream(testFilePath, { highWaterMark: 1024 * 64 });
 
@@ -173,15 +216,15 @@ describe("WSStream", () => {
     const { writable: serverWritable } = createWebSocketStreams(serverWs!);
 
     const dataPromise = new Promise<void>((resolve, reject) => {
-      const receivedChunks: Uint8Array[] = [];
+      const receivedChunks: Buffer[] = [];
 
       clientReadable.on("data", (chunk) => {
-        receivedChunks.push(new Uint8Array(chunk));
+        receivedChunks.push(Buffer.from(chunk));
       });
 
       clientReadable.on("end", () => {
         try {
-          const concatenatedData = concatUint8Arrays(receivedChunks);
+          const concatenatedData = Buffer.concat(receivedChunks);
           expect(concatenatedData.length).toBe(fileSizeInBytes);
           resolve();
         } catch (error) {

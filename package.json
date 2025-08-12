@@ -2,7 +2,10 @@
   "name": "vtlsp",
   "version": "0.0.1",
   "description": "VTLSP provides a complete solution to running a language server on a server, and stream messages to an editor in your browser.  This is a monorepo of the core components that make this possible, including a codemirror client library, language server WebSocket server, and language server \"proxy.\"",
-  "main": "index.js",
+  "workspaces": [
+    "./codemirror-ls",
+    "./ls-ws-server"
+  ],
   "scripts": {
     "test": "vitest"
   },

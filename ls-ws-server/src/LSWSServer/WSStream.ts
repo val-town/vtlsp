@@ -11,7 +11,7 @@
 
 import { Readable, Writable } from "node:stream";
 import { Buffer } from "node:buffer";
-import { logger } from "../logger.ts";
+import { logger } from "~/logger.ts";
 
 interface WebSocketStreamOptions {
   chunkSize?: number;

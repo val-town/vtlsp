@@ -2,6 +2,8 @@
 
 This is a WebSocket server for language servers that allows clients (typically code editors) to communicate to a running language server process.
 
+It is meant to be used with your framework of choice, and provides a simple `handleNewWebsocket` handler for when a new connection has been upgraded and should be wired to an LSP.
+
 ```typescript
 import { LSWSServer } from "vtls-server";
 import { Hono } from "hono";
