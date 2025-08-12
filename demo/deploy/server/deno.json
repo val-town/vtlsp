@@ -5,7 +5,7 @@
   "imports": {
     "@hono/zod-validator": "npm:@hono/zod-validator@^0.7.2",
     "@valtown/ls-ws-server": "npm:@valtown/ls-ws-server@^0.0.1",
-    "hono": "npm:hono@^4.9.0",
+    "hono": "npm:hono@^4.9.1",
     "vscode-languageserver-protocol": "npm:vscode-languageserver-protocol@^3.17.5",
     "zod": "npm:zod@^4.0.17"
   }
