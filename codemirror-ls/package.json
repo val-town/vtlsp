@@ -1,24 +1,31 @@
 {
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "@valtown/codemirror-ls",
   "version": "0.0.1",
   "description": "Val Town editor Codemirror LSP client",
-  "main": "index.js",
-  "exports": {
-    ".": "./src/index.ts",
-    "./extensions": "./src/extensions/index.ts",
-    "./transport": "./src/transport/index.ts"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/val-town/vtlsp"
   },
-  "types": "./dist/index.d.ts",
-  "type": "module",
-  "author": "Val Town",
-  "license": "ISC",
+  "homepage": "https://github.com/val-town/vtlsp",
   "scripts": {
     "format": "biome format --write .",
     "test": "vitest",
     "build": "tsc --build"
   },
+  "keywords": [
+    "codemirror",
+    "typescript",
+    "ts",
+    "lsp"
+  ],
+  "author": "Val Town",
+  "license": "ISC",
   "peerDependencies": {
     "@codemirror/view": "^6.0.0",
+    "@codemirror/autocomplete": "^6",
+    "@codemirror/lint": "^6",
+    "@codemirror/state": "^6",
     "codemirror": "^6.0.0"
   },
   "devDependencies": {
@@ -26,6 +33,14 @@
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   },
+  "exports": {
+    ".": "./src/index.ts",
+    "./extensions": "./src/extensions/index.ts",
+    "./transport": "./src/transport/index.ts"
+  },
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "main": "index.js",
   "dependencies": {
     "es-toolkit": "^1.39.8",
     "p-queue": "^8.1.0",
