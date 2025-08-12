@@ -25,6 +25,11 @@ jobs:
       working-directory: ./codemirror-ls
       run: npm run build
 
+    - name: Authenticate with npm
+      run: echo "//registry.npmjs.org/:_authToken=${NPM_AUTH_TOKEN}" > ~/.npmrc
+      env:
+        NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+
     - name: Publish codemirror-ls package
       working-directory: ./codemirror-ls
       run: npm publish --access public
