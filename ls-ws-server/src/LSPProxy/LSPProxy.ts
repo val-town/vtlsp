@@ -16,12 +16,12 @@ import type {
   ParamsMiddlewareFunction,
   ResultMiddlewareFunction,
   UriConverters,
-} from "./types";
+} from "./types.js";
 import process from "node:process";
-import { isLspParamsLike, isLspRespLike, replaceFileUris } from "./utils.ts";
-import { logger } from "../logger.ts";
-import type { LSPNotifyMap, LSPRequestMap } from "./types.lsp";
-import { hasALsProxyCode } from "./codes.ts";
+import { logger } from "~/logger.js";
+import { hasALsProxyCode } from "./codes.js";
+import type { LSPNotifyMap, LSPRequestMap } from "./types.lsp.js";
+import { replaceFileUris, isLspParamsLike, isLspRespLike } from "./utils.js";
 
 /**
  * LSPProxy creates a bridge between a client and a language server process.
@@ -412,7 +412,7 @@ export class LSPProxy {
       // Check for custom method handlers for requests
       if (method in this.#customMethods) {
         const customMethod = this.#customMethods[method];
-        return customMethod(params);
+        if (customMethod) return customMethod(params);
       }
 
       // Send the request to the server

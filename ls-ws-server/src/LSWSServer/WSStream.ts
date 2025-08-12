@@ -12,37 +12,54 @@
 import { Readable, Writable } from "node:stream";
 import { Buffer } from "node:buffer";
 import { logger } from "~/logger.js";
-import { WebSocket } from "isomorphic-ws";
-
+import {
+  WebSocket,
+  type CloseEvent,
+  type MessageEvent,
+  type ErrorEvent,
+} from "isomorphic-ws";
 
 interface WebSocketStreamOptions {
   chunkSize?: number;
 }
 
 class WebSocketReadableStream extends Readable {
-  #websocket: WebSocket;
-  #listeners: [string, EventListener][] = [];
+  #cleanupCbs: (() => void)[] = [];
 
   constructor(ws: WebSocket) {
     super();
-    this.#websocket = ws;
     logger.debug("WebSocketReadableStream initialized");
 
-    const messageHandler = ((event: MessageEvent) => {
+    const messageHandler = (event: MessageEvent) => {
       logger.debug("WebSocketReadableStream received message");
-      this.push(Buffer.from(event.data));
-    }) as EventListener;
-    this.#listeners.push(["message", messageHandler]);
-    ws.addEventListener("message", messageHandler);
 
-    const errorHandler = (event: Event) => {
+      // Handle different data types that WebSocket can receive
+      let buffer: Buffer;
+      if (event.data instanceof ArrayBuffer) {
+        buffer = Buffer.from(event.data);
+      } else if (typeof event.data === "string") {
+        buffer = Buffer.from(event.data, "utf8");
+      } else if (event.data instanceof Uint8Array) {
+        buffer = Buffer.from(event.data);
+      } else {
+        buffer = Buffer.from(String(event.data), "utf8");
+      }
+
+      this.push(buffer);
+    };
+    ws.addEventListener("message", messageHandler);
+    this.#cleanupCbs.push(() =>
+      ws.removeEventListener("message", messageHandler),
+    );
+
+    const errorHandler = (event: ErrorEvent) => {
       logger.error({ event }, "WebSocketReadableStream received error event");
       this.emit("error", event);
     };
-    this.#listeners.push(["error", errorHandler]);
     ws.addEventListener("error", errorHandler);
+    this.#cleanupCbs.push(() => ws.removeEventListener("error", errorHandler));
 
-    const closeHandler = ((event: CloseEvent) => {
+    const closeHandler = (event: CloseEvent) => {
       logger.info(
         {
           code: event.code,
@@ -53,9 +70,9 @@ class WebSocketReadableStream extends Readable {
       );
       // stream.push(null) signals EOF
       this.push(null);
-    }) as EventListener;
-    this.#listeners.push(["close", closeHandler]);
+    };
     ws.addEventListener("close", closeHandler);
+    this.#cleanupCbs.push(() => ws.removeEventListener("close", closeHandler));
   }
 
   override _read() {
@@ -71,10 +88,8 @@ class WebSocketReadableStream extends Readable {
       { error: error?.message },
       "WebSocketReadableStream is getting destroyed",
     );
-    // Clean up event listeners
-    for (const [event, listener] of this.#listeners) {
-      this.#websocket.removeEventListener(event, listener);
-    }
+
+    this.#cleanupCbs.forEach((cb) => cb());
 
     callback(error);
   }
@@ -111,19 +126,22 @@ class WebSocketWritableStream extends Writable {
   }
 
   override _write(
-    chunk: Buffer,
-    _encoding: string,
+    // biome-ignore lint/suspicious/noExplicitAny: arbitrary data
+    chunk: any,
+    _encoding: BufferEncoding,
     callback: (error?: Error | null) => void,
   ) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+
     logger.debug(
-      { bytes: chunk.length },
+      { bytes: buffer.length },
       "WebSocketWritableStream writing data",
     );
 
     if (this.#websocket.readyState === WebSocket.OPEN) {
       try {
         // Append the new chunk to the buffer
-        this.#appendToBuffer(chunk);
+        this.#appendToBuffer(buffer);
 
         // Send the entire buffer
         this.#sendWithChunking(this.#buffer);
@@ -144,7 +162,7 @@ class WebSocketWritableStream extends Writable {
         "WebSocketWritableStream socket not open, buffering data",
       );
       // If WebSocket is not open, buffer the data
-      this.#appendToBuffer(chunk);
+      this.#appendToBuffer(buffer);
       callback();
     }
   }

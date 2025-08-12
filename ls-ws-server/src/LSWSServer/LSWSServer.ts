@@ -6,6 +6,7 @@ import { createWebSocketStreams } from "~/LSWSServer/WSStream.js";
 import process from "node:process";
 import { pipeLsInToLsOut } from "~/LSWSServer/LSTransform.js";
 import { isJSONRPCRequest, isJSONRPCResponse } from "json-rpc-2.0";
+import { WebSocket } from "isomorphic-ws";
 
 interface ConnectionData {
   /**
@@ -40,13 +41,13 @@ interface LSWSServerOptions {
   lsStderrLogPath?: string;
   /**
    * Maximum number of LSP processes to run concurrently.
-   * 
+   *
    * Every new session will spawn a new LSP process, up to this limit. If
    * additional sessions are requested, the server will wait kill the oldest
    * sessions up until there is room for the new session under this limit.
-   * 
+   *
    * If -1, there is no limit on the number of processes.
-   * 
+   *
    * @default 3
    */
   maxProcs?: number;
@@ -58,9 +59,9 @@ interface LSWSServerOptions {
   maxSessionConns?: number;
   /** Maximum message size for stream processing (in bytes). */
   maxMessageSize?: number;
-  /** 
+  /**
    * Shutdown after this many seconds of inactivity.
-   * 
+   *
    * If not provided, the server will not automatically shut down.
    **/
   shutdownAfter?: number;
@@ -105,14 +106,18 @@ export class LSWSServer {
     lsStdoutLogPath,
     lsStderrLogPath,
     maxProcs = 3,
-    maxMessageSize =  500 * 1024, // 500 KB
+    maxMessageSize = 500 * 1024, // 500 KB
     maxSessionConns,
     shutdownAfter,
     onProcError,
     onProcExit,
   }: LSWSServerOptions) {
-    logger.info(`Initializing LSWSServer with command: ${lsCommand} ${lsArgs.join(" ")}`);
-    logger.info(`Log path: ${lsStdoutLogPath}, Max processes: ${maxProcs || "unlimited"}`);
+    logger.info(
+      `Initializing LSWSServer with command: ${lsCommand} ${lsArgs.join(" ")}`,
+    );
+    logger.info(
+      `Log path: ${lsStdoutLogPath}, Max processes: ${maxProcs || "unlimited"}`,
+    );
 
     this.onProcError = onProcError;
     this.onProcExit = onProcExit;
@@ -256,7 +261,7 @@ export class LSWSServer {
         status: 500,
       });
     }
-    
+
     logger.debug({ sessionId }, "WebSocket upgraded successfully");
 
     this.#setupShutdownHandling(socket);
@@ -270,7 +275,7 @@ export class LSWSServer {
     });
 
     const { readable: webSocketIn, writable: webSocketOut } =
-      createWebSocketStreams(socket, {chunkSize: this.maxMessageSize});
+      createWebSocketStreams(socket, { chunkSize: this.maxMessageSize });
 
     // Register new proxies for this WebSocket
     const procOutConsumer = sessionData.createProcOutConsumer();
@@ -382,7 +387,10 @@ export class LSWSServer {
       }
     };
 
-    logger.info( { sessionId }, `WebSocket connection established for ${sessionId}`);
+    logger.info(
+      { sessionId },
+      `WebSocket connection established for ${sessionId}`,
+    );
   }
 
   /**
@@ -705,9 +713,6 @@ export class LSWSServer {
   }
 
   #setupShutdownHandling(socket: WebSocket): void {
-    const abortController = new AbortController();
-    const { signal } = abortController;
-
     const resetShutdownTimeout = () => {
       if (this.shutdownAfter) {
         if (this.shutdownTimeoutId) {
@@ -732,10 +737,11 @@ export class LSWSServer {
 
     const closeHandler = () => {
       resetShutdownTimeout();
-      abortController.abort();
+      socket.removeEventListener("message", messageHandler);
+      socket.removeEventListener("close", closeHandler);
     };
 
-    socket.addEventListener("message", messageHandler, { signal });
-    socket.addEventListener("close", closeHandler, { signal });
+    socket.addEventListener("message", messageHandler);
+    socket.addEventListener("close", closeHandler);
   }
 }

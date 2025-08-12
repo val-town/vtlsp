@@ -75,7 +75,10 @@ export class LSProc {
 
       await new Promise<void>((resolve) => {
         this.proc!.once("exit", async () => {
-          await this.onExit?.(this.proc?.exitCode || null, this.proc?.signalCode || null);
+          await this.onExit?.(
+            this.proc?.exitCode || null,
+            this.proc?.signalCode || null,
+          );
           resolve();
         });
       });
@@ -100,7 +103,8 @@ export class LSProc {
 
       this.#registerProcCompletion();
     } catch (error) {
-      if (!(Error.isError(error))) throw new Error(`Unknown error when spawning process: ${error}`);
+      if (!(error instanceof Error))
+        throw new Error(`Unknown error when spawning process: ${error}`);
       this.onError?.(error);
     }
   }
@@ -129,7 +133,7 @@ export class LSProc {
       stream.pipe(logFile);
       return logFile;
     } catch (error) {
-      if (!(Error.isError(error))) {
+      if (!(error instanceof Error)) {
         throw new Error(`Unknown error when setting up logging: ${error}`);
       }
       this.onError?.(error);

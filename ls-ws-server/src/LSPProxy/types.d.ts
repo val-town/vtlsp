@@ -1,7 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 
 import type { LSPNotifyMap, LSPRequestMap } from "./types.lsp";
-import type { codes } from "./codes.ts";
+import type { codes } from "./codes.js";
 
 type MaybePromise<T> = T | Promise<T>;
 

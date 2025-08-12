@@ -8,7 +8,7 @@ import {
   type TransformOptions,
   type Writable,
 } from "node:stream";
-import { logger } from "../logger.ts";
+import { logger } from "~/logger.js";
 
 type ReceiveState = "content-length" | "jsonrpc";
 
@@ -112,7 +112,7 @@ export class ToLSTransform extends Transform {
   }
 
   private _reencode(chunk: Buffer, chunkEncoding: NodeJS.BufferEncoding) {
-    if (this.readableEncoding && this.readableEncoding != chunkEncoding) {
+    if (this.readableEncoding && this.readableEncoding !== chunkEncoding) {
       return chunk.toString(this.readableEncoding);
     } else if (this.readableEncoding) {
       // this should be the most common case, i.e. we're using an encoded source stream
