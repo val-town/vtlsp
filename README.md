@@ -4,7 +4,9 @@ VTLSP provides a complete solution to running a language server on a server, and
 
 # Background
 
-The language server protocol is a simple JSON-RPC protocol that allows editor clients to communicate with language servers (LS) to get editor features like code completions and diagnostics.
+The language server protocol is a simple JSON-RPC protocol that allows editor clients to communicate with language servers (LS) to get editor features like code completions and diagnostics. This is what powers red squiggles and fancy code action buttons. Usually LSP is done via payloads over standard in and standard out to a language server process running on your computer, typically spawned by your editor. Often editors make it very easy to install language servers, so you don't know you're using one -- VScode extensions for languages generally pack them in.
+
+Running arbitrary language servers directly in the browser is challenging for multiple reasons. You have to compile the language server to webasm if it isn't already in JS/TS, and then once you have it running, you need a client to display and interact with the language server, and manage messages and state updates. To make this easier, this repo provides a way to run language servers as WebSocket servers, and a client library for the Codemirror editor to act as a LSP frontend client.
 
 ## [Codemirror LS Client Library](./codemirror-ls/README.md)
 
@@ -21,7 +23,7 @@ Additionally, to run an LSP remotely, some language servers, like the Deno langu
 
 # Demo
 
-We have a full demo of all the components of this repo in [./demo], where we deploy a simple React app with Codemirror that connects to the `Deno` language server over a WebSocket connection to a cloudflare container. It runs a WebSocket server with simple language server proxy modifications: Deno requires a `deno.json` in the directory of the language server to activate, and can get buggy if files do not actually exist locally, so the proxy simulates those two things on respective requests.
+We have a full demo of all the components of this repo in [./demo], where we deploy a simple React app with Codemirror that connects to the `Deno` language server over a WebSocket connection to a cloudflare container (an easy, ephemeral docker container in the cloud). It runs a WebSocket server for the deno language server with simple language server proxy modifications: Deno requires a `deno.json` in the directory of the language server to activate, and can get buggy if files do not actually exist locally, so the proxy simulates those two things on respective requests.
 
 # Alternatives and Inspiration
 
