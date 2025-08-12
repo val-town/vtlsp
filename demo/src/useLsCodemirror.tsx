@@ -6,8 +6,8 @@ import { LSSignatureHelp } from "./components/LSSignatureHelp";
 import { LSGoTo } from "./components/LSGoTo";
 import { LSWindow } from "./components/LSWindow";
 import type * as LSP from "vscode-languageserver-protocol";
-import { languageServerWithClient, LSClient } from "codemirror-ls";
-import { LSWebSocketTransport } from "codemirror-ls/transport";
+import { languageServerWithClient, LSClient } from "@valtown/codemirror-ls";
+import { LSWebSocketTransport } from "@valtown/codemirror-ls/transport";
 
 export function useLsCodemirror({ path }: { path: string }): {
   extensions: ReturnType<typeof languageServerWithClient> | null;
