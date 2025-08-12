@@ -114,10 +114,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
   return extensions;
 }
 
-type FeatureOption<T> = { disabled?: boolean } & Omit<
-  T,
-  "client" | "documentUri" | "languageId"
->;
+type FeatureOption<T> = { disabled?: boolean } & T;
 
 export interface LanguageServerFeatures {
   signatureHelp: FeatureOption<signatures.SignatureSuggestionArgs>;
