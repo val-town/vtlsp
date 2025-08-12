@@ -5,7 +5,7 @@
   "description": "Val Town editor Codemirror LSP client",
   "repository": {
     "type": "git",
-    "url": "https://github.com/val-town/vtlsp"
+    "url": "git+https://github.com/val-town/vtlsp.git"
   },
   "homepage": "https://github.com/val-town/vtlsp",
   "scripts": {
