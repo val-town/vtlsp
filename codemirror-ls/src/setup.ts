@@ -21,7 +21,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
     completion: { render: asyncNoop },
     renames: { shortcuts: [{ key: "F2" }] },
     contextMenu: { render: asyncNoop },
-    linting: {},
+    linting: { languageId: options.languageId, render: asyncNoop },
     window: { render: asyncNoop },
     ...options.features,
   } satisfies LanguageServerFeatures;
@@ -93,12 +93,12 @@ export function languageServerWithClient(options: LanguageServerOptions) {
     );
   }
 
-  if (!options.features.linting?.disabled) {
+  if (!features.linting.disabled) {
     extensions.push(
       ...linting.getLintingExtensions({
         languageId: options.languageId,
         onExternalFileChange: features.linting.onExternalFileChange,
-        render: options.features.linting?.render,
+        render: features.linting.render,
       }),
     );
   }

@@ -56,7 +56,6 @@ export class ToLSTransform extends Transform {
     const suffixLength = Buffer.byteLength("\r\n\r\n", encoding);
     const suffixRe = /^\r\n\r\n/;
 
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       if (this._state === "content-length") {
         // Not enough data for a content length match
