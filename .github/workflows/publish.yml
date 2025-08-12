@@ -1,12 +1,13 @@
 name: Publish Packages
 
 on:
-  workflow_run:
-    workflows: ["Test Packages"]
-    types:
-      - completed
+  push:
     branches:
       - main
+    paths:
+      - codemirror-ls/**
+      - ls-ws-server/**
+  workflow_dispatch:
 
 jobs:
   publish-ls-server:
