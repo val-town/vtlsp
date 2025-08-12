@@ -169,24 +169,22 @@ async function requestRename({
             }
 
             try {
-              await lsPlugin.doWithLock(async () => {
-                const edit = await lsPlugin.client.request(
-                  "textDocument/rename",
-                  {
-                    textDocument: { uri: documentUri },
-                    position: { line, character },
-                    newName,
-                  },
-                );
+              const edit = await lsPlugin.requestWithLock(
+                "textDocument/rename",
+                {
+                  textDocument: { uri: documentUri },
+                  position: { line, character },
+                  newName,
+                },
+              );
 
-                await applyRenameEdit(
-                  view,
-                  edit,
-                  documentUri,
-                  onExternalRename,
-                  onRename,
-                );
-              });
+              await applyRenameEdit(
+                view,
+                edit,
+                documentUri,
+                onExternalRename,
+                onRename,
+              );
             } catch (error) {
               showDialog(view, {
                 label: `Rename failed: ${error instanceof Error ? error.message : "Unknown error"}`,

@@ -256,7 +256,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
             ) {
               return (await lsPlugin.requestWithLock(
                 "codeAction/resolve",
-                action as LSP.CodeAction,
+                action satisfies LSP.CodeAction,
               )) as LSP.CodeAction;
             }
 

@@ -67,9 +67,9 @@ function createSignaturePlugin(
           if (triggers) {
             update.changes.iterChanges(
               (_fromA, _toA, _fromB, _toB, inserted) => {
-                let ins = inserted.toString();
+                const ins = inserted.toString();
                 if (ins)
-                  for (let ch of triggers) {
+                  for (const ch of triggers) {
                     if (ins.indexOf(ch) > -1) triggerCharacter = ch;
                   }
               },
@@ -101,9 +101,10 @@ function createSignaturePlugin(
         const documentUri = lsPlugin.documentUri;
 
         if (this.delayedRequest) clearTimeout(this.delayedRequest);
-        let pos = view.state.selection.main.head;
+        const pos = view.state.selection.main.head;
         if (this.activeRequest) this.activeRequest.drop = true;
-        let req = (this.activeRequest = { pos, drop: false });
+        this.activeRequest = { pos, drop: false };
+        const req = this.activeRequest;
 
         lsPlugin
           .requestWithLock("textDocument/signatureHelp", {
@@ -117,7 +118,7 @@ function createSignaturePlugin(
 
               if (req.drop) return;
               if (result && result.signatures.length > 0) {
-                let cur = view.state.field(signatureState);
+                const cur = view.state.field(signatureState);
                 if (!cur) {
                   view.dispatch({
                     effects: signatureEffect.of({
@@ -131,12 +132,12 @@ function createSignaturePlugin(
                   return;
                 }
 
-                let same = cur && sameSignatures(cur.data, result);
-                let activeSignature =
+                const same = cur && sameSignatures(cur.data, result);
+                const activeSignature =
                   same && context.triggerKind === 3
                     ? cur.active
                     : (result.activeSignature ?? 0);
-                let activeParameter =
+                const activeParameter =
                   result.signatures[activeSignature]?.activeParameter ??
                   result.activeParameter ??
                   0;
@@ -159,7 +160,9 @@ function createSignaturePlugin(
               }
             },
             context.triggerKind === 1 /* Invoked */
-              ? (err) => console.error("Signature request failed", err)
+              ? (err) => {
+                  throw new Error(err);
+                }
               : undefined,
           );
       }
@@ -174,7 +177,7 @@ function createSignaturePlugin(
 
 function sameSignatures(a: LSP.SignatureHelp, b: LSP.SignatureHelp) {
   if (a.signatures.length !== b.signatures.length) return false;
-  return a.signatures.every((s, i) => s.label === b.signatures[i].label);
+  return a.signatures.every((s, i) => s.label === b.signatures[i]?.label);
 }
 
 function sameActiveParam(
@@ -183,8 +186,8 @@ function sameActiveParam(
   active: number,
 ) {
   return (
-    (a.signatures[active].activeParameter ?? a.activeParameter) ===
-    (b.signatures[active].activeParameter ?? b.activeParameter)
+    (a.signatures[active]?.activeParameter ?? a.activeParameter) ===
+    (b.signatures[active]?.activeParameter ?? b.activeParameter)
   );
 }
 
@@ -201,7 +204,7 @@ const signatureState = StateField.define<SignatureState | null>({
     return null;
   },
   update(sig, tr) {
-    for (let e of tr.effects)
+    for (const e of tr.effects)
       if (e.is(signatureEffect)) {
         if (e.value) {
           return new SignatureState(
@@ -226,7 +229,7 @@ const signatureState = StateField.define<SignatureState | null>({
       });
     return sig;
   },
-  provide: (f) => showTooltip.from(f, (sig) => sig && sig.tooltip),
+  provide: (f) => showTooltip.from(f, (sig) => sig?.tooltip ?? null),
 });
 
 const signatureEffect = StateEffect.define<{

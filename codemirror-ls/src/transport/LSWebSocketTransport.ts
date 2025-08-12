@@ -8,9 +8,10 @@ import {
   type RAL,
   type MessageConnection,
   createMessageConnection,
+  type Message,
 } from "vscode-jsonrpc";
 import pTimeout from "p-timeout";
-import type { LSITransport } from "../LSITransport.js";
+import type { LSITransport } from "./LSITransport.js";
 
 const MAX_CHUNK = 900 * 1024;
 
@@ -43,7 +44,9 @@ export class LSWebSocketTransport implements LSITransport {
     (error: unknown) => void,
   ][] = [];
 
-  #errorEmitter = new Emitter<Error>();
+  #errorEmitter = new Emitter<
+    [Error, Message | undefined, number | undefined]
+  >();
   #notifyEmitter = new Emitter<{ method: string; params: unknown }>();
   #requestEmitter = new Emitter<{ method: string; params: unknown }>();
 
@@ -182,23 +185,6 @@ export class LSWebSocketTransport implements LSITransport {
     return this.#connectingPromise;
   }
 
-  public async sendHeartbeat(timeout = 3_000): Promise<boolean> {
-    this.#errorIfDisposed();
-
-    try {
-      const resp = await this.sendRequest("vtlsp/ping", {}, timeout);
-      return Boolean(
-        resp &&
-          typeof resp === "object" &&
-          resp !== null &&
-          "status" in resp &&
-          resp.status === "pong",
-      );
-    } catch {
-      return false;
-    }
-  }
-
   #errorIfDisposed(): void {
     if (this.#disposed) {
       throw new WebSocketJSONRPCClientDisposedError();
@@ -214,23 +200,15 @@ export class LSWebSocketTransport implements LSITransport {
     this.#messageConnection = createMessageConnection(reader, writer);
 
     this.#messageConnection.onNotification((method, params) => {
-      if (method === "vtlsp/didFinishCaching") {
-        this.onLSHealthy?.();
-      }
+      this.#notifyEmitter.fire({ method, params });
+    });
 
-      try {
-        this.#notifyEmitter.fire({ method, params });
-      } catch (error) {
-        this.#errorEmitter.fire(error as Error);
-      }
+    this.#messageConnection.onError((error) => {
+      this.#errorEmitter.fire(error);
     });
 
     this.#messageConnection.onRequest((method, params) => {
-      try {
-        this.#requestEmitter.fire({ method, params });
-      } catch (error) {
-        this.#errorEmitter.fire(error as Error);
-      }
+      this.#requestEmitter.fire({ method, params });
     });
 
     this.#messageConnection.listen();
@@ -310,6 +288,8 @@ class WebSocketWritableStream implements RAL.WritableStream {
     const dataStr = new TextDecoder().decode(uint8Data);
     const contentLengthMatch = dataStr.match(/^Content-Length:\s*(\d+)\s*$/i);
 
+    // TODO: technically we could receive content-length in fragments, but we
+    // know the underlying library does not do that
     if (contentLengthMatch?.[1]) {
       this.#pendingContentLength = Number.parseInt(contentLengthMatch[1], 10);
       this.#pendingBuffer = [uint8Data];

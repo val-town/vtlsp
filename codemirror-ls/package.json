@@ -1,6 +1,6 @@
 {
-  "name": "codemirror-ls",
-  "version": "1.0.0",
+  "name": "@valtown/codemirror-ls",
+  "version": "0.0.1",
   "description": "Val Town editor Codemirror LSP client",
   "main": "index.js",
   "exports": {
@@ -8,12 +8,14 @@
     "./extensions": "./src/extensions/index.ts",
     "./transport": "./src/transport/index.ts"
   },
+  "types": "./dist/index.d.ts",
   "type": "module",
   "author": "Val Town",
   "license": "ISC",
   "scripts": {
     "format": "biome format --write .",
-    "test": "vitest"
+    "test": "vitest",
+    "build": "tsc --build"
   },
   "peerDependencies": {
     "@codemirror/view": "^6.0.0",
