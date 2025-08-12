@@ -16,6 +16,11 @@ jobs:
       
     - name: Install mise
       uses: jdx/mise-action@v2
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
         
     - name: Install dependencies
       working-directory: ./codemirror-ls
@@ -25,21 +30,16 @@ jobs:
       working-directory: ./codemirror-ls
       run: npm run build
 
-    - name: Authenticate with npm
-      run: echo "//registry.npmjs.org/:_authToken=${NPM_AUTH_TOKEN}" > ~/.npmrc
-      env:
-        NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
-
     - name: Publish codemirror-ls package
-      working-directory: ./codemirror-ls
-      run: npm publish --access public
-      env:
-        NPM_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: JS-DevTools/npm-publish@v3
+      with:
+        token: ${{ secrets.NPM_AUTH_TOKEN }}
+        package: ./codemirror-ls
+        access: public
 
     - name: Publish ls-ws-server package
-      working-directory: ./ls-ws-server
-      run: npm publish --access public
-      env:
-        NPM_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: JS-DevTools/npm-publish@v3
+      with:
+        token: ${{ secrets.NPM_AUTH_TOKEN }}
+        package: ./ls-ws-server
+        access: public
