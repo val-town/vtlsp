@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  publish:
+  publish-codemirror-ls:
     runs-on: ubuntu-latest
     
     steps:
@@ -25,14 +25,6 @@ jobs:
       working-directory: ./codemirror-ls
       run: npm run build
 
-    - name: Install dependencies for ls-ws-server
-      working-directory: ./ls-ws-server
-      run: npm ci
-        
-    - name: Build ls-ws-server package
-      working-directory: ./ls-ws-server
-      run: npm run build
-
     - name: Publish codemirror-ls package
       uses: JS-DevTools/npm-publish@v3
       with:
@@ -40,9 +32,21 @@ jobs:
         package: ./codemirror-ls
         access: public
 
-    - name: Publish ls-ws-server package
-      uses: JS-DevTools/npm-publish@v3
-      with:
-        token: ${{ secrets.NPM_ACCESS_TOKEN }}
-        package: ./ls-ws-server
-        access: public
+  publish-ls-ws-server:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install dependencies for ls-ws-server
+        working-directory: ./ls-ws-server
+        run: npm ci
+          
+      - name: Build ls-ws-server package
+        working-directory: ./ls-ws-server
+        run: npm run build
+
+      - name: Publish ls-ws-server package
+        uses: JS-DevTools/npm-publish@v3
+        with:
+          token: ${{ secrets.NPM_ACCESS_TOKEN }}
+          package: ./ls-ws-server
+          access: public
