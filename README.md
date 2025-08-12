@@ -10,15 +10,14 @@ The language server protocol is a simple JSON-RPC protocol that allows editor cl
 
 Our Codemirror client library provides various extensions to serve as a client to a language server. It propagates code edits to the language server, and displays things like code diagnostics and tooltips.  It uses some extensions from [Codemirror's official client library](https://github.com/codemirror/lsp-client) with modification, and was originally based on [Monaco's client](https://github.com/TypeFox/monaco-languageclient).
 
-## [LS Proxy](./ls-proxy/README.md)
-
-To run an LSP remotely, some language servers, like the Deno language server, rely on file system events and require physical files on disc to work properly. There are also other language server lifecyle events that are useful to intercept or handle differently in a remote environment, like for example installing packages as the user imports them. The LS proxy makes it easy to automatically transform requests for specific methods with arbitrary middleware.
 
 ## [LS WebSocket server](./ls-ws-server/README.md)
 
 To actually communicate from a browser to a language server, it is most simple to rely messages through a WebSocket server. Our Codemirror Client is intentionally agnostic about the type of transport used, but we provide a reference WebSocket transport in our client library.
 
 Our language server WebSocket server is able to multicast messages to many consumers of the same language server process, so you can connect from multiple browsers, and requests made from a specific session ID (which is a query parameter) will only be responded to to the specific WebSocket connection, but notifications get broadcasted.
+
+Additionally, to run an LSP remotely, some language servers, like the Deno language server, rely on file system events and require physical files on disc to work properly. There are also other language server lifecycle events that are useful to intercept or handle differently in a remote environment, like for example installing packages as the user imports them. We provide an LS proxy to make it easy to automatically transform requests for specific methods with arbitrary middleware.
 
 # Demo
 
