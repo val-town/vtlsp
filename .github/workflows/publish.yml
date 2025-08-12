@@ -28,13 +28,13 @@ jobs:
     - name: Publish codemirror-ls package
       uses: JS-DevTools/npm-publish@v3
       with:
-        token: ${{ secrets.NPM_AUTH_TOKEN }}
+        token: ${{ secrets.NPM_ACCESS_TOKEN }}
         package: ./codemirror-ls
         access: public
 
     - name: Publish ls-ws-server package
       uses: JS-DevTools/npm-publish@v3
       with:
-        token: ${{ secrets.NPM_AUTH_TOKEN }}
+        token: ${{ secrets.NPM_ACCESS_TOKEN }}
         package: ./ls-ws-server
         access: public
