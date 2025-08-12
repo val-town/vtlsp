@@ -4,3 +4,4 @@ src/**.js
 scripts/**.js
 dist
 .DS_Store
+*.tsbuildinfo
