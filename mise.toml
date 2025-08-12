@@ -1,4 +1,4 @@
 [tools]
 node = "22"
 pnpm = "latest"
-deno = "3.6"
+deno = "2.3.6"
