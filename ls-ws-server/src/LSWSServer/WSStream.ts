@@ -11,7 +11,9 @@
 
 import { Readable, Writable } from "node:stream";
 import { Buffer } from "node:buffer";
-import { logger } from "~/logger.ts";
+import { logger } from "~/logger.js";
+import { WebSocket } from "isomorphic-ws";
+
 
 interface WebSocketStreamOptions {
   chunkSize?: number;
@@ -235,6 +237,3 @@ export function* chunkByteArray(
     yield byteArray.slice(i, chunkEnd);
   }
 }
-// copy to vtlsp/codemirror-lsp/plugin/transport/websocket/LSWebSocketTransport.ts
-// TODO: find a better way to manage shared code. This is deno and vtlsp/codemirror-lsp/** is browser
-// (importing "~/logger.ts" breaks this import there since it's only in the deno.json import map)

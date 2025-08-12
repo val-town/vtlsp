@@ -1,7 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 
-import { expect } from "@std/expect";
-import { describe, it } from "@std/testing/bdd";
+import { expect, describe, it } from "vitest";
 import { replaceFileUris } from "./utils.ts";
 
 describe("replaceFileUris", () => {

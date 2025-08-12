@@ -1,5 +1,5 @@
 import { URI } from "vscode-uri";
-import { join } from "@std/path";
+import * as path from "node:path";
 
 const FILE_URI_PATTERN = /(file:\/\/[^\s"']+)/g;
 
@@ -120,7 +120,7 @@ export function virtualUriToTempDirUri(
     }
 
     // Join with temp directory and return as URI
-    const realPath = join(tempDir, virtualPath);
+    const realPath = path.join(tempDir, virtualPath);
     return URI.from({ scheme: "file", path: realPath }).toString();
   } catch {
     return undefined;

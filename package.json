@@ -15,5 +15,13 @@
     "happy-dom": "^18.0.1",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@types/ws": "^8.18.1",
+    "isomorphic-ws": "^5.0.0",
+    "json-rpc-2.0": "^1.7.1",
+    "msw": "^2.10.4",
+    "pino": "^9.8.0",
+    "vscode-uri": "^3.1.0"
   }
 }

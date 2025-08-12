@@ -1,10 +1,10 @@
 import { PassThrough, type Readable, type Writable } from "node:stream";
-import { logger } from "~/logger.ts";
-import type { LSProc } from "~/procs/LSProc.ts";
-import { LSProcManager } from "~/procs/LSProcManager.ts";
-import { createWebSocketStreams } from "~/WSStream.ts";
+import { logger } from "~/logger.js";
+import type { LSProc } from "~/LSWSServer/procs/LSProc.js";
+import { LSProcManager } from "~/LSWSServer/procs/LSProcManager.js";
+import { createWebSocketStreams } from "~/LSWSServer/WSStream.js";
 import process from "node:process";
-import { pipeLsInToLsOut } from "~/LSTransform.ts";
+import { pipeLsInToLsOut } from "~/LSWSServer/LSTransform.js";
 import { isJSONRPCRequest, isJSONRPCResponse } from "json-rpc-2.0";
 
 interface ConnectionData {
@@ -91,7 +91,7 @@ export class LSWSServer {
 
   private sessionMap = new Map<string, LSWSServerSessionData>();
   private maxSessionConns?: number;
-  private shutdownTimeoutId?: number;
+  private shutdownTimeoutId?: NodeJS.Timeout;
   private maxMessageSize?: number;
 
   public shutdownAfter?: number;
@@ -330,7 +330,7 @@ export class LSWSServer {
         this.#closeWebSocket(socket, sessionId, 1011, "WebSocket output error");
       });
     } catch (err) {
-      if (!Error.isError(err)) throw err;
+      if (!(err instanceof Error)) throw new Error(String(err));
       logger.error(
         { sessionId, error: err.stack || err.message },
         "Error setting up stream pipes",

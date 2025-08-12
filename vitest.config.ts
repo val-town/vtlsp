@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config"
+import * as path from "node:path"
 
 export default defineConfig({
   test: {
@@ -7,5 +8,10 @@ export default defineConfig({
       "./ls-ws-server/**/*.test.ts",
     ],
     environment: "happy-dom",
+  },
+  resolve: {
+    alias: {
+      '~': path.resolve(__dirname, "ls-ws-server", "src"),
+    },
   },
 })

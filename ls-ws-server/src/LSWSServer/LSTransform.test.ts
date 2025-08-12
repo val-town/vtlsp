@@ -3,8 +3,7 @@
 import { pipeLsInToLsOut, ToLSTransform } from "./LSTransform.ts";
 import { PassThrough, Readable, Writable } from "node:stream";
 import type { JSONRPCRequest, JSONRPCResponse } from "json-rpc-2.0";
-import { describe, it } from "@std/testing/bdd";
-import { expect } from "@std/expect";
+import { describe, it, expect } from "vitest";
 import { once } from "node:events";
 import { Buffer } from "node:buffer";
 

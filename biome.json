@@ -8,7 +8,7 @@
   "files": {
     "includes": [
       "./demo/**/*{ts,tsx,js,jsx,json,html,css}",
-      "./ws-ls-server/**/*{ts,tsx,js,jsx,json,html,css}",
+      "./ls-ws-server/**/*{ts,tsx,js,jsx,json,html,css}",
       "./codemirror-ls/**/*{ts,tsx,js,jsx,json,html,css}"
     ]
   },
