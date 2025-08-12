@@ -32,6 +32,8 @@
     "codemirror": "^6.0.0"
   },
   "devDependencies": {
+    "@types/node": "^24.2.1",
+    "@types/ws": "^8.18.1",
     "happy-dom": "^18.0.1",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
@@ -48,6 +50,7 @@
     "es-toolkit": "^1.39.8",
     "execa": "^9.6.0",
     "isomorphic-ws": "^5.0.0",
+    "json-rpc-2.0": "^1.7.1",
     "p-queue": "^8.1.0",
     "pino": "^9.8.0",
     "vscode-jsonrpc": "^8.2.1",
