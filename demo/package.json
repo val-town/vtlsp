@@ -12,7 +12,7 @@
     "dev": "vite",
     "deploy": "npm run build && wrangler deploy",
     "build": "vite build",
-    "docker:build": "docker build -t codemirror-cf-lsp-demo -f ./deploy/server/Dockerfile ..",
+    "docker:build": "docker build -t codemirror-cf-lsp-demo -f ./deploy/server/Dockerfile",
     "docker:run": "docker run -p 5002:5002 codemirror-cf-lsp-demo",
     "gen-types": "wrangler types"
   },

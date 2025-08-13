@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "account_id": "0c98b133158df53222b825aafd746596",
+  "account_id": "0c98b133158df53222b825aafd746596", // replace with your cloudflare account ID
   "compatibility_date": "2025-05-19",
   "name": "cf-vtlsp-demo",
   "main": "deploy/main.ts",
@@ -27,7 +27,6 @@
       "class_name": "VTLSPDemoContainer",
       "instance_type": "standard",
       "image": "./deploy/server/app.Dockerfile",
-      "image_build_context": "../",
     }
   ],
   "migrations": [
