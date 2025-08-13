@@ -1,13 +1,15 @@
-import { useState, useEffect, useRef } from "react";
 import { javascript } from "@codemirror/lang-javascript";
-import { EditorView, basicSetup } from "codemirror";
 import { EditorState } from "@codemirror/state";
+import { basicSetup, EditorView } from "codemirror";
+import { useEffect, useRef, useState } from "react";
 import { useLsCodemirror } from "./useLsCodemirror";
 
 export default function App() {
   const editor = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
-  const [url, setUrl] = useState(`ws://localhost:5002?session=${crypto.randomUUID()}`);
+  const [url, setUrl] = useState(
+    `ws://localhost:5002?session=${crypto.randomUUID()}`,
+  );
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,7 +17,7 @@ export default function App() {
     extensions: lsExtensions,
     connect,
     disconnect,
-    isConnected
+    isConnected,
   } = useLsCodemirror({
     path: "/demo.ts",
   });
@@ -31,13 +33,13 @@ export default function App() {
           EditorView.updateListener.of((update) => {
             // biome-ignore lint/suspicious/noConsole: debugging
             console.log("Editor updated:", update);
-          })
-        ]
+          }),
+        ],
       });
 
       view.current = new EditorView({
         state,
-        parent: editor.current
+        parent: editor.current,
       });
     }
 
@@ -61,7 +63,9 @@ export default function App() {
     try {
       await connect(url);
     } catch (error) {
-      setError(`Connection failed ${error instanceof Error ? `: ${error.message}` : ""}`);
+      setError(
+        `Connection failed ${error instanceof Error ? `: ${error.message}` : ""}`,
+      );
     } finally {
       setIsConnecting(false);
     }

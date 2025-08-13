@@ -48,7 +48,10 @@ export class ToLSTransform extends Transform {
 
     this._curChunk = Buffer.concat([this._curChunk, chunk]);
 
-    const prefixMinLength = Buffer.byteLength("Content-Length: 0\r\n\r\n", encoding);
+    const prefixMinLength = Buffer.byteLength(
+      "Content-Length: 0\r\n\r\n",
+      encoding,
+    );
     const prefixLength = Buffer.byteLength("Content-Length: ", encoding);
     const prefixRegex = /^Content-Length: /i;
     const digitLength = Buffer.byteLength("0", encoding);
@@ -65,14 +68,20 @@ export class ToLSTransform extends Transform {
 
         const leading = this._curChunk.subarray(0, prefixLength);
         if (!prefixRegex.test(leading.toString(encoding))) {
-          cb(new Error(`[_transform] Bad header: ${this._curChunk.toString(encoding)}`));
+          cb(
+            new Error(
+              `[_transform] Bad header: ${this._curChunk.toString(encoding)}`,
+            ),
+          );
           return;
         }
 
         let numString = "";
         let position = leading.length;
         while (this._curChunk.length - position > digitLength) {
-          const ch = this._curChunk.subarray(position, position + digitLength).toString(encoding);
+          const ch = this._curChunk
+            .subarray(position, position + digitLength)
+            .toString(encoding);
           if (!digitRe.test(ch)) {
             break;
           }
@@ -82,12 +91,19 @@ export class ToLSTransform extends Transform {
         }
 
         if (
-          position === leading.length || this._curChunk.length - position < suffixLength ||
+          position === leading.length ||
+          this._curChunk.length - position < suffixLength ||
           !suffixRe.test(
-            this._curChunk.subarray(position, position + suffixLength).toString(encoding),
+            this._curChunk
+              .subarray(position, position + suffixLength)
+              .toString(encoding),
           )
         ) {
-          cb(new Error(`[_transform] Bad header: ${this._curChunk.toString(encoding)}`));
+          cb(
+            new Error(
+              `[_transform] Bad header: ${this._curChunk.toString(encoding)}`,
+            ),
+          );
           return;
         }
 
@@ -98,7 +114,12 @@ export class ToLSTransform extends Transform {
 
       if (this._state === "jsonrpc") {
         if (this._curChunk.length >= this._curContentLength) {
-          this.push(this._reencode(this._curChunk.subarray(0, this._curContentLength), encoding));
+          this.push(
+            this._reencode(
+              this._curChunk.subarray(0, this._curContentLength),
+              encoding,
+            ),
+          );
           this._curChunk = this._curChunk.subarray(this._curContentLength);
           this._state = "content-length";
 
@@ -122,7 +143,10 @@ export class ToLSTransform extends Transform {
     }
   }
 
-  public static createStream(readStream?: Readable, options?: TransformOptions): ToLSTransform {
+  public static createStream(
+    readStream?: Readable,
+    options?: TransformOptions,
+  ): ToLSTransform {
     const jrt = new ToLSTransform(options);
     if (readStream) {
       readStream.pipe(jrt);
@@ -153,7 +177,9 @@ export class FromLSTransform extends Transform {
 
     if (typeof chunk !== "string") {
       cb(
-        new Error(`[FromLSTransform] Input chunk must be a string, got ${typeof chunk} (${chunk})`),
+        new Error(
+          `[FromLSTransform] Input chunk must be a string, got ${typeof chunk} (${chunk})`,
+        ),
       );
       return;
     }
@@ -182,7 +208,10 @@ export class FromLSTransform extends Transform {
     return super.setEncoding(encoding);
   }
 
-  public static createStream(readStream?: Readable, options?: TransformOptions): FromLSTransform {
+  public static createStream(
+    readStream?: Readable,
+    options?: TransformOptions,
+  ): FromLSTransform {
     const jrt = new FromLSTransform(options);
     if (readStream) {
       readStream.pipe(jrt);
@@ -208,7 +237,11 @@ export function pipeLsInToLsOut(
   if (middleware) {
     const middlewareTransform = new Transform({
       objectMode: true,
-      transform(chunk: Buffer, encoding: NodeJS.BufferEncoding, cb: TransformCallback) {
+      transform(
+        chunk: Buffer,
+        encoding: NodeJS.BufferEncoding,
+        cb: TransformCallback,
+      ) {
         const result = middleware(chunk.toString(encoding));
         if (result == null) return cb();
         logger.debug(`LS pipe middleware transformed chunk: ${result}`);

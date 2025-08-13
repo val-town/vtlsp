@@ -1,13 +1,13 @@
+import { type Action, type Diagnostic, setDiagnostics } from "@codemirror/lint";
 import type { Extension } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import { showDialog, ViewPlugin } from "@codemirror/view";
-import { type Action, type Diagnostic, setDiagnostics } from "@codemirror/lint";
+import PQueue from "p-queue";
 import type { PublishDiagnosticsParams } from "vscode-languageserver-protocol";
 import * as LSP from "vscode-languageserver-protocol";
+import { LSCore } from "../LSPlugin.js";
 import { posToOffset, posToOffsetOrZero } from "../utils.js";
 import type { LSExtensionGetter, Renderer } from "./types.js";
-import { LSCore } from "../LSPlugin.js";
-import PQueue from "p-queue";
 
 export interface DiagnosticArgs {
   languageId: string;
@@ -109,7 +109,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
                           (resolvedAction.edit?.changes ||
                             resolvedAction.edit?.documentChanges)
                         ) {
-                          let changes: LSP.TextEdit[] = [];
+                          const changes: LSP.TextEdit[] = [];
 
                           if (resolvedAction.edit?.changes) {
                             for (const change of resolvedAction.edit.changes[

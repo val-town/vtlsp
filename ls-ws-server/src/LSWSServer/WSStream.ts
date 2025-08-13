@@ -9,15 +9,15 @@
  * impose.
  */
 
-import { Readable, Writable } from "node:stream";
 import { Buffer } from "node:buffer";
-import { logger } from "~/logger.js";
+import { Readable, Writable } from "node:stream";
 import {
-  WebSocket,
   type CloseEvent,
-  type MessageEvent,
   type ErrorEvent,
+  type MessageEvent,
+  WebSocket,
 } from "isomorphic-ws";
+import { logger } from "~/logger.js";
 
 interface WebSocketStreamOptions {
   chunkSize?: number;

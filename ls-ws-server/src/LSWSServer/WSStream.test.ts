@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { chunkByteArray} from "./WSStream.js";
+import { describe, expect, it } from "vitest";
+import { chunkByteArray } from "./WSStream.js";
 
 describe("chunkByteArray", () => {
   it("provides evenly divisible chunks", () => {

@@ -1,10 +1,10 @@
-import { EditorView, showTooltip, type Tooltip } from "@codemirror/view";
 import { Annotation, StateField } from "@codemirror/state";
-import { handleRename } from "./renames.js";
+import { EditorView, showTooltip, type Tooltip } from "@codemirror/view";
 import {
   handleFindReferences,
   type ReferenceExtensionsArgs,
 } from "./references.js";
+import { handleRename } from "./renames.js";
 import type { LSExtensionGetter, Renderer } from "./types.js";
 
 export interface ContextMenuArgs {

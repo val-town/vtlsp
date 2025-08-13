@@ -1,12 +1,12 @@
 // Largely from https://github.com/codemirror/lsp-client/blob/main/src/signature.ts
 
+import { StateEffect, StateField } from "@codemirror/state";
 import type { EditorView, Tooltip, ViewUpdate } from "@codemirror/view";
-import { ViewPlugin, showTooltip } from "@codemirror/view";
-import { StateField, StateEffect } from "@codemirror/state";
+import { showTooltip, ViewPlugin } from "@codemirror/view";
 import type * as LSP from "vscode-languageserver-protocol";
+import { LSCore } from "../LSPlugin.js";
 import { offsetToPos } from "../utils.js";
 import type { LSExtensionGetter } from "./types.js";
-import { LSCore } from "../LSPlugin.js";
 
 export interface SignatureSuggestionArgs {
   render: RenderSignatureHelp;

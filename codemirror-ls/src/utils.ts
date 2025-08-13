@@ -1,6 +1,5 @@
 import type { CompletionContext } from "@codemirror/autocomplete";
-import type { Text } from "@codemirror/state";
-import type { ChangeSet } from "@codemirror/state";
+import type { ChangeSet, Text } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import * as LSP from "vscode-languageserver-protocol";
 

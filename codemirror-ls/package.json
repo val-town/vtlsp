@@ -13,7 +13,9 @@
     "test": "vitest",
     "build": "tsc --build"
   },
-  "files": [ "dist" ],
+  "files": [
+    "dist"
+  ],
   "keywords": [
     "codemirror",
     "typescript",

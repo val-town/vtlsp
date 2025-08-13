@@ -1,11 +1,12 @@
-import type { EditorView } from "@codemirror/view";
 import type { Completion, CompletionContext } from "@codemirror/autocomplete";
 import {
   autocompletion,
   insertCompletionText,
   snippet,
 } from "@codemirror/autocomplete";
+import type { EditorView } from "@codemirror/view";
 import * as LSP from "vscode-languageserver-protocol";
+import { LSCore } from "../LSPlugin.js";
 import {
   getCompletionTriggerKind,
   isEmptyDocumentation,
@@ -15,7 +16,6 @@ import {
   prefixMatch,
 } from "../utils.js";
 import type { LSExtensionGetter } from "./types.js";
-import { LSCore } from "../LSPlugin.js";
 
 export interface CompletionExtensionsArgs {
   render: CompletionRenderer;

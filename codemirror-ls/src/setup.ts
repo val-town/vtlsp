@@ -1,17 +1,17 @@
-import { LSPlugin } from "./LSPlugin.js";
-import type { LSClient } from "./LSClient.js";
 import type { Extension } from "@codemirror/state";
 import { asyncNoop } from "es-toolkit";
 import {
-  signatures,
   completions,
   contextMenu,
   hovers,
+  linting,
   references,
   renames,
-  linting,
+  signatures,
   window,
 } from "./extensions/index.js";
+import type { LSClient } from "./LSClient.js";
+import { LSPlugin } from "./LSPlugin.js";
 
 export function languageServerWithClient(options: LanguageServerOptions) {
   const features = {

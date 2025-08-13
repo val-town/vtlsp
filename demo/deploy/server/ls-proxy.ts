@@ -20,30 +20,40 @@ const proxy = new LSPProxy({
     },
     "textDocument/didOpen": async (params) => {
       // Write file to temp directory when opened
-      const tempFilePath = utils.virtualUriToTempDirUri(params.textDocument.uri, TEMP_DIR);
+      const tempFilePath = utils.virtualUriToTempDirUri(
+        params.textDocument.uri,
+        TEMP_DIR,
+      );
       if (tempFilePath) {
         const filePath = new URL(tempFilePath).pathname;
-        await Deno.mkdir(filePath.substring(0, filePath.lastIndexOf('/')), { recursive: true });
+        await Deno.mkdir(filePath.substring(0, filePath.lastIndexOf("/")), {
+          recursive: true,
+        });
         await Deno.writeTextFile(filePath, params.textDocument.text);
       }
       return params;
     },
     "textDocument/didChange": async (params) => {
       // Update file content when changed
-      const tempFilePath = utils.virtualUriToTempDirUri(params.textDocument.uri, TEMP_DIR);
+      const tempFilePath = utils.virtualUriToTempDirUri(
+        params.textDocument.uri,
+        TEMP_DIR,
+      );
       if (tempFilePath) {
         const filePath = new URL(tempFilePath).pathname;
         // Apply content changes to get the full text
-        const existingContent = await Deno.readTextFile(filePath).catch(() => "");
+        const existingContent = await Deno.readTextFile(filePath).catch(
+          () => "",
+        );
         let newContent = existingContent;
-        
+
         for (const change of params.contentChanges) {
-          if ('text' in change && !('range' in change)) {
+          if ("text" in change && !("range" in change)) {
             // Full document change
             newContent = change.text;
           }
         }
-        
+
         await Deno.writeTextFile(filePath, newContent);
       }
       return params;

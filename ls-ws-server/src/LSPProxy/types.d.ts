@@ -70,12 +70,14 @@ export type LSPProxyClientToProcMiddlewares = {
 
 export type LSPProxyProcToClientMiddlewares = {
   [K in keyof LSPNotifyMap]?: ParamsMiddlewareFunction<LSPNotifyMap[K]>;
-} & { // (result)
+} & {
+  // (result)
   [K in keyof LSPRequestMap]?: ResultMiddlewareFunction<
     LSPRequestMap[K][1],
     LSPRequestMap[K][0]
   >;
-} & Record< // (result, original-params)
+} & Record<
+    // (result, original-params)
     string,
     | ParamsMiddlewareFunction
     | ResultMiddlewareFunction
@@ -89,7 +91,7 @@ export type LSPProxyCallbacks = {
 
 /**
  * A set of functions to convert URIs between the language server process format and the consumer client format.
- * 
+ *
  * One common use case here is to convert file paths between being relative to a
  * temp path and a virtual root. For example, a user editing files in a browser
  * may want to convert deal with paths that look like "/bar.ts," but, for
@@ -99,14 +101,14 @@ export type LSPProxyCallbacks = {
 export type UriConverters = {
   /**
    * Converts a URI from the language server process format to the consumer client format.
-   * 
+   *
    * @param uri The URI in the language server process format.
    * @returns The URI in the consumer client format.
    */
   toProcUri: (uri: string) => string;
   /**
    * Converts a URI from the consumer client format to the language server process format.
-   * 
+   *
    * @param uri The URI in the consumer client format.
    * @returns The URI in the language server process format.
    */
@@ -146,13 +148,13 @@ export interface LSPProxyParams {
   exec: LSPExec;
   /**
    * Input stream for receiving messages from the LSP client.
-   * 
+   *
    * @default process.stdin
    */
   inputStream?: NodeJS.ReadableStream;
   /**
    * Output stream for sending messages to the LSP client.
-   * 
+   *
    * @default process.stdout
    */
   outputStream?: NodeJS.WritableStream;
@@ -178,9 +180,9 @@ export interface LSPProxyParams {
   uriConverters: UriConverters;
   /**
    * The working directory for the language server process.
-   * 
+   *
    * Language servers are often finicky about the file system, and in many cases use file system watchers to detect specific types of changes.
-   * 
+   *
    * @default process.cwd()
    */
   cwd: string;

@@ -1,8 +1,11 @@
-import { describe, it, expect, vi } from "vitest";
-import { toCodemirrorCompletion, toCodemirrorSnippet } from "./completions.js";
-import { sortCompletionItems } from "./completions.js";
+import { describe, expect, it, vi } from "vitest";
 import type * as LSP from "vscode-languageserver-protocol";
 import { CompletionItemKind } from "vscode-languageserver-protocol";
+import {
+  sortCompletionItems,
+  toCodemirrorCompletion,
+  toCodemirrorSnippet,
+} from "./completions.js";
 
 describe("convertCompletionItem", () => {
   it("should convert a basic completion item", () => {
@@ -108,7 +111,7 @@ describe("convertCompletionItem", () => {
 
     expect(completion.info).toBeDefined();
     // @ts-expect-error - info is a function
-    const info = await completion.info?.() as HTMLDivElement;
+    const info = (await completion.info?.()) as HTMLDivElement;
     expect(info).toBeDefined();
     expect(render).toHaveBeenCalledWith(expect.anything(), {
       kind: "markdown",

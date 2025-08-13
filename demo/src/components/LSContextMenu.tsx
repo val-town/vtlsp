@@ -1,5 +1,5 @@
 import type { ContextMenuCallbacks } from "codemirror-ls";
-import { MousePointer2, Type, Code2, Edit3, Search } from "lucide-react";
+import { Code2, Edit3, MousePointer2, Search, Type } from "lucide-react";
 
 export function LSContextMenu({
   goToDefinition,

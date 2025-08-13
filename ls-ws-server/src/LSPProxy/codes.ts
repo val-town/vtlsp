@@ -4,7 +4,9 @@ export const codes = {
   cancel_response: "cancel_response",
 } as const;
 
-export function hasALsProxyCode(value: unknown): value is { ls_proxy_code: LSProxyCode } {
+export function hasALsProxyCode(
+  value: unknown,
+): value is { ls_proxy_code: LSProxyCode } {
   if (
     typeof value === "object" &&
     value !== null &&

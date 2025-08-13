@@ -1,5 +1,5 @@
-import { LSProc } from "./LSProc.js";
 import { logger } from "../../logger.js";
+import { LSProc } from "./LSProc.js";
 
 export interface LSProcManagerOptions {
   lsCommand: string;
@@ -28,7 +28,10 @@ export class LSProcManager {
   public readonly lsStdoutLogPath?: string;
   public readonly lsStderrLogPath?: string;
 
-  private onProcError?: (sessionId: string, error: Error) => void | Promise<void>;
+  private onProcError?: (
+    sessionId: string,
+    error: Error,
+  ) => void | Promise<void>;
   private onProcExit?: (
     sessionId: string,
     code: number | null,
@@ -139,12 +142,13 @@ export class LSProcManager {
     }
 
     // Sort processes by spawn time
-    const processes = Array.from(this.procs.entries())
-      .sort(([, procA], [, procB]) => {
+    const processes = Array.from(this.procs.entries()).sort(
+      ([, procA], [, procB]) => {
         const timeA = procA.spawnedAt?.getTime() || 0;
         const timeB = procB.spawnedAt?.getTime() || 0;
         return timeA - timeB;
-      });
+      },
+    );
 
     // Remove oldest processes until we're under the limit
     while (processes.length >= this.maxProcs) {

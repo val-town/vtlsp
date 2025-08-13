@@ -1,17 +1,17 @@
-import type * as LSP from "vscode-languageserver-protocol";
+import { type Extension, StateEffect, StateField } from "@codemirror/state";
 import {
   type Command,
   EditorView,
   type KeyBinding,
-  showPanel,
-  type PanelConstructor,
   keymap,
+  type PanelConstructor,
   showDialog,
+  showPanel,
 } from "@codemirror/view";
-import { StateField, StateEffect, type Extension } from "@codemirror/state";
+import type * as LSP from "vscode-languageserver-protocol";
+import { LSCore } from "../LSPlugin.js";
 import { offsetToPos, posToOffset, posToOffsetOrZero } from "../utils.js";
 import type { LSExtensionGetter, Renderer } from "./types.js";
-import { LSCore } from "../LSPlugin.js";
 
 export type OnExternalReferenceCallback = (location: ReferenceLocation) => void;
 
@@ -193,7 +193,9 @@ export function handleFindReferences({
       if (referenceLocations.length === 1 && goToIfOneOption) {
         const ref = referenceLocations[0];
         if (!ref) {
-          showDialog(view, { label: `No ${REFERENCE_KIND_LABELS[kind]} found` });
+          showDialog(view, {
+            label: `No ${REFERENCE_KIND_LABELS[kind]} found`,
+          });
           return;
         }
 
@@ -255,7 +257,7 @@ const referencePanel = StateField.define<PanelConstructor | null>({
   },
 
   update(panel, tr) {
-    for (let e of tr.effects) {
+    for (const e of tr.effects) {
       if (e.is(setReferencePanel)) return e.value;
     }
     return panel;

@@ -1,11 +1,11 @@
 // From https://github.com/ImperiumMaximus/ts-lsp-client
 
-import { pipeLsInToLsOut, ToLSTransform } from "./LSTransform.ts";
+import { Buffer } from "node:buffer";
+import { once } from "node:events";
 import { PassThrough, Readable, Writable } from "node:stream";
 import type { JSONRPCRequest, JSONRPCResponse } from "json-rpc-2.0";
-import { describe, it, expect } from "vitest";
-import { once } from "node:events";
-import { Buffer } from "node:buffer";
+import { describe, expect, it } from "vitest";
+import { pipeLsInToLsOut, ToLSTransform } from "./LSTransform.ts";
 
 const mockReadStreamOK = (
   jsonRPC:
@@ -20,9 +20,11 @@ const mockReadStreamOK = (
   const readable = new Readable();
   const jsonRPCs = Array.isArray(jsonRPC) ? jsonRPC : [jsonRPC];
   jsonRPCs.forEach((j) => {
-    if ((typeof j !== "string")) {
+    if (typeof j !== "string") {
       const jsonRPCStr = JSON.stringify(j);
-      readable.push(`Content-Length: ${jsonRPCStr.length}\r\n\r\n${jsonRPCStr}`);
+      readable.push(
+        `Content-Length: ${jsonRPCStr.length}\r\n\r\n${jsonRPCStr}`,
+      );
     } else {
       readable.push(j);
     }
@@ -44,54 +46,65 @@ const mockReadStreamKO = (jsonRPC: JSONRPCResponse | JSONRPCRequest) => {
 describe("JSONRPCTransform", () => {
   it("unpacks a raw JSON RPC response into an JSONRPCResponse instance", async () => {
     const response: JSONRPCResponse = {
-      "jsonrpc": "2.0",
-      "id": 0,
-      "result": {
-        "capabilities": {
-          "textDocumentSync": 1,
-          "hoverProvider": true,
-          "completionProvider": { "resolveProvider": false, "triggerCharacters": ["."] },
-          "definitionProvider": true,
-          "referencesProvider": true,
-          "documentSymbolProvider": true,
-          "codeActionProvider": { "codeActionKinds": ["quickfix", "refactor.extract"] },
-          "codeLensProvider": { "resolveProvider": false },
-          "renameProvider": true,
+      jsonrpc: "2.0",
+      id: 0,
+      result: {
+        capabilities: {
+          textDocumentSync: 1,
+          hoverProvider: true,
+          completionProvider: {
+            resolveProvider: false,
+            triggerCharacters: ["."],
+          },
+          definitionProvider: true,
+          referencesProvider: true,
+          documentSymbolProvider: true,
+          codeActionProvider: {
+            codeActionKinds: ["quickfix", "refactor.extract"],
+          },
+          codeLensProvider: { resolveProvider: false },
+          renameProvider: true,
         },
       },
     };
 
-    const jsonRpcTransform = ToLSTransform.createStream(mockReadStreamOK(response));
+    const jsonRpcTransform = ToLSTransform.createStream(
+      mockReadStreamOK(response),
+    );
     const jsonrpc = (await once(jsonRpcTransform, "data"))[0];
     expect(jsonrpc).toEqual(JSON.stringify(response));
   });
 
   it("unpacks a raw JSON RPC request into an JSONRPCRequest instance", async () => {
     const request: JSONRPCRequest = {
-      "jsonrpc": "2.0",
-      "method": "telemetry/event",
-      "params": {
-        "properties": { "Feature": "ApexPrelude-startup", "Exception": "None" },
-        "measures": { "ExecutionTime": 2673 },
+      jsonrpc: "2.0",
+      method: "telemetry/event",
+      params: {
+        properties: { Feature: "ApexPrelude-startup", Exception: "None" },
+        measures: { ExecutionTime: 2673 },
       },
     };
 
-    const jsonRpcTransform = ToLSTransform.createStream(mockReadStreamOK(request));
+    const jsonRpcTransform = ToLSTransform.createStream(
+      mockReadStreamOK(request),
+    );
     const jsonrpc = (await once(jsonRpcTransform, "data"))[0];
     expect(jsonrpc).toEqual(JSON.stringify(request));
   });
 
   it("throws an error with a bad header", async () => {
     const request: JSONRPCRequest = {
-      "jsonrpc": "2.0",
-      "method": "telemetry/event",
-      "params": {
-        "properties": { "Feature": "ApexPrelude-startup", "Exception": "None" },
-        "measures": { "ExecutionTime": 2673 },
+      jsonrpc: "2.0",
+      method: "telemetry/event",
+      params: {
+        properties: { Feature: "ApexPrelude-startup", Exception: "None" },
+        measures: { ExecutionTime: 2673 },
       },
     };
 
-    const jsonRpcTransform = ToLSTransform.createStream(mockReadStreamKO(request));
+    const jsonRpcTransform = ToLSTransform.createStream(
+      mockReadStreamKO(request),
+    );
 
     const errorMessage = (await once(jsonRpcTransform, "error"))[0];
     expect(errorMessage.message).toContain("Bad header");
@@ -99,32 +112,39 @@ describe("JSONRPCTransform", () => {
 
   it("calls callback more than once with multiple JSONRPCs", async () => {
     const response: JSONRPCResponse = {
-      "jsonrpc": "2.0",
-      "id": 1,
-      "result": {
-        "capabilities": {
-          "textDocumentSync": 1,
-          "hoverProvider": true,
-          "completionProvider": { "resolveProvider": false, "triggerCharacters": ["."] },
-          "definitionProvider": true,
-          "referencesProvider": true,
-          "documentSymbolProvider": true,
-          "codeActionProvider": { "codeActionKinds": ["quickfix", "refactor.extract"] },
-          "codeLensProvider": { "resolveProvider": false },
-          "renameProvider": true,
+      jsonrpc: "2.0",
+      id: 1,
+      result: {
+        capabilities: {
+          textDocumentSync: 1,
+          hoverProvider: true,
+          completionProvider: {
+            resolveProvider: false,
+            triggerCharacters: ["."],
+          },
+          definitionProvider: true,
+          referencesProvider: true,
+          documentSymbolProvider: true,
+          codeActionProvider: {
+            codeActionKinds: ["quickfix", "refactor.extract"],
+          },
+          codeLensProvider: { resolveProvider: false },
+          renameProvider: true,
         },
       },
     };
     const request: JSONRPCRequest = {
-      "jsonrpc": "2.0",
-      "method": "telemetry/event",
-      "params": {
-        "properties": { "Feature": "ApexPrelude-startup", "Exception": "None" },
-        "measures": { "ExecutionTime": 3000 },
+      jsonrpc: "2.0",
+      method: "telemetry/event",
+      params: {
+        properties: { Feature: "ApexPrelude-startup", Exception: "None" },
+        measures: { ExecutionTime: 3000 },
       },
     };
     const payload = [response, request];
-    const jsonRpcTransform = ToLSTransform.createStream(mockReadStreamOK(payload));
+    const jsonRpcTransform = ToLSTransform.createStream(
+      mockReadStreamOK(payload),
+    );
 
     let payloadIdx = 0;
     for await (const j of jsonRpcTransform) {
@@ -134,28 +154,33 @@ describe("JSONRPCTransform", () => {
 
   it("process multiple JSONs in one _transform", async () => {
     const response: JSONRPCResponse = {
-      "jsonrpc": "2.0",
-      "id": 1,
-      "result": {
-        "capabilities": {
-          "textDocumentSync": 1,
-          "hoverProvider": true,
-          "completionProvider": { "resolveProvider": false, "triggerCharacters": ["."] },
-          "definitionProvider": true,
-          "referencesProvider": true,
-          "documentSymbolProvider": true,
-          "codeActionProvider": { "codeActionKinds": ["quickfix", "refactor.extract"] },
-          "codeLensProvider": { "resolveProvider": false },
-          "renameProvider": true,
+      jsonrpc: "2.0",
+      id: 1,
+      result: {
+        capabilities: {
+          textDocumentSync: 1,
+          hoverProvider: true,
+          completionProvider: {
+            resolveProvider: false,
+            triggerCharacters: ["."],
+          },
+          definitionProvider: true,
+          referencesProvider: true,
+          documentSymbolProvider: true,
+          codeActionProvider: {
+            codeActionKinds: ["quickfix", "refactor.extract"],
+          },
+          codeLensProvider: { resolveProvider: false },
+          renameProvider: true,
         },
       },
     };
     const request: JSONRPCRequest = {
-      "jsonrpc": "2.0",
-      "method": "telemetry/event",
-      "params": {
-        "properties": { "Feature": "ApexPrelude-startup", "Exception": "None" },
-        "measures": { "ExecutionTime": 3000 },
+      jsonrpc: "2.0",
+      method: "telemetry/event",
+      params: {
+        properties: { Feature: "ApexPrelude-startup", Exception: "None" },
+        measures: { ExecutionTime: 3000 },
       },
     };
 
@@ -163,10 +188,11 @@ describe("JSONRPCTransform", () => {
     const jsonRpcRequestStr = JSON.stringify(request);
 
     const payload = [request, response];
-    const payloadSingle =
-      `Content-Length: ${jsonRpcRequestStr.length}\r\n\r\n${jsonRpcRequestStr}Content-Length: ${jsonRpcResponseStr.length}\r\n\r\n${jsonRpcResponseStr}`;
+    const payloadSingle = `Content-Length: ${jsonRpcRequestStr.length}\r\n\r\n${jsonRpcRequestStr}Content-Length: ${jsonRpcResponseStr.length}\r\n\r\n${jsonRpcResponseStr}`;
 
-    const jsonRpcTransform = ToLSTransform.createStream(mockReadStreamOK(payloadSingle));
+    const jsonRpcTransform = ToLSTransform.createStream(
+      mockReadStreamOK(payloadSingle),
+    );
 
     let payloadIdx = 0;
     for await (const j of jsonRpcTransform) {
@@ -176,28 +202,33 @@ describe("JSONRPCTransform", () => {
 
   it("buffers partial JSONs", async () => {
     const response: JSONRPCResponse = {
-      "jsonrpc": "2.0",
-      "id": 1,
-      "result": {
-        "capabilities": {
-          "textDocumentSync": 1,
-          "hoverProvider": true,
-          "completionProvider": { "resolveProvider": false, "triggerCharacters": ["."] },
-          "definitionProvider": true,
-          "referencesProvider": true,
-          "documentSymbolProvider": true,
-          "codeActionProvider": { "codeActionKinds": ["quickfix", "refactor.extract"] },
-          "codeLensProvider": { "resolveProvider": false },
-          "renameProvider": true,
+      jsonrpc: "2.0",
+      id: 1,
+      result: {
+        capabilities: {
+          textDocumentSync: 1,
+          hoverProvider: true,
+          completionProvider: {
+            resolveProvider: false,
+            triggerCharacters: ["."],
+          },
+          definitionProvider: true,
+          referencesProvider: true,
+          documentSymbolProvider: true,
+          codeActionProvider: {
+            codeActionKinds: ["quickfix", "refactor.extract"],
+          },
+          codeLensProvider: { resolveProvider: false },
+          renameProvider: true,
         },
       },
     };
     const request: JSONRPCRequest = {
-      "jsonrpc": "2.0",
-      "method": "telemetry/event",
-      "params": {
-        "properties": { "Feature": "ApexPrelude-startup", "Exception": "None" },
-        "measures": { "ExecutionTime": 3000 },
+      jsonrpc: "2.0",
+      method: "telemetry/event",
+      params: {
+        properties: { Feature: "ApexPrelude-startup", Exception: "None" },
+        measures: { ExecutionTime: 3000 },
       },
     };
 
@@ -206,13 +237,16 @@ describe("JSONRPCTransform", () => {
 
     const payload = [response, request];
     const payloadSplit = [
-      `Content-Length: ${jsonRpcResponseStr.length}\r\n\r\n${jsonRpcResponseStr}Content-Length: ${jsonRpcRequestStr.length}\r\n\r\n${
-        jsonRpcRequestStr.substring(0, 50)
-      }`,
+      `Content-Length: ${jsonRpcResponseStr.length}\r\n\r\n${jsonRpcResponseStr}Content-Length: ${jsonRpcRequestStr.length}\r\n\r\n${jsonRpcRequestStr.substring(
+        0,
+        50,
+      )}`,
       jsonRpcRequestStr.substring(50),
     ];
 
-    const jsonRpcTransform = ToLSTransform.createStream(mockReadStreamOK(payloadSplit));
+    const jsonRpcTransform = ToLSTransform.createStream(
+      mockReadStreamOK(payloadSplit),
+    );
 
     let payloadIdx = 0;
     for await (const j of jsonRpcTransform) {
@@ -222,28 +256,33 @@ describe("JSONRPCTransform", () => {
 
   it("buffers partial JSONs within the same RPC", async () => {
     const response: JSONRPCResponse = {
-      "jsonrpc": "2.0",
-      "id": 1,
-      "result": {
-        "capabilities": {
-          "textDocumentSync": 1,
-          "hoverProvider": true,
-          "completionProvider": { "resolveProvider": false, "triggerCharacters": ["."] },
-          "definitionProvider": true,
-          "referencesProvider": true,
-          "documentSymbolProvider": true,
-          "codeActionProvider": { "codeActionKinds": ["quickfix", "refactor.extract"] },
-          "codeLensProvider": { "resolveProvider": false },
-          "renameProvider": true,
+      jsonrpc: "2.0",
+      id: 1,
+      result: {
+        capabilities: {
+          textDocumentSync: 1,
+          hoverProvider: true,
+          completionProvider: {
+            resolveProvider: false,
+            triggerCharacters: ["."],
+          },
+          definitionProvider: true,
+          referencesProvider: true,
+          documentSymbolProvider: true,
+          codeActionProvider: {
+            codeActionKinds: ["quickfix", "refactor.extract"],
+          },
+          codeLensProvider: { resolveProvider: false },
+          renameProvider: true,
         },
       },
     };
     const request: JSONRPCRequest = {
-      "jsonrpc": "2.0",
-      "method": "telemetry/event",
-      "params": {
-        "properties": { "Feature": "ApexPrelude-startup", "Exception": "None" },
-        "measures": { "ExecutionTime": 3000 },
+      jsonrpc: "2.0",
+      method: "telemetry/event",
+      params: {
+        properties: { Feature: "ApexPrelude-startup", Exception: "None" },
+        measures: { ExecutionTime: 3000 },
       },
     };
 
@@ -257,7 +296,9 @@ describe("JSONRPCTransform", () => {
       jsonRpcRequestStr.substring(50),
     ];
 
-    const jsonRpcTransform = ToLSTransform.createStream(mockReadStreamOK(payloadSplit));
+    const jsonRpcTransform = ToLSTransform.createStream(
+      mockReadStreamOK(payloadSplit),
+    );
 
     let payloadIdx = 0;
     for await (const j of jsonRpcTransform) {
@@ -268,9 +309,9 @@ describe("JSONRPCTransform", () => {
 
 const createExampleInput = (randomText = crypto.randomUUID() as string) => {
   const inputRequest = JSON.stringify({
-    "jsonrpc": "2.0",
-    "method": "telemetry/event",
-    "params": {
+    jsonrpc: "2.0",
+    method: "telemetry/event",
+    params: {
       "Param-To-Check": randomText,
     },
   });
@@ -297,12 +338,10 @@ const createExampleInput = (randomText = crypto.randomUUID() as string) => {
 
 describe("pipeLsInToLsOut", () => {
   it("pipeLsInToLsOut transforms input to identical output, but in a single chunk", async () => {
-    const requests = Array.from(
-      { length: 8 },
-      (_, i) =>
-        createExampleInput(
-          `request${i + 1}${Array.from({ length: 8 }, () => crypto.randomUUID()).join("")}`,
-        ),
+    const requests = Array.from({ length: 8 }, (_, i) =>
+      createExampleInput(
+        `request${i + 1}${Array.from({ length: 8 }, () => crypto.randomUUID()).join("")}`,
+      ),
     );
 
     const receivedChunks: string[] = [];
@@ -323,12 +362,15 @@ describe("pipeLsInToLsOut", () => {
 
     expect(receivedChunks).toHaveLength(8);
     requests.forEach(({ randomText }) => {
-      const containsRequest = receivedChunks.some((chunk) => chunk.includes(randomText));
+      const containsRequest = receivedChunks.some((chunk) =>
+        chunk.includes(randomText),
+      );
       expect(containsRequest).toBe(true);
     });
   });
 
-  it("control case simply pumps input to output, but not in order", async () => { // sanity check
+  it("control case simply pumps input to output, but not in order", async () => {
+    // sanity check
     function pipeLsInToSimplePassThroughToLsOut(
       inputStream: Readable,
       outputStream: Writable,
@@ -338,7 +380,9 @@ describe("pipeLsInToLsOut", () => {
       passThrough.pipe(outputStream);
     }
 
-    const requests = Array.from({ length: 8 }, (_, i) => createExampleInput(`request${i + 1}`));
+    const requests = Array.from({ length: 8 }, (_, i) =>
+      createExampleInput(`request${i + 1}`),
+    );
 
     const receivedChunks: string[] = [];
     const outputStream = new Writable({
@@ -358,7 +402,9 @@ describe("pipeLsInToLsOut", () => {
 
     expect(receivedChunks.length).toBeGreaterThan(8);
     requests.forEach(({ randomText }) => {
-      const containsRequest = receivedChunks.some((chunk) => !chunk.includes(randomText));
+      const containsRequest = receivedChunks.some(
+        (chunk) => !chunk.includes(randomText),
+      );
       expect(containsRequest).toBe(true);
     });
   });

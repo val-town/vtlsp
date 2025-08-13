@@ -1,8 +1,11 @@
 // deno-lint-ignore-file no-explicit-any
 
-import * as rpc from "vscode-jsonrpc/node.js";
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import fs from "node:fs";
+import process from "node:process";
+import * as rpc from "vscode-jsonrpc/node.js";
+import { logger } from "~/logger.js";
+import { hasALsProxyCode } from "./codes.js";
 import type {
   CatchAllHandlerFunction,
   CatchAllMiddlewareFunction,
@@ -17,11 +20,8 @@ import type {
   ResultMiddlewareFunction,
   UriConverters,
 } from "./types.js";
-import process from "node:process";
-import { logger } from "~/logger.js";
-import { hasALsProxyCode } from "./codes.js";
 import type { LSPNotifyMap, LSPRequestMap } from "./types.lsp.js";
-import { replaceFileUris, isLspParamsLike, isLspRespLike } from "./utils.js";
+import { isLspParamsLike, isLspRespLike, replaceFileUris } from "./utils.js";
 
 /**
  * LSPProxy creates a bridge between a client and a language server process.

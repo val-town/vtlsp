@@ -1,10 +1,10 @@
-import type { EditorView, KeyBinding } from "@codemirror/view";
-import { showDialog, getDialog, keymap } from "@codemirror/view";
-import { offsetToPos, posToOffset } from "../utils.js";
-import type * as LSP from "vscode-languageserver-protocol";
 import type { Extension } from "@codemirror/state";
-import type { LSExtensionGetter } from "./types.js";
+import type { EditorView, KeyBinding } from "@codemirror/view";
+import { getDialog, keymap, showDialog } from "@codemirror/view";
+import type * as LSP from "vscode-languageserver-protocol";
 import { LSCore } from "../LSPlugin.js";
+import { offsetToPos, posToOffset } from "../utils.js";
+import type { LSExtensionGetter } from "./types.js";
 
 export interface RenameExtensionsArgs {
   shortcuts?: KeyBinding[];

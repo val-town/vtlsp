@@ -1,12 +1,12 @@
+import process from "node:process";
 import { PassThrough, type Readable, type Writable } from "node:stream";
-import { logger } from "~/logger.js";
+import { WebSocket } from "isomorphic-ws";
+import { isJSONRPCRequest, isJSONRPCResponse } from "json-rpc-2.0";
+import { pipeLsInToLsOut } from "~/LSWSServer/LSTransform.js";
 import type { LSProc } from "~/LSWSServer/procs/LSProc.js";
 import { LSProcManager } from "~/LSWSServer/procs/LSProcManager.js";
 import { createWebSocketStreams } from "~/LSWSServer/WSStream.js";
-import process from "node:process";
-import { pipeLsInToLsOut } from "~/LSWSServer/LSTransform.js";
-import { isJSONRPCRequest, isJSONRPCResponse } from "json-rpc-2.0";
-import { WebSocket } from "isomorphic-ws";
+import { logger } from "~/logger.js";
 
 interface ConnectionData {
   /**

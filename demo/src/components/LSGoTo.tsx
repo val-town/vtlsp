@@ -1,6 +1,6 @@
-import type * as LSP from "vscode-languageserver-protocol";
+import { REFERENCE_KIND_LABELS, type ReferenceKind } from "codemirror-ls";
 import { File, X } from "lucide-react";
-import { type ReferenceKind, REFERENCE_KIND_LABELS } from "codemirror-ls";
+import type * as LSP from "vscode-languageserver-protocol";
 
 interface LSGoToProps {
   locations: LSP.Location[];

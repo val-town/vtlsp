@@ -1,11 +1,11 @@
-import { createLowlight } from "lowlight";
+import { isLSPMarkupContent } from "codemirror-ls";
+import { toJsxRuntime } from "hast-util-to-jsx-runtime";
 import typescript from "highlight.js/lib/languages/typescript";
+import { createLowlight } from "lowlight";
+import { Fragment, type JSX, jsx, jsxs } from "react/jsx-runtime";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
-import { toJsxRuntime } from "hast-util-to-jsx-runtime";
-import { Fragment, type JSX, jsx, jsxs } from "react/jsx-runtime";
 import type * as LSP from "vscode-languageserver-protocol";
-import { isLSPMarkupContent } from "codemirror-ls";
 
 export function LSContents({
   contents,

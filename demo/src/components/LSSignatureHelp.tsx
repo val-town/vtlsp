@@ -1,6 +1,6 @@
+import type { JSX } from "react";
 import type * as LSP from "vscode-languageserver-protocol";
 import { LowLightCodeBlock, LSContents } from "./LSContents";
-import type { JSX } from "react";
 
 interface LSPContentsProps {
   data: LSP.SignatureHelp;

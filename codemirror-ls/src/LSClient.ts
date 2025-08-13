@@ -1,7 +1,7 @@
+import { Emitter } from "vscode-jsonrpc";
 import type * as LSP from "vscode-languageserver-protocol";
 import type { LSCore } from "./LSPlugin.js";
 import type { LSITransport } from "./transport/LSITransport.js";
-import { Emitter } from "vscode-jsonrpc";
 import type { LSPNotifyMap, LSPRequestMap } from "./types.lsp.js";
 
 export class LSClient {
@@ -201,18 +201,18 @@ export class LSClient {
     this.#errorEmitter.dispose();
   }
 
-    public async request<K extends keyof LSPRequestMap>(
-      method: K,
-      params: LSPRequestMap[K][0],
-    ): Promise<LSPRequestMap[K][1]> {
-      if (method !== "initialize" && !this.ready) {
-        await this.initializePromise;
-      }
-
-      return this.requestUnsafe(method, params);
+  public async request<K extends keyof LSPRequestMap>(
+    method: K,
+    params: LSPRequestMap[K][0],
+  ): Promise<LSPRequestMap[K][1]> {
+    if (method !== "initialize" && !this.ready) {
+      await this.initializePromise;
     }
 
-    // biome-ignore lint/suspicious/noExplicitAny: explicitly for unsafe requests
+    return this.requestUnsafe(method, params);
+  }
+
+  // biome-ignore lint/suspicious/noExplicitAny: explicitly for unsafe requests
   public async requestUnsafe(method: string, params: any): Promise<any> {
     return await this.transport.sendRequest(method, params);
   }

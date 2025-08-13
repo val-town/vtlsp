@@ -1,13 +1,13 @@
-import { LSContents } from "./components/LSContents";
-import { useMemo, useCallback, useState } from "react";
-import ReactDOM from "react-dom/client";
-import { LSContextMenu } from "./components/LSContextMenu";
-import { LSSignatureHelp } from "./components/LSSignatureHelp";
-import { LSGoTo } from "./components/LSGoTo";
-import { LSWindow } from "./components/LSWindow";
-import type * as LSP from "vscode-languageserver-protocol";
-import { languageServerWithClient, LSClient } from "@valtown/codemirror-ls";
+import { LSClient, languageServerWithClient } from "@valtown/codemirror-ls";
 import { LSWebSocketTransport } from "@valtown/codemirror-ls/transport";
+import { useCallback, useMemo, useState } from "react";
+import ReactDOM from "react-dom/client";
+import type * as LSP from "vscode-languageserver-protocol";
+import { LSContents } from "./components/LSContents";
+import { LSContextMenu } from "./components/LSContextMenu";
+import { LSGoTo } from "./components/LSGoTo";
+import { LSSignatureHelp } from "./components/LSSignatureHelp";
+import { LSWindow } from "./components/LSWindow";
 
 export function useLsCodemirror({ path }: { path: string }): {
   extensions: ReturnType<typeof languageServerWithClient> | null;

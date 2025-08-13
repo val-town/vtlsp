@@ -1,5 +1,5 @@
-import { URI } from "vscode-uri";
 import * as path from "node:path";
+import { URI } from "vscode-uri";
 
 const FILE_URI_PATTERN = /(file:\/\/[^\s"']+)/g;
 
@@ -62,7 +62,7 @@ export function isLspParamsLike(
 /**
  * Check if the given object is a valid LSP response-like object.
  * This includes objects, arrays, strings, or null.
- * 
+ *
  * @param obj The object to check.
  * @returns True if the object is a valid LSP response-like object, false otherwise.
  */
@@ -137,7 +137,10 @@ export function virtualUriToTempDirUri(
  * - "foobar.tsx" -> "file:///foobar.tsx"
  * - "http://example.com/foobar.tsx" -> "http://example.com/foobar.tsx" (unchanged)
  */
-export function tempDirUriToVirtualUri(pathOrUri: string, tempDir: string): string {
+export function tempDirUriToVirtualUri(
+  pathOrUri: string,
+  tempDir: string,
+): string {
   // If it's a non-file URI, return as is
   if (/^\w+:/i.test(pathOrUri) && !pathOrUri.startsWith("file://")) {
     return pathOrUri;

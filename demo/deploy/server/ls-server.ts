@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/suspicious/noConsole: debug logging */
 
+import { zValidator } from "@hono/zod-validator";
 import { LSWSServer } from "@valtown/ls-ws-server";
 import { Hono } from "hono";
-import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 
 const PORT = 5002;
@@ -30,14 +30,17 @@ Deno.addSignalListener("SIGINT", gracefulShutdown("SIGINT", 130));
 Deno.addSignalListener("SIGTERM", gracefulShutdown("SIGTERM", 143));
 
 function getApp(lsWsServer: LSWSServer) {
-  return new Hono()
-    .get("/", zValidator("query", z.object({ session: z.string() })), (c) => {
+  return new Hono().get(
+    "/",
+    zValidator("query", z.object({ session: z.string() })),
+    (c) => {
       console.log("Received request:", c.req.raw.method, c.req.raw.url);
       return lsWsServer.handleNewWebsocket(
         c.req.raw,
         c.req.valid("query").session,
       );
-    })
+    },
+  );
 }
 
 const app = getApp(lsWsServer);

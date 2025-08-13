@@ -1,16 +1,16 @@
+import pTimeout from "p-timeout";
 import {
+  createMessageConnection,
+  type Disposable,
   Emitter,
+  type Message,
+  type MessageConnection,
   type MessageReader,
   type MessageWriter,
+  type RAL,
   ReadableStreamMessageReader,
   WriteableStreamMessageWriter,
-  type Disposable,
-  type RAL,
-  type MessageConnection,
-  createMessageConnection,
-  type Message,
 } from "vscode-jsonrpc";
-import pTimeout from "p-timeout";
 import type { LSITransport } from "./LSITransport.js";
 
 const MAX_CHUNK = 900 * 1024;
@@ -209,7 +209,10 @@ export class LSWebSocketTransport implements LSITransport {
     this.#messageConnection = createMessageConnection(reader, writer);
 
     this.#messageConnection.onNotification((method, params) => {
-      if (this.healthyNotificationPath && method === this.healthyNotificationPath) {
+      if (
+        this.healthyNotificationPath &&
+        method === this.healthyNotificationPath
+      ) {
         this.onLSHealthy?.();
       }
 
