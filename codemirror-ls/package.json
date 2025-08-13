@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "@valtown/codemirror-ls",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Val Town editor Codemirror LSP client",
   "repository": {
     "type": "git",
@@ -32,13 +32,22 @@
     "codemirror": "^6.0.0"
   },
   "exports": {
-    ".": "./src/index.ts",
-    "./extensions": "./src/extensions/index.ts",
-    "./transport": "./src/transport/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./extensions": {
+      "types": "./dist/extensions/index.d.ts",
+      "default": "./dist/extensions/index.js"
+    },
+    "./transport": {
+      "types": "./dist/transport/index.d.ts",
+      "default": "./dist/transport/index.js"
+    }
   },
   "types": "./dist/index.d.ts",
   "type": "module",
-  "main": "index.js",
+  "main": "./dist/index.js",
   "dependencies": {
     "es-toolkit": "^1.39.8",
     "p-queue": "^8.1.0",
