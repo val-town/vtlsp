@@ -11,12 +11,7 @@
 
 import { Buffer } from "node:buffer";
 import { Readable, Writable } from "node:stream";
-import {
-  type CloseEvent,
-  type ErrorEvent,
-  type MessageEvent,
-  WebSocket,
-} from "isomorphic-ws";
+import { type MessageEvent, WebSocket } from "isows";
 import { logger } from "~/logger.js";
 
 interface WebSocketStreamOptions {
@@ -56,8 +51,10 @@ class WebSocketReadableStream extends Readable {
       logger.error({ event }, "WebSocketReadableStream received error event");
       this.emit("error", event);
     };
-    ws.addEventListener("error", errorHandler);
-    this.#cleanupCbs.push(() => ws.removeEventListener("error", errorHandler));
+    ws.addEventListener("error", errorHandler as EventListener);
+    this.#cleanupCbs.push(() =>
+      ws.removeEventListener("error", errorHandler as EventListener),
+    );
 
     const closeHandler = (event: CloseEvent) => {
       logger.info(

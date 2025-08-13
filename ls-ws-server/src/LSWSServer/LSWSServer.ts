@@ -1,6 +1,6 @@
 import process from "node:process";
 import { PassThrough, type Readable, type Writable } from "node:stream";
-import { WebSocket } from "isomorphic-ws";
+import { WebSocket } from "isows";
 import { isJSONRPCRequest, isJSONRPCResponse } from "json-rpc-2.0";
 import { pipeLsInToLsOut } from "~/LSWSServer/LSTransform.js";
 import type { LSProc } from "~/LSWSServer/procs/LSProc.js";
