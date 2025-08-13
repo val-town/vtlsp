@@ -11,7 +11,7 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 
 const lsWsServer = new LSWSServer({
-  lsCommand: "deno,
+  lsCommand: "deno",
   lsArgs: ["lsp", "-q"],
   lsLogPath: Deno.makeTempDirSync({ prefix: "vtlsp-procs" }),
 });
