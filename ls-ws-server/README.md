@@ -7,13 +7,15 @@ It is meant to be used with your framework of choice, and provides a simple `han
 Here's a simple example set up for the Deno language server:
 
 ```typescript
+// lsp-proxy.ts
+
 import { LSWSServer } from "vtls-server";
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 
 const lsWsServer = new LSWSServer({
-  lsCommand: "deno",
+  lsCommand: "deno", // real LSP (we're using deno to run the deno LSP)
   lsArgs: ["lsp", "-q"],
   lsLogPath: Deno.makeTempDirSync({ prefix: "vtlsp-procs" }),
 });
@@ -33,6 +35,8 @@ Deno.serve({ port: 5002, hostname: "0.0.0.0" }, app.fetch);
 Including a small language server "proxy" server:
 
 ```ts
+// main.ts
+
 import { LSPProxy, utils } from "vtls-server";
 
 const TEMP_DIR = await Deno.makeTempDir({ prefix: "vtlsp-proxy" });
@@ -45,8 +49,8 @@ const proxy = new LSPProxy({
   name: "lsp-server",
   cwd: TEMP_DIR, // Where the LSP gets spawned from
   exec: {
-    command: "deno",
-    args: ["lsp", "-q"],
+    command: "deno", // proxy LSP
+    args: ["run", "-A", "./lsp-proxy.ts"],
   },
   // Also, you can use procToClientMiddlewares, procToClientHandlers, and clientToProcHandlers
   clientToProcMiddlewares: {
