@@ -1,5 +1,7 @@
 # VTLSP: Val Town's LSP Powered Editor
 
+![Val Town editor demo](https://filedumpthing.val.run/blob/blob_file_1755128319090_output_8.gif)
+
 VTLSP provides a complete solution to running a language server on a server, and stream messages to an editor in your browser.  This is a monorepo of the core components that make this possible, including a codemirror client library, language server WebSocket server, and language server "proxy."
 
 # Background
