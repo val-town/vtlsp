@@ -16,6 +16,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: jdx/mise-action@v2
       - run: npm ci
+      - name: Install wrangler
+        run: npm install -g wrangler@4.29.1
       - name: Wrangler deploy
         run: npx wrangler@4.29.1 deploy
         env:
