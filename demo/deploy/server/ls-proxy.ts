@@ -8,14 +8,21 @@ Deno.addSignalListener("SIGTERM", onExit);
 
 const proxy = new LSProxy({
   name: "lsp-server",
-  tempDir: TEMP_DIR,
+  cwd: TEMP_DIR,
   exec: {
     command: "deno",
     args: ["lsp", "-q"],
   },
   clientToProcMiddlewares: {
     initialize: async (params) => {
-      await Deno.writeTextFile(`${TEMP_DIR}/deno.json`, JSON.stringify({})); // Create a deno.json in the temp dir
+      await Deno.writeTextFile(
+        `${TEMP_DIR}/Cargo.toml`,
+        `
+[package]
+name = "temp"
+version = "0.1.0"
+edition = "2021"`,
+      ); // Create a minimal Cargo.toml for rust-analyzer
       return params;
     },
     "textDocument/didOpen": async (params) => {
