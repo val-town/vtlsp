@@ -607,3 +607,47 @@
 {"level":30,"time":1755127753168,"pid":1439272,"hostname":"wolf-laptop","code":1000,"reason":"","wasClean":true,"msg":"WebSocketReadableStream received close event"}
 {"level":30,"time":1755127753168,"pid":1439272,"hostname":"wolf-laptop","code":1000,"reason":"","wasClean":true,"msg":"WebSocketWritableStream received close event"}
 {"level":20,"time":1755127753169,"pid":1439272,"hostname":"wolf-laptop","msg":"WebSocketReadableStream is getting destroyed"}
+{"level":30,"time":1755129108945,"pid":1471893,"hostname":"wolf-laptop","chunkSize":921600,"msg":"Creating WebSocket streams"}
+{"level":20,"time":1755129108946,"pid":1471893,"hostname":"wolf-laptop","msg":"WebSocketReadableStream initialized"}
+{"level":20,"time":1755129108946,"pid":1471893,"hostname":"wolf-laptop","chunkSize":921600,"msg":"WebSocketWritableStream initialized"}
+{"level":20,"time":1755129108948,"pid":1471893,"hostname":"wolf-laptop","bytes":4,"msg":"WebSocketWritableStream writing data"}
+{"level":20,"time":1755129108948,"pid":1471893,"hostname":"wolf-laptop","newBufferSize":4,"addedBytes":4,"msg":"WebSocketWritableStream buffer updated"}
+{"level":20,"time":1755129108948,"pid":1471893,"hostname":"wolf-laptop","totalBytes":4,"chunkSize":921600,"msg":"WebSocketWritableStream sending data with chunking"}
+{"level":20,"time":1755129108948,"pid":1471893,"hostname":"wolf-laptop","msg":"WebSocketWritableStream clearing buffer"}
+{"level":10,"time":1755129108949,"pid":1471893,"hostname":"wolf-laptop","msg":"WebSocketReadableStream: _read called"}
+{"level":30,"time":1755129108953,"pid":1471893,"hostname":"wolf-laptop","code":1000,"reason":"","wasClean":true,"msg":"WebSocketReadableStream received close event"}
+{"level":30,"time":1755129108954,"pid":1471893,"hostname":"wolf-laptop","code":1000,"reason":"","wasClean":true,"msg":"WebSocketWritableStream received close event"}
+{"level":20,"time":1755129108955,"pid":1471893,"hostname":"wolf-laptop","msg":"WebSocketReadableStream is getting destroyed"}
+{"level":30,"time":1755129112122,"pid":1471951,"hostname":"wolf-laptop","chunkSize":921600,"msg":"Creating WebSocket streams"}
+{"level":20,"time":1755129112122,"pid":1471951,"hostname":"wolf-laptop","msg":"WebSocketReadableStream initialized"}
+{"level":20,"time":1755129112123,"pid":1471951,"hostname":"wolf-laptop","chunkSize":921600,"msg":"WebSocketWritableStream initialized"}
+{"level":20,"time":1755129112124,"pid":1471951,"hostname":"wolf-laptop","bytes":4,"msg":"WebSocketWritableStream writing data"}
+{"level":20,"time":1755129112124,"pid":1471951,"hostname":"wolf-laptop","newBufferSize":4,"addedBytes":4,"msg":"WebSocketWritableStream buffer updated"}
+{"level":20,"time":1755129112124,"pid":1471951,"hostname":"wolf-laptop","totalBytes":4,"chunkSize":921600,"msg":"WebSocketWritableStream sending data with chunking"}
+{"level":20,"time":1755129112125,"pid":1471951,"hostname":"wolf-laptop","msg":"WebSocketWritableStream clearing buffer"}
+{"level":10,"time":1755129112125,"pid":1471951,"hostname":"wolf-laptop","msg":"WebSocketReadableStream: _read called"}
+{"level":30,"time":1755129112131,"pid":1471951,"hostname":"wolf-laptop","code":1000,"reason":"","wasClean":true,"msg":"WebSocketReadableStream received close event"}
+{"level":30,"time":1755129112131,"pid":1471951,"hostname":"wolf-laptop","code":1000,"reason":"","wasClean":true,"msg":"WebSocketWritableStream received close event"}
+{"level":20,"time":1755129112133,"pid":1471951,"hostname":"wolf-laptop","msg":"WebSocketReadableStream is getting destroyed"}
+{"level":30,"time":1755129114426,"pid":1533972,"hostname":"wolf-laptop","chunkSize":921600,"msg":"Creating WebSocket streams"}
+{"level":20,"time":1755129114427,"pid":1533972,"hostname":"wolf-laptop","msg":"WebSocketReadableStream initialized"}
+{"level":20,"time":1755129114427,"pid":1533972,"hostname":"wolf-laptop","chunkSize":921600,"msg":"WebSocketWritableStream initialized"}
+{"level":20,"time":1755129114428,"pid":1533972,"hostname":"wolf-laptop","bytes":4,"msg":"WebSocketWritableStream writing data"}
+{"level":20,"time":1755129114429,"pid":1533972,"hostname":"wolf-laptop","newBufferSize":4,"addedBytes":4,"msg":"WebSocketWritableStream buffer updated"}
+{"level":20,"time":1755129114429,"pid":1533972,"hostname":"wolf-laptop","totalBytes":4,"chunkSize":921600,"msg":"WebSocketWritableStream sending data with chunking"}
+{"level":20,"time":1755129114429,"pid":1533972,"hostname":"wolf-laptop","msg":"WebSocketWritableStream clearing buffer"}
+{"level":10,"time":1755129114430,"pid":1533972,"hostname":"wolf-laptop","msg":"WebSocketReadableStream: _read called"}
+{"level":30,"time":1755129114435,"pid":1533972,"hostname":"wolf-laptop","code":1000,"reason":"","wasClean":true,"msg":"WebSocketReadableStream received close event"}
+{"level":30,"time":1755129114435,"pid":1533972,"hostname":"wolf-laptop","code":1000,"reason":"","wasClean":true,"msg":"WebSocketWritableStream received close event"}
+{"level":20,"time":1755129114436,"pid":1533972,"hostname":"wolf-laptop","msg":"WebSocketReadableStream is getting destroyed"}
+{"level":30,"time":1755129119049,"pid":1534032,"hostname":"wolf-laptop","chunkSize":921600,"msg":"Creating WebSocket streams"}
+{"level":20,"time":1755129119050,"pid":1534032,"hostname":"wolf-laptop","msg":"WebSocketReadableStream initialized"}
+{"level":20,"time":1755129119050,"pid":1534032,"hostname":"wolf-laptop","chunkSize":921600,"msg":"WebSocketWritableStream initialized"}
+{"level":20,"time":1755129119051,"pid":1534032,"hostname":"wolf-laptop","bytes":4,"msg":"WebSocketWritableStream writing data"}
+{"level":20,"time":1755129119051,"pid":1534032,"hostname":"wolf-laptop","newBufferSize":4,"addedBytes":4,"msg":"WebSocketWritableStream buffer updated"}
+{"level":20,"time":1755129119051,"pid":1534032,"hostname":"wolf-laptop","totalBytes":4,"chunkSize":921600,"msg":"WebSocketWritableStream sending data with chunking"}
+{"level":20,"time":1755129119052,"pid":1534032,"hostname":"wolf-laptop","msg":"WebSocketWritableStream clearing buffer"}
+{"level":10,"time":1755129119052,"pid":1534032,"hostname":"wolf-laptop","msg":"WebSocketReadableStream: _read called"}
+{"level":30,"time":1755129119057,"pid":1534032,"hostname":"wolf-laptop","code":1000,"reason":"","wasClean":true,"msg":"WebSocketReadableStream received close event"}
+{"level":30,"time":1755129119057,"pid":1534032,"hostname":"wolf-laptop","code":1000,"reason":"","wasClean":true,"msg":"WebSocketWritableStream received close event"}
+{"level":20,"time":1755129119058,"pid":1534032,"hostname":"wolf-laptop","msg":"WebSocketReadableStream is getting destroyed"}
