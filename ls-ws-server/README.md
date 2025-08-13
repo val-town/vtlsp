@@ -43,17 +43,18 @@ Deno.addSignalListener("SIGTERM", onExit);
 
 const proxy = new LSPProxy({
   name: "lsp-server",
-  tempDir: TEMP_DIR,
+  cwd: TEMP_DIR, // Where the LSP gets spawned from
   exec: {
     command: "deno",
     args: ["lsp", "-q"],
   },
+  // Also, you can use procToClientMiddlewares, procToClientHandlers, and clientToProcHandlers
   clientToProcMiddlewares: {
     initialize: async (params) => {
       await Deno.writeTextFile(`${TEMP_DIR}/deno.json`, JSON.stringify({})); // Create a deno.json in the temp dir
       return params;
     },
-    "textDocument/publishDiagnostics": async (params) => {
+    "textDocument/publishDiagnostics": async (params) => { // Params are automatically typed! All "official" LSP methods have strong types
       if (params.uri.endsWith(".test.ts")) {
         return {
           ls_proxy_code: "cancel_response" // A "magic" code that makes it so that the message is NOT passed on to the LSP
@@ -73,7 +74,7 @@ const proxy = new LSPProxy({
   },
 });
 
-proxy.listen();
+proxy.listen(); // Listens by default on standard in / out, and acts as a real LSP
 ```
 
 We're using Deno, but you could just as well write this in Node. To run it, you'd use a command like:
@@ -98,7 +99,7 @@ There are some additional subtileies here that you may need to think about if yo
 
 This library exposes a language server proxy builder, which makes it really easy to automatically transform requests going to or coming out from the language server. With the language server proxy, you can:
 
-Language server processes communicate via JSON-RPC messages - either "requests" or "notifications".
+Language server processes communicate via JSON-RPC messages - either "requests" or "notifications".  Usually they communicate via inbound messages on standard in and outbound messages on standard out.
 
 Notifications are send and forget. An example of a notification we send to the language server may look like
 
@@ -135,3 +136,4 @@ With our language server proxy builder, you can
 - Intercept requests that come to the language server, and maybe modify the request parameters, or the response.
 - Define custom handlers that override existing ones or implement entirely new language server methods.
 
+And, the result is a new language server that also reads from standard in and writes to standard out, but may transform messages before they get to the process, or the client.
