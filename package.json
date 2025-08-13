@@ -15,7 +15,8 @@
     "@biomejs/biome": "2.1.4",
     "happy-dom": "^18.0.1",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "vitest-websocket-mock": "^0.5.0"
   },
   "dependencies": {
     "@types/ws": "^8.18.1",

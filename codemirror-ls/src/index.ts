@@ -2,7 +2,7 @@ export { LSClient } from "./LSClient.js";
 
 export { LSCore, LSPlugin } from "./LSPlugin.js";
 export {
-  type InternalLanguageServerFeatures as LanguageServerFeatures,
+  type LanguageServerFeatures,
   type LanguageServerOptions,
   languageServerWithClient,
 } from "./setup.js";

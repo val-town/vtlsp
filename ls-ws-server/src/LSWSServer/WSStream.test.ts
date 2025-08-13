@@ -1,5 +1,9 @@
-import { describe, expect, it } from "vitest";
-import { chunkByteArray } from "./WSStream.js";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { chunkByteArray, createWebSocketStreams } from "./WSStream.js";
+import WSS from "vitest-websocket-mock";
+import * as os from "node:os";
+import * as path from "node:path";
+import * as fs from "node:fs";
 
 describe("chunkByteArray", () => {
   it("provides evenly divisible chunks", () => {
@@ -28,5 +32,41 @@ describe("chunkByteArray", () => {
     expect(chunks[0]).toEqual(new Uint8Array([0, 1, 2]));
     expect(chunks[1]).toEqual(new Uint8Array([3, 4, 5]));
     expect(chunks[2]).toEqual(new Uint8Array([6]));
+  });
+});
+
+describe("WSStream", () => {
+  let server: WSS;
+  let client: WebSocket;
+
+  beforeEach(async () => {
+    server = new WSS("ws://localhost:1234");
+    client = new WebSocket("ws://localhost:1234");
+    await new Promise((res) => {
+      client.onopen = res;
+    });
+  });
+
+  afterEach(() => {
+    WSS.clean();
+  });
+
+  it("can ping and pong", async () => {
+    const { readable, writable } = createWebSocketStreams(client);
+
+    readable.on("data", (data) => {
+      expect(data).toEqual("pong");
+    });
+
+    server.on("message", (client) => {
+      expect(client).toEqual("ping");
+      server.send("pong");
+    });
+
+    const expectPromise = expect(server).toReceiveMessage(Buffer.from("ping"));
+    writable.write("ping");
+    await expectPromise;
+
+    await server.connected;
   });
 });
