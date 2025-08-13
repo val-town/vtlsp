@@ -4,12 +4,14 @@ import { basicSetup, EditorView } from "codemirror";
 import { useEffect, useRef, useState } from "react";
 import { useLsCodemirror } from "./useLsCodemirror";
 
+const DEFAULT_URL_BASE = () => window.location.hostname === "localhost" ?
+  `ws://${window.location.hostname}:5002/?session=${crypto.randomUUID()}`
+  : `wss://${window.location.hostname}/lsp?session=${crypto.randomUUID()}`;
+
 export default function App() {
   const editor = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
-  const [url, setUrl] = useState(
-    `ws://localhost:5002?session=${crypto.randomUUID()}`,
-  );
+  const [url, setUrl] = useState(DEFAULT_URL_BASE());
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
