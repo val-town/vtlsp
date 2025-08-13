@@ -23,6 +23,8 @@ Additionally, to run an LSP remotely, some language servers, like the Deno langu
 
 # [Live Demo](cf-vtlsp-demo.val-town.workers.dev)
 
+![The live demo](https://filedumpthing.val.run/blob/blob_file_1755126264734_output.gif)
+
 We have a full demo of all the components of this repo in [./demo](./demo/README.md), where we deploy a simple React app with Codemirror that connects to the `Deno` language server over a WebSocket connection to a cloudflare container (an easy, ephemeral docker container in the cloud). It runs a WebSocket server for the deno language server with simple language server proxy modifications: Deno requires a `deno.json` in the directory of the language server to activate, and can get buggy if files do not actually exist locally, so the proxy simulates those two things on respective requests.
 
 # Alternatives and Inspiration

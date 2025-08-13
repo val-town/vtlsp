@@ -5,3 +5,4 @@ scripts/**.js
 dist
 .DS_Store
 *.tsbuildinfo
+*.log

@@ -24,7 +24,7 @@
     "@hono/zod-validator": "^0.7.2",
     "@tailwindcss/vite": "^4.1.11",
     "@uiw/react-codemirror": "^4.24.2",
-    "@valtown/codemirror-ls": "^0.0.1",
+    "@valtown/codemirror-ls": "file:../codemirror-ls",
     "codemirror": "^6.0.2",
     "hast-util-to-jsx-runtime": "^2.3.6",
     "hono": "^4.9.0",
