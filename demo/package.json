@@ -1,5 +1,5 @@
 {
-  "name": "codemirror-cf-ls-demo",
+  "name": "demo",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/val-town/vtlsp.git"

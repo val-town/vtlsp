@@ -101,9 +101,9 @@ class LSCoreBase {
     callback: (doc: Text) => T | Promise<T>,
     timeout = 5_000,
   ): Promise<T> {
+    await this.#sendChangesDispatchQueue.onIdle(); // So that we get the most recent changes
     this.#sendChangesDispatchQueue.pause();
     try {
-      await this.#sendChangesDispatchQueue.onIdle();
       return await Promise.race([
         callback(this.#view.state.doc),
         new Promise<T>((_, rej) =>

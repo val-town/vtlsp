@@ -21,7 +21,7 @@ Our language server WebSocket server is able to multicast messages to many consu
 
 Additionally, to run an LSP remotely, some language servers, like the Deno language server, rely on file system events and require physical files on disc to work properly. There are also other language server lifecycle events that are useful to intercept or handle differently in a remote environment, like for example installing packages as the user imports them. We provide an LS proxy to make it easy to automatically transform requests for specific methods with arbitrary middleware.
 
-# Demo
+# [Live Demo](cf-vtlsp-demo.val-town.workers.dev)
 
 We have a full demo of all the components of this repo in [./demo](./demo/README.md), where we deploy a simple React app with Codemirror that connects to the `Deno` language server over a WebSocket connection to a cloudflare container (an easy, ephemeral docker container in the cloud). It runs a WebSocket server for the deno language server with simple language server proxy modifications: Deno requires a `deno.json` in the directory of the language server to activate, and can get buggy if files do not actually exist locally, so the proxy simulates those two things on respective requests.
 
@@ -30,3 +30,7 @@ We have a full demo of all the components of this repo in [./demo](./demo/README
 This general LSP architecture of having a proxy and relaying messages over a WebSocket"ification" server is partially inspired by Qualified's [lsp-ws-proxy](https://github.com/qualified/lsp-ws-proxy) project. The main difference here is that we make it easy to add additional, arbitrary logic at the LS proxy layer, and we handle chunking WebSocket messages differently.
 
 For our Codemirror language server, we are using components derived or reused from Marijn's official Codemirror [language server client](https://github.com/FurqanSoftware/codemirror-languageserver), like the signature help extension. Initially, we started with a fork of [Monaco](https://github.com/TypeFox/monaco-languageclient)'s Codemirror client implementation.
+
+## Try it out!
+
+To try it out, copy out the [demo](./demo/), open the [`wrangler.json`](./demo/wrangler.jsonc), replace the `accountId` with your cloudflare account ID, and then run `npx wrangler@latest deploy`!

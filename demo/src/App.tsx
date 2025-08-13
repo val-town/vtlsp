@@ -33,10 +33,6 @@ export default function App() {
           basicSetup,
           javascript({ jsx: true, typescript: true }),
           lsExtensions,
-          EditorView.updateListener.of((update) => {
-            // biome-ignore lint/suspicious/noConsole: debugging
-            console.log("Editor updated:", update);
-          }),
         ],
       });
 

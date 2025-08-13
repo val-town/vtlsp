@@ -34,6 +34,8 @@ export function languageServerWithClient(options: LanguageServerOptions) {
     documentUri: options.documentUri,
     languageId: options.languageId,
     sendDidOpen: options.sendDidOpen ?? true,
+    sendCloseOnDestroy: options.sendCloseOnDestroy ?? true,
+    sendIncrementalChanges: options.sendIncrementalChanges ?? true,
   });
   extensions.push(lsPlugin);
 
@@ -146,4 +148,6 @@ export interface LanguageServerOptions {
   sendDidOpen?: boolean;
   /** Whether to send incremental changes to the language server. */
   sendIncrementalChanges?: boolean;
+  /** Whether to send the didClose notification when the editor is destroyed */
+  sendCloseOnDestroy?: boolean;
 }

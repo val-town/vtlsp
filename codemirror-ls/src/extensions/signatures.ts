@@ -63,7 +63,6 @@ function createSignaturePlugin(
           const triggers = (serverConf?.triggerCharacters || []).concat(
             (sigState && serverConf?.retriggerCharacters) || [],
           );
-
           if (triggers) {
             update.changes.iterChanges(
               (_fromA, _toA, _fromB, _toB, inserted) => {
@@ -77,6 +76,7 @@ function createSignaturePlugin(
           }
         }
 
+        console.log(triggerCharacter)
         if (triggerCharacter) {
           this.startRequest(update.view, {
             triggerKind: 2 /* TriggerCharacter */,
@@ -96,7 +96,7 @@ function createSignaturePlugin(
         }
       }
 
-      startRequest(view: EditorView, context: LSP.SignatureHelpContext) {
+      async startRequest(view: EditorView, context: LSP.SignatureHelpContext) {
         const lsPlugin = LSCore.ofOrThrow(view);
         const documentUri = lsPlugin.documentUri;
 
@@ -106,65 +106,63 @@ function createSignaturePlugin(
         this.activeRequest = { pos, drop: false };
         const req = this.activeRequest;
 
-        lsPlugin
-          .requestWithLock("textDocument/signatureHelp", {
-            context,
-            position: offsetToPos(view.state.doc, pos),
-            textDocument: { uri: documentUri },
-          })
-          .then(
-            (result) => {
-              // TODO: check type of result
-
-              if (req.drop) return;
-              if (result && result.signatures.length > 0) {
-                const cur = view.state.field(signatureState);
-                if (!cur) {
-                  view.dispatch({
-                    effects: signatureEffect.of({
-                      data: result,
-                      activeSignature: result.activeSignature ?? 0,
-                      activeParameter: result.activeParameter ?? 0,
-                      pos: req.pos,
-                      render,
-                    }),
-                  });
-                  return;
-                }
-
-                const same = cur && sameSignatures(cur.data, result);
-                const activeSignature =
-                  same && context.triggerKind === 3
-                    ? cur.active
-                    : (result.activeSignature ?? 0);
-                const activeParameter =
-                  result.signatures[activeSignature]?.activeParameter ??
-                  result.activeParameter ??
-                  0;
-
-                // Don't update at all if nothing changed
-                if (same && sameActiveParam(cur.data, result, activeSignature))
-                  return;
-
-                view.dispatch({
-                  effects: signatureEffect.of({
-                    data: result,
-                    activeSignature: activeSignature,
-                    activeParameter,
-                    pos: same ? cur.tooltip.pos : req.pos,
-                    render,
-                  }),
-                });
-              } else if (view.state.field(signatureState)) {
-                view.dispatch({ effects: signatureEffect.of(null) });
-              }
+        try {
+          const result = await lsPlugin.requestWithLock(
+            "textDocument/signatureHelp",
+            {
+              context,
+              position: offsetToPos(view.state.doc, pos),
+              textDocument: { uri: documentUri },
             },
-            context.triggerKind === 1 /* Invoked */
-              ? (err) => {
-                  throw new Error(err);
-                }
-              : undefined,
-          );
+          ); // TODO: check type of result
+
+          if (req.drop) return;
+          if (result && result.signatures.length > 0) {
+            const cur = view.state.field(signatureState);
+            if (!cur) {
+              view.dispatch({
+                effects: signatureEffect.of({
+                  data: result,
+                  activeSignature: result.activeSignature ?? 0,
+                  activeParameter: result.activeParameter ?? 0,
+                  pos: req.pos,
+                  render,
+                }),
+              });
+              return;
+            }
+
+            const same = cur && sameSignatures(cur.data, result);
+            const activeSignature =
+              same && context.triggerKind === 3
+                ? cur.active
+                : (result.activeSignature ?? 0);
+            const activeParameter =
+              result.signatures[activeSignature]?.activeParameter ??
+              result.activeParameter ??
+              0;
+
+            // Don't update at all if nothing changed
+            if (same && sameActiveParam(cur.data, result, activeSignature))
+              return;
+
+            view.dispatch({
+              effects: signatureEffect.of({
+                data: result,
+                activeSignature: activeSignature,
+                activeParameter,
+                pos: same ? cur.tooltip.pos : req.pos,
+                render,
+              }),
+            });
+          } else if (view.state.field(signatureState)) {
+            view.dispatch({ effects: signatureEffect.of(null) });
+          }
+        } catch (err) {
+          if (context.triggerKind === 1 /* Invoked */) {
+            throw new Error(err instanceof Error ? err.message : String(err));
+          }
+        }
       }
 
       destroy() {
