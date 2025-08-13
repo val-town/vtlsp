@@ -39,7 +39,7 @@
     "vitest": "^3.2.4"
   },
   "exports": {
-    ".": "./src/index.ts",
+    ".": "./src/index.js",
     "./proxy": "./src/LSPProxy",
     "./server": "./src/LSWSServer"
   },
