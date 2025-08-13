@@ -99,7 +99,7 @@ class LSCoreBase {
    */
   public async doWithLock<T>(
     callback: (doc: Text) => T | Promise<T>,
-    timeout = 5000,
+    timeout = 5_000,
   ): Promise<T> {
     this.#sendChangesDispatchQueue.pause();
     try {

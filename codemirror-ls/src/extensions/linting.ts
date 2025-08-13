@@ -10,7 +10,6 @@ import { posToOffset, posToOffsetOrZero } from "../utils.js";
 import type { LSExtensionGetter, Renderer } from "./types.js";
 
 export interface DiagnosticArgs {
-  languageId: string;
   onExternalFileChange?: (changes: LSP.WorkspaceEdit) => void;
   render?: LintingRenderer;
 }
@@ -20,7 +19,6 @@ export type LintingRenderer = Renderer<
 >;
 
 export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
-  languageId,
   onExternalFileChange,
   render,
 }: DiagnosticArgs): Extension[] => {
@@ -194,7 +192,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
                     return dom;
                   }
                 : undefined,
-              source: languageId,
+              source: diagnostic.source,
               actions: codemirrorActions,
             };
 

@@ -13,7 +13,7 @@ import type {
   LSPExec,
   LSPProxyClientToProcHandlers,
   LSPProxyClientToProcMiddlewares,
-  LSPProxyParams,
+  LSPProxyParams as LSProxyParams,
   LSPProxyProcToClientHandlers,
   LSPProxyProcToClientMiddlewares,
   ParamsMiddlewareFunction,
@@ -83,7 +83,7 @@ export class LSProxy {
     cwd,
     lsLogStderrPath,
     lsLogStdoutPath,
-  }: LSPProxyParams) {
+  }: LSProxyParams) {
     this.#execOptions = exec;
     this.#clientToProcMiddlewares = clientToProcMiddlewares ?? {};
     this.#procToClientMiddlewares = procToClientMiddlewares ?? {};
