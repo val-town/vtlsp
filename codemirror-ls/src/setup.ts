@@ -1,4 +1,4 @@
-import type { Extension } from "@codemirror/state";
+import { Prec, type Extension } from "@codemirror/state";
 import { asyncNoop } from "es-toolkit";
 import {
   completions,
@@ -35,9 +35,8 @@ export function languageServerWithClient(options: LanguageServerOptions) {
     languageId: options.languageId,
     sendDidOpen: options.sendDidOpen ?? true,
     sendCloseOnDestroy: options.sendCloseOnDestroy ?? true,
-    sendIncrementalChanges: options.sendIncrementalChanges ?? true,
   });
-  extensions.push(lsPlugin);
+  extensions.push(Prec.highest(lsPlugin));
 
   if (!features.signatureHelp.disabled) {
     extensions.push(
@@ -146,8 +145,6 @@ export interface LanguageServerOptions {
   languageId: string;
   /** Whether to send the didOpen notification when the editor is initialized */
   sendDidOpen?: boolean;
-  /** Whether to send incremental changes to the language server. */
-  sendIncrementalChanges?: boolean;
   /** Whether to send the didClose notification when the editor is destroyed */
   sendCloseOnDestroy?: boolean;
 }

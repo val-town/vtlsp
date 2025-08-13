@@ -5,7 +5,6 @@ import { type EditorView, ViewPlugin } from "@codemirror/view";
 import PQueue from "p-queue";
 import type { LSClient } from "./LSClient.js";
 import type { LSPRequestMap } from "./types.lsp.js";
-import { eventsFromChangeSet } from "./utils.js";
 
 interface LSPluginArgs {
   client: LSClient;
@@ -23,15 +22,6 @@ interface LSPluginArgs {
    */
   sendCloseOnDestroy?: boolean;
   sendDidOpen?: boolean;
-  /**
-   * Whether to send incremental changes or full text updates.
-   * If false, sends the entire document text instead of contentChanges. Generally you should
-   * send incremental changes, but if you are sharing an LSP instance across multiple documents,
-   * you may want to send full text updates instead.
-   *
-   * @default true
-   */
-  sendIncrementalChanges?: boolean;
 }
 
 class LSCoreBase {
@@ -40,14 +30,12 @@ class LSCoreBase {
   public documentVersion: number;
 
   #sendChangesDispatchQueue = new PQueue({ concurrency: 1 });
-  #pendingChanges: ChangeSet;
-  #lastSyncedDoc: Text;
   #currentSyncController: AbortController | null = null;
+  #lastSentChanges: string = "";
 
   #languageId: string;
   #view: EditorView;
   #sendDidOpen: boolean;
-  #sendIncrementalChanges: boolean;
 
   constructor({
     client,
@@ -55,7 +43,6 @@ class LSCoreBase {
     languageId,
     view,
     sendDidOpen = true,
-    sendIncrementalChanges = true,
   }: LSPluginArgs) {
     this.documentVersion = 0;
     this.client = client;
@@ -63,10 +50,6 @@ class LSCoreBase {
     this.#languageId = languageId;
     this.#view = view;
     this.#sendDidOpen = sendDidOpen;
-    this.#sendIncrementalChanges = sendIncrementalChanges;
-
-    this.#pendingChanges = ChangeSet.empty(view.state.doc.length);
-    this.#lastSyncedDoc = view.state.doc;
 
     void this.initialize({ documentText: this.#view.state.doc.toString() });
   }
@@ -106,9 +89,13 @@ class LSCoreBase {
     try {
       return await Promise.race([
         callback(this.#view.state.doc),
-        new Promise<T>((_, rej) =>
-          window.setTimeout(() => rej(new Error("Lock timed out")), timeout),
-        ),
+        new Promise<T>((_, rej) => {
+          window.setTimeout(() => {
+            this.#sendChangesDispatchQueue.start();
+            void this.syncChanges();
+            rej(new Error("Lock timed out"));
+          }, timeout);
+        }),
       ]);
     } finally {
       this.#sendChangesDispatchQueue.start();
@@ -127,12 +114,8 @@ class LSCoreBase {
     });
   }
 
-  public async queueChanges(changes: ChangeSet) {
-    this.#pendingChanges = this.#pendingChanges.compose(changes);
-  }
-
   public async syncChanges() {
-    if (this.#pendingChanges.empty) return;
+    if (this.#lastSentChanges === this.#view.state.doc.toString()) return;
     if (!this.client.ready) return;
 
     const calledAtVersion = this.documentVersion;
@@ -152,12 +135,9 @@ class LSCoreBase {
             uri: this.documentUri,
             version: ++this.documentVersion,
           },
-          contentChanges: this.#sendIncrementalChanges
-            ? eventsFromChangeSet(this.#lastSyncedDoc, this.#pendingChanges)
-            : [{ text: this.#view.state.doc.toString() }],
+          contentChanges: [{ text: this.#view.state.doc.toString() }],
         });
-        this.#lastSyncedDoc = this.#view.state.doc;
-        this.#pendingChanges = ChangeSet.empty(this.#view.state.doc.length);
+        this.#lastSentChanges = this.#view.state.doc.toString();
       },
       { priority: this.documentVersion }, // more recent = higher priority
     );
@@ -189,10 +169,9 @@ export class LSCore extends LSCoreBase implements PluginValue {
     return plugin;
   }
 
-  public update({ docChanged, changes }: ViewUpdate) {
+  public update({ docChanged }: ViewUpdate) {
     if (!docChanged) return;
 
-    this.queueChanges(changes);
     void this.syncChanges();
   }
 

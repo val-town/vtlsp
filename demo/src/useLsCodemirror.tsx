@@ -31,7 +31,6 @@ export function useLsCodemirror({ path }: { path: string }): {
         transport: newTransport,
         workspaceFolders: [{ uri: "file:///demo", name: "Demo" }],
       });
-      newTransport.onWSOpen = () => {console.log("Connected to LSP server");};
 
       setTransport(newTransport);
       setLsClient(newClient);
@@ -66,7 +65,6 @@ export function useLsCodemirror({ path }: { path: string }): {
       client: lsClient,
       documentUri: `file://${path}`,
       languageId: "typescript",
-      sendIncrementalChanges: false,
       sendDidOpen: true,
       features: {
         signatureHelp: {

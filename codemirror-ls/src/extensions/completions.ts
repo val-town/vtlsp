@@ -8,7 +8,6 @@ import type { EditorView } from "@codemirror/view";
 import * as LSP from "vscode-languageserver-protocol";
 import { LSCore } from "../LSPlugin.js";
 import {
-  getCompletionTriggerKind,
   isEmptyDocumentation,
   offsetToPos,
   posToOffset,
@@ -75,16 +74,17 @@ async function handleCompletion({
   if (!lsPlugin.client.ready) return null;
   if (!lsPlugin.client.capabilities?.completionProvider) return null;
 
-  const completionResult = await lsPlugin.doWithLock(async () => {
-    return await lsPlugin.requestWithLock("textDocument/completion", {
+  const completionResult = await lsPlugin.requestWithLock(
+    "textDocument/completion",
+    {
       textDocument: { uri: lsPlugin.documentUri },
       position: { line: position.line, character: position.character },
       context: {
         triggerKind: result.triggerKind,
         triggerCharacter: result.triggerCharacter,
       },
-    });
-  });
+    },
+  );
 
   if (!completionResult) {
     return null;
@@ -404,4 +404,37 @@ function prefixSortCompletion(prefix: string) {
     }
     return aText.localeCompare(bText);
   };
+}
+
+function getCompletionTriggerKind(
+  context: CompletionContext,
+  triggerCharacters: string[],
+  matchBeforePattern?: RegExp,
+) {
+  const { state, pos, explicit } = context;
+  const line = state.doc.lineAt(pos);
+
+  // Determine trigger kind and character
+  let triggerKind: LSP.CompletionTriggerKind =
+    LSP.CompletionTriggerKind.Invoked;
+  let triggerCharacter: string | undefined;
+
+  // Check if completion was triggered by a special character
+  const prevChar = line.text[pos - line.from - 1] || "";
+  const isTriggerChar = triggerCharacters?.includes(prevChar);
+
+  if (!explicit && isTriggerChar) {
+    triggerKind = LSP.CompletionTriggerKind.TriggerCharacter;
+    triggerCharacter = prevChar;
+  }
+  // For manual invocation, only show completions when typing
+  // Use the provided pattern or default to words, dots, commas, or slashes
+  if (
+    triggerKind === LSP.CompletionTriggerKind.Invoked &&
+    !context.matchBefore(matchBeforePattern || /(\w+|\w+\.|\/|,)$/)
+  ) {
+    return null;
+  }
+
+  return { triggerKind, triggerCharacter };
 }

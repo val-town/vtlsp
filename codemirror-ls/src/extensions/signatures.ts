@@ -76,7 +76,6 @@ function createSignaturePlugin(
           }
         }
 
-        console.log(triggerCharacter)
         if (triggerCharacter) {
           this.startRequest(update.view, {
             triggerKind: 2 /* TriggerCharacter */,

@@ -17,8 +17,8 @@ const lsWsServer = new LSWSServer({
   lsCommand: LS_COMMAND,
   maxProcs: MAX_PROCS,
   shutdownAfter: SHUTDOWN_AFTER,
-  lsStdoutLogPath: await Deno.makeTempFile({ prefix: "vtlsp-procs-stdout" }),
-  lsStderrLogPath: await Deno.makeTempFile({ prefix: "vtlsp-procs-stderr" }),
+  lsStdoutLogPath: "vtlsp-procs-stdout.log",
+  lsStderrLogPath: "vtlsp-procs-stderr.log",
 });
 
 const gracefulShutdown = (signal: string, code: number) => async () => {

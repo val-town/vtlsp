@@ -1,5 +1,5 @@
 import type { CompletionContext } from "@codemirror/autocomplete";
-import type { ChangeSet, Text } from "@codemirror/state";
+import type { Text } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import * as LSP from "vscode-languageserver-protocol";
 
@@ -173,81 +173,6 @@ function isEmptyIshValue(value: unknown) {
     return value.trim() === "" || /^[\s\n`]*$/.test(value);
   }
   return false;
-}
-
-/**
- * Map a `ChangeSet` into `TextDocumentContentChangeEvent[]` to be applied by an LSP.
- *
- * @param doc The doc before applying the ChangeSet
- * @param changes The `ChangeSet` to map
- */
-export function eventsFromChangeSet(
-  doc: Text,
-  changes: ChangeSet,
-): LSP.TextDocumentContentChangeEvent[] {
-  const events: {
-    range?: LSP.Range;
-    text: string;
-  }[] = [];
-
-  changes.iterChanges((fromA, toA, _, __, inserted) => {
-    const text = inserted.toString();
-    // Represents a full document change
-    if (fromA === 0 && toA === doc.length) {
-      events.push({ text });
-      return;
-    }
-
-    // An incremental change event, converting (index) to (line, col)
-    const start = offsetToPos(doc, fromA);
-    const end = offsetToPos(doc, toA);
-    events.push({ range: { start, end }, text });
-  });
-
-  // Sort in reverse order to prevent index shift
-  events.sort((a, b) => {
-    const arange = a.range!;
-    const brange = b.range!;
-    if (arange.start.line !== brange.start.line) {
-      return brange.start.line - arange.start.line;
-    }
-    return brange.start.character - arange.start.character;
-  });
-
-  return events;
-}
-
-export function getCompletionTriggerKind(
-  context: CompletionContext,
-  triggerCharacters: string[],
-  matchBeforePattern?: RegExp,
-) {
-  const { state, pos, explicit } = context;
-  const line = state.doc.lineAt(pos);
-
-  // Determine trigger kind and character
-  let triggerKind: LSP.CompletionTriggerKind =
-    LSP.CompletionTriggerKind.Invoked;
-  let triggerCharacter: string | undefined;
-
-  // Check if completion was triggered by a special character
-  const prevChar = line.text[pos - line.from - 1] || "";
-  const isTriggerChar = triggerCharacters?.includes(prevChar);
-
-  if (!explicit && isTriggerChar) {
-    triggerKind = LSP.CompletionTriggerKind.TriggerCharacter;
-    triggerCharacter = prevChar;
-  }
-  // For manual invocation, only show completions when typing
-  // Use the provided pattern or default to words, dots, commas, or slashes
-  if (
-    triggerKind === LSP.CompletionTriggerKind.Invoked &&
-    !context.matchBefore(matchBeforePattern || /(\w+|\w+\.|\/|,)$/)
-  ) {
-    return null;
-  }
-
-  return { triggerKind, triggerCharacter };
 }
 
 /**

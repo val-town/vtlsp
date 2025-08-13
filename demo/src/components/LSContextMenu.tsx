@@ -1,4 +1,4 @@
-import type { ContextMenuCallbacks } from "codemirror-ls";
+import type { contextMenu } from "@valtown/codemirror-ls/extensions";
 import { Code2, Edit3, MousePointer2, Search, Type } from "lucide-react";
 
 export function LSContextMenu({
@@ -7,7 +7,7 @@ export function LSContextMenu({
   goToImplementation,
   findAllReferences,
   rename,
-}: ContextMenuCallbacks) {
+}: contextMenu.ContextMenuCallbacks) {
   return (
     <div className="flex flex-col">
       <LSContextMenuButton
