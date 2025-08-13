@@ -37,7 +37,7 @@
     "tailwindcss": "^4.1.11",
     "vscode-languageserver-protocol": "^3.17.5",
     "vscode-uri": "^3.1.0",
-    "wrangler": "^4.28.1",
+    "wrangler": "^4.29.1",
     "ws": "^8.18.3",
     "zod": "^4.0.17"
   },
