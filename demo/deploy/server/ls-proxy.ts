@@ -1,4 +1,4 @@
-import { LSProxy} from "@valtown/ls-ws-server/proxy";
+import { LSProxy, utils } from "@valtown/ls-ws-server/proxy";
 
 const TEMP_DIR = await Deno.makeTempDir({ prefix: "vtlsp-proxy" });
 
@@ -6,7 +6,7 @@ const onExit = async () => await Deno.remove(TEMP_DIR, { recursive: true });
 Deno.addSignalListener("SIGINT", onExit);
 Deno.addSignalListener("SIGTERM", onExit);
 
-const proxy = new LSPProxy({
+const proxy = new LSProxy({
   name: "lsp-server",
   tempDir: TEMP_DIR,
   exec: {
