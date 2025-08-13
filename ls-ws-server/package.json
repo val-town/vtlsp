@@ -39,13 +39,25 @@
     "vitest": "^3.2.4"
   },
   "exports": {
-    ".": "./src/index.js",
-    "./proxy": "./src/LSPProxy",
-    "./server": "./src/LSWSServer"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./proxy": {
+      "types": "./dist/LSPProxy/index.d.ts",
+      "import": "./dist/LSPProxy/index.js",
+      "default": "./dist/LSPProxy/index.js"
+    },
+    "./server": {
+      "types": "./dist/LSWSServer/index.d.ts",
+      "import": "./dist/LSWSServer/index.js",
+      "default": "./dist/LSWSServer/index.js"
+    }
   },
   "types": "./dist/index.d.ts",
+  "main": "./dist/index.js",
   "type": "module",
-  "main": "index.js",
   "dependencies": {
     "es-toolkit": "^1.39.8",
     "execa": "^9.6.0",

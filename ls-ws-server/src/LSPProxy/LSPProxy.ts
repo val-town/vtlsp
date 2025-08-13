@@ -30,7 +30,7 @@ import { isLspParamsLike, isLspRespLike, replaceFileUris } from "./utils.js";
  * server, and provides middleware hooks for intercepting and modifying
  * messages. Then, it rebroadcasts the messages to act as an LSP.
  */
-export class LSPProxy {
+export class LSProxy {
   /** The working directory for the LSP process. */
   public cwd: string;
 

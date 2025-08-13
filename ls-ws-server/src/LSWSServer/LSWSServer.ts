@@ -30,7 +30,7 @@ interface LSWSServerSessionData {
   createStdinProducer: () => PassThrough;
 }
 
-interface LSWSServerOptions {
+export interface LSWSServerOptions {
   /** Command to start the LSP process. */
   lsCommand: string;
   /** Arguments to pass to the LSP command. */
