@@ -5,6 +5,7 @@ import { type EditorView, ViewPlugin } from "@codemirror/view";
 import PQueue from "p-queue";
 import type { LSClient } from "./LSClient.js";
 import type { LSPRequestMap } from "./types.lsp.js";
+import { isInCurrentDocumentBounds } from "./utils.js";
 
 interface LSPluginArgs {
   client: LSClient;
@@ -84,7 +85,7 @@ class LSCoreBase {
     callback: (doc: Text) => T | Promise<T>,
     timeout = 5_000,
   ): Promise<T> {
-    await this.#sendChangesDispatchQueue.onIdle(); // So that we get the most recent changes
+    await this.syncChanges();
     this.#sendChangesDispatchQueue.pause();
     try {
       return await Promise.race([

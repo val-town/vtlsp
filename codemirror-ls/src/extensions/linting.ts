@@ -6,7 +6,11 @@ import PQueue from "p-queue";
 import type { PublishDiagnosticsParams } from "vscode-languageserver-protocol";
 import * as LSP from "vscode-languageserver-protocol";
 import { LSCore } from "../LSPlugin.js";
-import { posToOffset, posToOffsetOrZero } from "../utils.js";
+import {
+  isInCurrentDocumentBounds,
+  posToOffset,
+  posToOffsetOrZero,
+} from "../utils.js";
 import type { LSExtensionGetter, Renderer } from "./types.js";
 
 export interface DiagnosticArgs {
@@ -172,6 +176,9 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
                           resolvedAction.command
                         ) {
                           // TODO: Implement command execution
+                          showDialog(view, {
+                            label: "Command execution not implemented yet",
+                          });
                         }
                       },
                     };
@@ -228,6 +235,13 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
             };
           }
 
+          // The doc could have changed since the diagnostic was received
+          if (!isInCurrentDocumentBounds(diagnostic.range, this.view))
+            return {
+              actions: null,
+              resolveAction: async (action) => action,
+            };
+
           const actions = await lsPlugin.requestWithLock(
             "textDocument/codeAction",
             {
@@ -239,7 +253,6 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
             },
           );
 
-          // Define the resolver function that will be returned
           const resolveAction = async (
             action: LSP.Command | LSP.CodeAction,
           ): Promise<LSP.Command | LSP.CodeAction> => {
