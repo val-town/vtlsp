@@ -10,14 +10,15 @@ const HOSTNAME = "0.0.0.0";
 const SHUTDOWN_AFTER = 60 * 5; // 5 minutes
 const MAX_PROCS = 1;
 const LS_COMMAND = "deno";
-const LS_ARGS: string[] = ["run", "-A", "./lsp-proxy.ts"];
+const LS_ARGS: string[] = ["run", "-A", "./ls-proxy.ts"];
 
 const lsWsServer = new LSWSServer({
   lsArgs: LS_ARGS,
   lsCommand: LS_COMMAND,
   maxProcs: MAX_PROCS,
   shutdownAfter: SHUTDOWN_AFTER,
-  lsLogPath: Deno.makeTempDirSync({ prefix: "vtlsp-procs" }),
+  lsStdoutLogPath: await Deno.makeTempFile({ prefix: "vtlsp-procs-stdout" }),
+  lsStderrLogPath: await Deno.makeTempFile({ prefix: "vtlsp-procs-stderr" }),
 });
 
 const gracefulShutdown = (signal: string, code: number) => async () => {
@@ -34,11 +35,13 @@ function getApp(lsWsServer: LSWSServer) {
     "/",
     zValidator("query", z.object({ session: z.string() })),
     (c) => {
+      const { socket, response } = Deno.upgradeWebSocket(c.req.raw);
       console.log("Received request:", c.req.raw.method, c.req.raw.url);
-      return lsWsServer.handleNewWebsocket(
-        c.req.raw,
-        c.req.valid("query").session,
-      );
+      try {
+        return response;
+      } finally {
+        lsWsServer.handleNewWebsocket(socket, c.req.valid("query").session);
+      }
     },
   );
 }

@@ -15,14 +15,7 @@ const proxy = new LSProxy({
   },
   clientToProcMiddlewares: {
     initialize: async (params) => {
-      await Deno.writeTextFile(
-        `${TEMP_DIR}/Cargo.toml`,
-        `
-[package]
-name = "temp"
-version = "0.1.0"
-edition = "2021"`,
-      ); // Create a minimal Cargo.toml for rust-analyzer
+      await Deno.writeTextFile(`${TEMP_DIR}/deno.json`, JSON.stringify({})); // Create a deno.json in the temp dir
       return params;
     },
     "textDocument/didOpen": async (params) => {

@@ -1,16 +1,16 @@
-import { REFERENCE_KIND_LABELS, type ReferenceKind } from "codemirror-ls";
+import { references } from "@valtown/codemirror-ls/extensions";
 import { File, X } from "lucide-react";
 import type * as LSP from "vscode-languageserver-protocol";
 
 interface LSGoToProps {
   locations: LSP.Location[];
-  kind: ReferenceKind;
+  kind: references.ReferenceKind;
   goTo: (ref: LSP.Location) => void;
   onClose: () => void;
 }
 
 export function LSGoTo({ locations, kind, goTo, onClose }: LSGoToProps) {
-  const label = REFERENCE_KIND_LABELS[kind] || "Locations";
+  const label = references.REFERENCE_KIND_LABELS[kind] || "Locations";
 
   const groupedReferences = locations.reduce(
     (acc, ref) => {
@@ -85,11 +85,10 @@ function ReferenceItem({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full text-left flex items-center gap-2 px-2 py-1 rounded text-xs font-mono transition-colors ${
-        isSelected
+      className={`w-full text-left flex items-center gap-2 px-2 py-1 rounded text-xs font-mono transition-colors ${isSelected
           ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300"
           : "text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 dark:hover:text-blue-300"
-      }`}
+        }`}
     >
       <span className="text-blue-600 dark:text-blue-400 min-w-[2rem]">
         {reference.range.start.line + 1}:

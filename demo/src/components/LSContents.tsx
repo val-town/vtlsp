@@ -1,4 +1,4 @@
-import { isLSPMarkupContent } from "codemirror-ls";
+import { isLSPMarkupContent } from "@valtown/codemirror-ls";
 import { toJsxRuntime } from "hast-util-to-jsx-runtime";
 import typescript from "highlight.js/lib/languages/typescript";
 import { createLowlight } from "lowlight";
