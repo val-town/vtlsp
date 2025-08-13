@@ -16,11 +16,6 @@ In this demo, you'll find:
 
 Since we're already using Cloudflare containers, for simplicity of the demo we also deploy the frontend, a tiny React + Vite app, as a Cloudflare worker. We build the app (with Vite) as a static website, and then specify in the `wrangler.json` to upload the build outputs.
 
-### LSP Proxy
-
 The Deno language server has some quirks when running it in a virtual environment. In some areas it expects physical files to exist on disc. Additionally, it will only "wake up" if there is a `deno.json` in the directory that the process is spawned from. We have a very minimal usage of our `LSProxy` that takes care of these quirks. On Val Town, we also make additional modifications to the language server via the LSProxy, like [custom env variable suggestions](https://filedumpthing.val.run/blob/blob_file_1755106837620_1fd7a65c-4a8d-437d-a0c6-1b61e1ef71da.gif), which is implemented by "mocking" a file that augments Deno.env.get.
 
-### WebSocket server
-
-
-### Vite App
+For the actual server, we're using the WebSocket server in this repo to host the language server for us. This launches the proxy LSP, and then exposes it to the internet via an HTTP endpoint on a WebSocket server.
