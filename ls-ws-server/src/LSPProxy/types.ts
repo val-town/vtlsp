@@ -1,7 +1,7 @@
-// deno-lint-ignore-file no-explicit-any
+/** biome-ignore-all lint/suspicious/noExplicitAny: specifically broad handlers */
 
-import type { LSPNotifyMap, LSPRequestMap } from "./types.lsp";
 import type { codes } from "./codes.js";
+import type { LSPNotifyMap, LSPRequestMap } from "./types.lsp.js";
 
 type MaybePromise<T> = T | Promise<T>;
 
