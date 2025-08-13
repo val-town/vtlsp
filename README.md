@@ -10,12 +10,12 @@ The language server protocol is a simple JSON-RPC protocol that allows editor cl
 
 Running arbitrary language servers directly in the browser is challenging for multiple reasons. You have to compile the language server to webasm if it isn't already in JS/TS, and then once you have it running, you need a client to display and interact with the language server, and manage messages and state updates. To make this easier, this repo provides a way to run language servers as WebSocket servers, and a client library for the Codemirror editor to act as a LSP frontend client.
 
-## [Codemirror LS Client Library](./codemirror-ls/README.md)
+## [Codemirror LS Client Library](./codemirror-ls/README.md) [(NPM)](https://www.npmjs.com/package/@valtown/codemirror-ls)
 
 Our Codemirror client library provides various extensions to serve as a client to a language server. It propagates code edits to the language server, and displays things like code diagnostics and tooltips.  It uses some extensions from [Codemirror's official client library](https://github.com/codemirror/lsp-client) with modification, and was originally based on [Monaco's client](https://github.com/TypeFox/monaco-languageclient).
 
 
-## [LS WebSocket server](./ls-ws-server/README.md)
+## [LS WebSocket server](./ls-ws-server/README.md) [(NPM)](https://www.npmjs.com/package/@valtown/ls-ws-server)
 
 To actually communicate from a browser to a language server, it is most simple to rely messages through a WebSocket server. Our Codemirror Client is intentionally agnostic about the type of transport used, but we provide a reference WebSocket transport in our client library.
 
