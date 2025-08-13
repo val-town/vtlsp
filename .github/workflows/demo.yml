@@ -8,14 +8,15 @@ jobs:
     defaults:
       run:
         working-directory: demo
+
     runs-on: ubuntu-latest
     # Cloudflare has [worker builds](https://developers.cloudflare.com/workers/wrangler/) but 
     # we also need to deploy a container to Cloudflare Containers and a durable object.
     steps:
       - uses: actions/checkout@v4
       - uses: jdx/mise-action@v2
-      - run: npm install
-      - name: npm deploy
+      - run: npm ci
+      - name: Wrangler deploy
         run: npm run deploy
         env:
           NODE_ENV: production
