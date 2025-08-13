@@ -116,7 +116,7 @@ export function virtualUriToTempDirUri(
 
     // Ensure virtual path starts with /
     if (!virtualPath.startsWith("/")) {
-      virtualPath = "/" + virtualPath;
+      virtualPath = `/${virtualPath}`;
     }
 
     // Join with temp directory and return as URI
@@ -166,7 +166,7 @@ export function tempDirUriToVirtualUri(
 
   // If not a temp path, ensure it starts with / and return as file URI
   if (!actualPath.startsWith("/")) {
-    actualPath = "/" + actualPath;
+    actualPath = `/${actualPath}`;
   }
 
   return URI.from({ scheme: "file", path: actualPath }).toString();

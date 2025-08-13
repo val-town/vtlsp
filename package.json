@@ -12,6 +12,7 @@
   "author": "Val Town",
   "license": "ISC",
   "devDependencies": {
+    "@biomejs/biome": "2.1.4",
     "happy-dom": "^18.0.1",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"

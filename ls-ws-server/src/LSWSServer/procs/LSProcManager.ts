@@ -1,5 +1,5 @@
-import { logger } from "../../logger.js";
-import { LSProc } from "./LSProc.js";
+import { LSProc } from "~/LSWSServer/procs/LSProc.js";
+import { logger } from "~/logger.js";
 
 export interface LSProcManagerOptions {
   lsCommand: string;
@@ -138,6 +138,7 @@ export class LSProcManager {
 
   #enforceMaxProcs() {
     if (this.maxProcs <= 0 || this.procs.size < this.maxProcs) {
+      // -n will allow unlimited processes
       return;
     }
 

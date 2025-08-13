@@ -1,9 +1,8 @@
 import type { Text } from "@codemirror/state";
 import { ChangeSet } from "@codemirror/state";
 import type { PluginValue, ViewUpdate } from "@codemirror/view";
-import { type EditorView, showDialog, ViewPlugin } from "@codemirror/view";
+import { type EditorView, ViewPlugin } from "@codemirror/view";
 import PQueue from "p-queue";
-import * as LSP from "vscode-languageserver-protocol";
 import type { LSClient } from "./LSClient.js";
 import type { LSPRequestMap } from "./types.lsp.js";
 import { eventsFromChangeSet } from "./utils.js";
