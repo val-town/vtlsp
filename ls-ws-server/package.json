@@ -46,6 +46,11 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./logger": {
+      "types": "./dist/logger.d.ts",
+      "import": "./dist/logger.js",
+      "default": "./dist/logger.js"
+    },
     "./proxy": {
       "types": "./dist/LSPProxy/index.d.ts",
       "import": "./dist/LSPProxy/index.js",
@@ -55,6 +60,11 @@
       "types": "./dist/LSWSServer/index.d.ts",
       "import": "./dist/LSWSServer/index.js",
       "default": "./dist/LSWSServer/index.js"
+    },
+    "./server/procs": {
+      "types": "./dist/LSWSServer/procs/index.d.ts",
+      "import": "./dist/LSWSServer/procs/index.js",
+      "default": "./dist/LSWSServer/procs/index.js"
     }
   },
   "types": "./dist/index.d.ts",
@@ -67,6 +77,7 @@
     "json-rpc-2.0": "^1.7.1",
     "p-queue": "^8.1.0",
     "pino": "^9.8.0",
+    "pino-pretty": "^13.1.1",
     "vscode-jsonrpc": "^8.2.1",
     "vscode-languageserver-protocol": "^3.17.5",
     "vscode-uri": "^3.1.0"

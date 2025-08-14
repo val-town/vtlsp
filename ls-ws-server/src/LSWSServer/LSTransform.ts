@@ -8,7 +8,7 @@ import {
   type TransformOptions,
   type Writable,
 } from "node:stream";
-import { logger } from "~/logger.js";
+import { defaultLogger } from "~/logger.js";
 
 type ReceiveState = "content-length" | "jsonrpc";
 
@@ -244,7 +244,7 @@ export function pipeLsInToLsOut(
       ) {
         const result = middleware(chunk.toString(encoding));
         if (result == null) return cb();
-        logger.debug(`LS pipe middleware transformed chunk: ${result}`);
+        defaultLogger.debug(`LS pipe middleware transformed chunk: ${result}`);
         cb(null, Buffer.from(result, encoding));
       },
     });

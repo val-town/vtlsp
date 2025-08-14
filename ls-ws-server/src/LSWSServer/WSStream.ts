@@ -12,7 +12,7 @@
 import { Buffer } from "node:buffer";
 import { Readable, Writable } from "node:stream";
 import { type MessageEvent, WebSocket } from "isows";
-import { logger } from "~/logger.js";
+import { defaultLogger } from "~/logger.js";
 
 interface WebSocketStreamOptions {
   chunkSize?: number;
@@ -23,10 +23,10 @@ class WebSocketReadableStream extends Readable {
 
   constructor(ws: WebSocket) {
     super();
-    logger.debug("WebSocketReadableStream initialized");
+    defaultLogger.debug("WebSocketReadableStream initialized");
 
     const messageHandler = (event: MessageEvent) => {
-      logger.debug("WebSocketReadableStream received message");
+      defaultLogger.debug("WebSocketReadableStream received message");
 
       // Handle different data types that WebSocket can receive
       let buffer: Buffer;
@@ -48,7 +48,7 @@ class WebSocketReadableStream extends Readable {
     );
 
     const errorHandler = (event: ErrorEvent) => {
-      logger.error({ event }, "WebSocketReadableStream received error event");
+      defaultLogger.error({ event }, "WebSocketReadableStream received error event");
       this.emit("error", event);
     };
     ws.addEventListener("error", errorHandler as EventListener);
@@ -57,7 +57,7 @@ class WebSocketReadableStream extends Readable {
     );
 
     const closeHandler = (event: CloseEvent) => {
-      logger.info(
+      defaultLogger.info(
         {
           code: event.code,
           reason: event.reason,
@@ -74,14 +74,14 @@ class WebSocketReadableStream extends Readable {
 
   override _read() {
     // Reading is driven by WebSocket events, so no action needed here
-    logger.trace("WebSocketReadableStream: _read called");
+    defaultLogger.trace("WebSocketReadableStream: _read called");
   }
 
   override _destroy(
     error: Error | null,
     callback: (error?: Error | null) => void,
   ) {
-    logger.debug(
+    defaultLogger.debug(
       { error: error?.message },
       "WebSocketReadableStream is getting destroyed",
     );
@@ -109,7 +109,7 @@ class WebSocketWritableStream extends Writable {
     this.#chunkSize = chunkSize;
 
     this.#websocket.addEventListener("close", (event: CloseEvent) => {
-      logger.info(
+      defaultLogger.info(
         {
           code: event.code,
           reason: event.reason,
@@ -119,7 +119,7 @@ class WebSocketWritableStream extends Writable {
       );
     });
 
-    logger.debug({ chunkSize }, "WebSocketWritableStream initialized");
+    defaultLogger.debug({ chunkSize }, "WebSocketWritableStream initialized");
   }
 
   override _write(
@@ -130,7 +130,7 @@ class WebSocketWritableStream extends Writable {
   ) {
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
 
-    logger.debug(
+    defaultLogger.debug(
       { bytes: buffer.length },
       "WebSocketWritableStream writing data",
     );
@@ -147,14 +147,14 @@ class WebSocketWritableStream extends Writable {
         this.#clearBuffer();
         callback();
       } catch (err) {
-        logger.error(
+        defaultLogger.error(
           { error: err },
           "WebSocketWritableStream: error during write",
         );
         callback(err instanceof Error ? err : new Error(String(err)));
       }
     } else {
-      logger.debug(
+      defaultLogger.debug(
         { readyState: this.#websocket.readyState },
         "WebSocketWritableStream socket not open, buffering data",
       );
@@ -166,7 +166,7 @@ class WebSocketWritableStream extends Writable {
 
   #appendToBuffer(chunk: Buffer) {
     this.#buffer = Buffer.concat([this.#buffer, chunk]);
-    logger.debug(
+    defaultLogger.debug(
       {
         newBufferSize: this.#buffer.length,
         addedBytes: chunk.length,
@@ -176,12 +176,12 @@ class WebSocketWritableStream extends Writable {
   }
 
   #clearBuffer() {
-    logger.debug("WebSocketWritableStream clearing buffer");
+    defaultLogger.debug("WebSocketWritableStream clearing buffer");
     this.#buffer = Buffer.alloc(0);
   }
 
   override _final(callback: (error?: Error | null) => void) {
-    logger.debug("WebSocketWritableStream: finalizing");
+    defaultLogger.debug("WebSocketWritableStream: finalizing");
 
     // Send any remaining buffered data
     if (this.#buffer.length > 0) {
@@ -194,7 +194,7 @@ class WebSocketWritableStream extends Writable {
     }
 
     // Don't close the WebSocket - let the application manage the WebSocket lifecycle
-    logger.debug("WebSocketWritableStream finalized without closing WebSocket");
+    defaultLogger.debug("WebSocketWritableStream finalized without closing WebSocket");
     callback();
   }
 
@@ -202,7 +202,7 @@ class WebSocketWritableStream extends Writable {
     error: Error | null,
     callback: (error?: Error | null) => void,
   ) {
-    logger.debug(
+    defaultLogger.debug(
       { error: error?.message },
       "WebSocketWritableStream is getting destroyed",
     );
@@ -211,7 +211,7 @@ class WebSocketWritableStream extends Writable {
   }
 
   #sendWithChunking(data: Buffer) {
-    logger.debug(
+    defaultLogger.debug(
       { totalBytes: data.length, chunkSize: this.#chunkSize },
       "WebSocketWritableStream sending data with chunking",
     );
@@ -232,7 +232,7 @@ export function createWebSocketStreams(
   ws: WebSocket,
   { chunkSize = 900 * 1024 }: WebSocketStreamOptions = {},
 ) {
-  logger.info({ chunkSize }, "Creating WebSocket streams");
+  defaultLogger.info({ chunkSize }, "Creating WebSocket streams");
   ws.binaryType = "arraybuffer";
 
   const readable = new WebSocketReadableStream(ws);

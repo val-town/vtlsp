@@ -1,3 +1,3 @@
 export { LSProxy } from "~/LSProxy/LSProxy.js";
-export { LSWSServer } from "~/LSWSServer/LSWSServer.js";
-export { logger } from "~/logger.js";
+export { LSWSServer, type LSWSServerOptions } from "~/LSWSServer/LSWSServer.js";
+export { Logger} from "~/logger.js";

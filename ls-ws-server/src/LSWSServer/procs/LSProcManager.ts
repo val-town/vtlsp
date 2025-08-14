@@ -1,5 +1,5 @@
 import { LSProc } from "~/LSWSServer/procs/LSProc.js";
-import { logger } from "~/logger.js";
+import { defaultLogger as defaultLogger, type Logger } from "~/logger.js";
 
 export interface LSProcManagerOptions {
   lsCommand: string;
@@ -14,6 +14,7 @@ export interface LSProcManagerOptions {
   ) => void;
   lsStdoutLogPath?: string;
   lsStderrLogPath?: string;
+  logger?: Logger;
 }
 
 /**
@@ -27,6 +28,8 @@ export class LSProcManager {
   public readonly maxProcs: number;
   public readonly lsStdoutLogPath?: string;
   public readonly lsStderrLogPath?: string;
+
+  #logger: Logger;
 
   private onProcError?: (
     sessionId: string,
@@ -47,11 +50,13 @@ export class LSProcManager {
     maxProcs = 0,
     onProcError,
     onProcExit,
+    logger = defaultLogger,
   }: LSProcManagerOptions) {
     this.lsCommand = lsCommand;
     this.lsArgs = lsArgs;
     this.lsStdoutLogPath = lsStdoutLogPath;
     this.lsStderrLogPath = lsStderrLogPath;
+    this.#logger = logger;
 
     this.procs = new Map<string, LSProc>();
     this.maxProcs = maxProcs;
@@ -80,7 +85,7 @@ export class LSProcManager {
     const existing = this.procs.get(sessionId);
 
     if (existing) {
-      logger.info(
+      this.#logger.info(
         { sessionId, pid: existing.pid },
         "Reusing existing LS process",
       );
@@ -90,7 +95,7 @@ export class LSProcManager {
     const lsProc = this.#spawn(sessionId);
     this.procs.set(sessionId, lsProc);
 
-    logger.info({ sessionId, pid: lsProc.pid }, "Spawning LS process");
+    this.#logger.info({ sessionId, pid: lsProc.pid }, "Spawning LS process");
     return lsProc;
   }
 
@@ -104,11 +109,11 @@ export class LSProcManager {
     const proc = this.procs.get(sessionId);
 
     if (proc) {
-      logger.info({ sessionId, pid: proc.pid }, "Releasing LS process");
+      this.#logger.info({ sessionId, pid: proc.pid }, "Releasing LS process");
       await proc.kill();
       this.procs.delete(sessionId);
     } else {
-      logger.warn({ sessionId }, "No LS process found to release");
+      this.#logger.warn({ sessionId }, "No LS process found to release");
     }
   }
 
@@ -119,7 +124,7 @@ export class LSProcManager {
       onExit: async (code, signal) => {
         await this.onProcExit?.(sessionId, code, signal, lsProc);
 
-        logger.info({ sessionId, code }, "LS process exited");
+        this.#logger.info({ sessionId, code }, "LS process exited");
         this.procs.delete(sessionId);
       },
       onError: async (error) => {
@@ -154,7 +159,7 @@ export class LSProcManager {
     // Remove oldest processes until we're under the limit
     while (processes.length >= this.maxProcs) {
       const [sessionId, proc] = processes.shift()!;
-      logger.info(
+      this.#logger.info(
         { sessionId, pid: proc.pid, spawnTime: proc.spawnedAt },
         "Killing oldest LS process to make room for new one",
       );

@@ -6,7 +6,7 @@ import { pipeLsInToLsOut } from "~/LSWSServer/LSTransform.js";
 import type { LSProc } from "~/LSWSServer/procs/LSProc.js";
 import { LSProcManager } from "~/LSWSServer/procs/LSProcManager.js";
 import { createWebSocketStreams } from "~/LSWSServer/WSStream.js";
-import { logger } from "~/logger.js";
+import { defaultLogger, type Logger } from "~/logger.js";
 
 interface ConnectionData {
   /**
@@ -69,26 +69,44 @@ export interface LSWSServerOptions {
   onProcError?: (sessionId: string, error: Error) => void;
   /** Callback for when an LSP process exits. */
   onProcExit?: (sessionId: string, code: number | null) => void;
+  /** Logger instance to use for logging. */
+  logger?: Logger;
 }
 
 /**
- * WebSocket server for managing Language Server Protocol (LSP) processes with
- * associated sessions using multicast streams.
+ * LSWSServer is a WebSocket server for managing Language Server Protocol (LSP)
+ * processes with associated sessions.
+ * 
+ * Every language server process that gets spawned by this class corresponds to
+ * some unique session ID.  When someone connects to the server, if they are
+ * re-joining and use the same session ID as a previous connection, they will
+ * be reconnected to the same LSP process.
+ * 
+ * If many people connect to the same session ID, they will all share the same
+ * LSP process and its associated streams. All messages will go to the LSP, but
+ * responses for requests that some specific WebSocket sent will be responded to
+ * directly. Notifications from the language server will be broadcast to all.
  *
  * When a new WebSocket connection is received:
- * - handleNewWebsocket() is called with the request and session ID.
+ * - handleNewWebsocket() is called with the WebSocket and session ID.
  * - If the session already exists, it reuses the existing LSP process and multicast.
  * - If the session does not exist, it creates a new LSP process and multicast streams.
  * - Each WebSocket gets its own consumer streams from the multicast.
  * - The WebSocket connection is registered in the session's connection map.
  * - When the WebSocket closes, it deregisters the consumer and cleans up streams.
- *
- * Multicast streams allow multiple WebSocket connections to independently read
- * the same data from the LSP process, enabling multi-tab editing.
+ * 
+ * This class acts as a manager for sessions and LSP processes, and
+ * intentionally does no actually handle any requests or responses itself. We
+ * simply take any WebSocket that conforms to the WebSocket API, and wire it
+ * based on its session ID when it "joins" the pool.
+ * 
+ * Note that once this class has been fed a WebSocket, you shouldn't try to use
+ * that WebSocket elsewhere or for other purposes.
  */
 export class LSWSServer {
   public readonly lsProcManager: LSProcManager;
   public acceptingConnections = true;
+  private readonly logger: Logger;
 
   private sessionMap = new Map<string, LSWSServerSessionData>();
   private maxSessionConns?: number;
@@ -111,11 +129,14 @@ export class LSWSServer {
     shutdownAfter,
     onProcError,
     onProcExit,
+    logger = defaultLogger,
   }: LSWSServerOptions) {
-    logger.info(
+    this.logger = logger;
+    
+    this.logger.info(
       `Initializing LSWSServer with command: ${lsCommand} ${lsArgs.join(" ")}`,
     );
-    logger.info(
+    this.logger.info(
       `Log path: ${lsStdoutLogPath}, Max processes: ${maxProcs || "unlimited"}`,
     );
 
@@ -130,8 +151,9 @@ export class LSWSServer {
       lsCommand,
       lsArgs,
       maxProcs,
+      logger,
       onProcError: (sessionId: string, error: Error): void => {
-        logger.error(
+        this.logger.error(
           { sessionId, error: error.stack || error.message },
           `LSP process error for session ${sessionId}: ${error.message}`,
         );
@@ -185,18 +207,18 @@ export class LSWSServer {
 
     this.maxSessionConns = maxSessionConns;
 
-    logger.info({}, "LSWSServer initialized successfully");
+    this.logger.info({}, "LSWSServer initialized successfully");
   }
 
   public handleNewWebsocket(socket: WebSocket, sessionId: string) {
     if (!this.acceptingConnections) {
-      logger.warn({ sessionId }, "New WebSocket connection request rejected");
+      this.logger.warn({ sessionId }, "New WebSocket connection request rejected");
       return new Response("Server is not accepting new connections", {
         status: 503,
       });
     }
 
-    logger.info({ sessionId }, "New WebSocket connection request for session");
+    this.logger.info({ sessionId }, "New WebSocket connection request for session");
 
     let proc: LSProc;
     let sessionData = this.sessionMap.get(sessionId);
@@ -209,23 +231,23 @@ export class LSWSServer {
 
       // Reuse existing process and multicast
       proc = sessionData.proc;
-      logger.info(
+      this.logger.info(
         { sessionId, pid: proc.pid },
         "Reconnecting to existing LSP process for session",
       );
     } else {
-      logger.info(
+      this.logger.info(
         { sessionId },
         `Creating new LSP process for session ${sessionId}`,
       );
       proc = this.lsProcManager.getOrCreateProc(sessionId);
-      logger.info(
+      this.logger.info(
         { sessionId, pid: proc.pid },
         `Created LSP process with PID ${proc.pid} for session ${sessionId}`,
       );
 
       if (!proc.stdout || !proc.stdin) {
-        logger.error({ sessionId }, "Failed to create LSP process streams");
+        this.logger.error({ sessionId }, "Failed to create LSP process streams");
         return new Response("Failed to create LSP process streams", {
           status: 500,
         });
@@ -253,7 +275,7 @@ export class LSWSServer {
     }
 
     if (!sessionData.createProcOutConsumer) {
-      logger.error(
+      this.logger.error(
         { sessionId },
         "Failed to access multicast streams for LSP process",
       );
@@ -262,12 +284,12 @@ export class LSWSServer {
       });
     }
 
-    logger.debug({ sessionId }, "WebSocket upgraded successfully");
+    this.logger.debug({ sessionId }, "WebSocket upgraded successfully");
 
     this.#setupShutdownHandling(socket);
 
     socket.addEventListener("error", (event) => {
-      logger.error(
+      this.logger.error(
         { sessionId, event },
         `WebSocket error for session ${sessionId}`,
       );
@@ -305,14 +327,14 @@ export class LSWSServer {
 
       // Set up error handling for the streams
       procOutConsumer.on("error", (error) => {
-        logger.error(
+        this.logger.error(
           { sessionId, error: error.stack || error.message },
           "Process output consumer error",
         );
         this.#closeWebSocket(socket, sessionId, 1011, "Stream error occurred");
       });
       stdinProducer.on("error", (error) => {
-        logger.error(
+        this.logger.error(
           { sessionId, error: error.stack || error.message },
           "Stdin producer error",
         );
@@ -321,14 +343,14 @@ export class LSWSServer {
 
       // Add error handlers for WebSocket streams to prevent crashes
       webSocketIn.on("error", (error) => {
-        logger.error(
+        this.logger.error(
           { sessionId, error: error.stack || error.message },
           "WebSocket input stream error",
         );
         this.#closeWebSocket(socket, sessionId, 1011, "WebSocket input error");
       });
       webSocketOut.on("error", (error) => {
-        logger.error(
+        this.logger.error(
           { sessionId, error: error.stack || error.message },
           "WebSocket output stream error",
         );
@@ -336,7 +358,7 @@ export class LSWSServer {
       });
     } catch (err) {
       if (!(err instanceof Error)) throw new Error(String(err));
-      logger.error(
+      this.logger.error(
         { sessionId, error: err.stack || err.message },
         "Error setting up stream pipes",
       );
@@ -346,14 +368,14 @@ export class LSWSServer {
     }
 
     socket.onopen = () => {
-      logger.info(
+      this.logger.info(
         { sessionId },
         `WebSocket connection opened for session ${sessionId}`,
       );
     };
 
     socket.onerror = (event) => {
-      logger.error(
+      this.logger.error(
         { sessionId, event },
         `WebSocket error for session ${sessionId}`,
       );
@@ -363,7 +385,7 @@ export class LSWSServer {
     socket.onclose = (event) => {
       const connData = sessionData.conns.get(socket);
 
-      logger.info(
+      this.logger.info(
         {
           sessionId,
           code: event.code,
@@ -378,7 +400,7 @@ export class LSWSServer {
           connData.procOutConsumer.destroy();
           webSocketOut.destroy();
         } catch (err) {
-          logger.debug(
+          this.logger.debug(
             { sessionId, error: err },
             "Error during connection cleanup",
           );
@@ -387,7 +409,7 @@ export class LSWSServer {
       }
     };
 
-    logger.info(
+    this.logger.info(
       { sessionId },
       `WebSocket connection established for ${sessionId}`,
     );
@@ -409,13 +431,13 @@ export class LSWSServer {
     if (!session) return;
     this.sessionMap.delete(sessionId);
 
-    logger.info(
+    this.logger.info(
       { sessionId, code, message },
       `Closing session ${sessionId} with code ${code}: ${message}`,
     );
 
     for (const [ws, connData] of session.conns) {
-      logger.debug(
+      this.logger.debug(
         { sessionId, code, message },
         "Closing WebSocket connection",
       );
@@ -424,10 +446,10 @@ export class LSWSServer {
       this.#closeWebSocket(ws, sessionId, code, message);
 
       try {
-        logger.trace({ sessionId }, "Destroying consumer streams");
+        this.logger.trace({ sessionId }, "Destroying consumer streams");
         connData.procOutConsumer.destroy();
       } catch (err) {
-        logger.debug(
+        this.logger.debug(
           { sessionId, error: err },
           "Error while closing consumer streams during session close",
         );
@@ -436,7 +458,7 @@ export class LSWSServer {
 
     await this.lsProcManager.releaseProc(sessionId);
 
-    logger.info({ sessionId }, `Session ${sessionId} closed successfully`);
+    this.logger.info({ sessionId }, `Session ${sessionId} closed successfully`);
   }
 
   /**
@@ -451,7 +473,7 @@ export class LSWSServer {
   public async shutdown(code = 1012, message = "Server shutting down") {
     this.acceptingConnections = false;
 
-    logger.info("Shutting down LSWSServer and all sessions");
+    this.logger.info("Shutting down LSWSServer and all sessions");
 
     // Close all sessions gracefully
     for (const sessionId of this.sessionMap.keys()) {
@@ -466,7 +488,7 @@ export class LSWSServer {
 
         // Change the inbound message numerical ID to a UUID, and put the UUID in our map
         if (isJSONRPCRequest(message) && typeof message.id === "number") {
-          logger.debug(
+          this.logger.debug(
             { messageId: message.id },
             "Processing LSP message with ID",
           );
@@ -477,7 +499,7 @@ export class LSWSServer {
 
         return JSON.stringify(message);
       } catch (error) {
-        logger.error(error, "Failed to parse message: ");
+        this.logger.error(error, "Failed to parse message: ");
         return chunk;
       }
     };
@@ -490,14 +512,14 @@ export class LSWSServer {
 
         // If the message is a response with a UUID ID, map it back to a numerical ID
         if (isJSONRPCResponse(message) && typeof message.id === "string") {
-          logger.debug(
+          this.logger.debug(
             { messageId: message.id },
             "Processing LSP response with ID",
           );
 
           const originalId = connData.requestIDTranslationMap.get(message.id);
           if (originalId === undefined) {
-            logger.warn(
+            this.logger.warn(
               { messageId: message.id },
               "No original numerical ID found for UUID ID in response",
             );
@@ -513,7 +535,7 @@ export class LSWSServer {
 
         return JSON.stringify(message);
       } catch (error) {
-        logger.error(error, "Failed to parse message");
+        this.logger.error(error, "Failed to parse message");
         return chunk;
       }
     };
@@ -595,13 +617,13 @@ export class LSWSServer {
     };
 
     targetStream.on("error", (error) => {
-      logger.error({ error }, "Error in target stream");
+      this.logger.error({ error }, "Error in target stream");
       isTargetDestroyed = true;
       destroyAllProducers();
     });
 
     targetStream.on("close", () => {
-      logger.info("Target stream closed");
+      this.logger.info("Target stream closed");
       isTargetDestroyed = true;
       destroyAllProducers();
     });
@@ -623,7 +645,7 @@ export class LSWSServer {
       }
 
       producer.on("error", (error) => {
-        logger.debug({ error }, "Error in stdin producer stream");
+        this.logger.debug({ error }, "Error in stdin producer stream");
         unpipeAndDestroyProducer(producer);
       });
 
@@ -650,7 +672,7 @@ export class LSWSServer {
         socket.readyState === WebSocket.OPEN ||
         socket.readyState === WebSocket.CONNECTING
       ) {
-        logger.debug(
+        this.logger.debug(
           {
             sessionId,
             code,
@@ -661,7 +683,7 @@ export class LSWSServer {
         );
         socket.close(code, reason);
       } else {
-        logger.debug(
+        this.logger.debug(
           {
             sessionId,
             readyState: socket.readyState,
@@ -671,7 +693,7 @@ export class LSWSServer {
         );
       }
     } catch (error) {
-      logger.error(
+      this.logger.error(
         {
           sessionId,
           error: error instanceof Error ? error.message : String(error),
@@ -690,7 +712,7 @@ export class LSWSServer {
     while (sessionData.conns.size >= this.maxSessionConns) {
       const firstConnection = sessionData.conns.keys().next().value;
       if (firstConnection) {
-        logger.info(
+        this.logger.info(
           {
             sessionId,
             currentConns: sessionData.conns.size,
