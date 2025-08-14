@@ -1,7 +1,7 @@
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
+import { describe, expect, it } from "vitest";
 import { isInCurrentDocumentBounds } from "./utils.js";
-import { describe, it, expect } from "vitest";
 
 describe("isInCurrentDocumentBounds", () => {
   it("should return true for a range within the document", () => {

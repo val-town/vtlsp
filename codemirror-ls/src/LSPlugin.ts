@@ -1,11 +1,9 @@
 import type { Text } from "@codemirror/state";
-import { ChangeSet } from "@codemirror/state";
 import type { PluginValue, ViewUpdate } from "@codemirror/view";
 import { type EditorView, ViewPlugin } from "@codemirror/view";
 import PQueue from "p-queue";
 import type { LSClient } from "./LSClient.js";
 import type { LSPRequestMap } from "./types.lsp.js";
-import { isInCurrentDocumentBounds } from "./utils.js";
 
 interface LSPluginArgs {
   client: LSClient;

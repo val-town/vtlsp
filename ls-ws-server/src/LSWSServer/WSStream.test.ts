@@ -1,9 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { chunkByteArray, createWebSocketStreams } from "./WSStream.js";
 import WSS from "vitest-websocket-mock";
-import * as os from "node:os";
-import * as path from "node:path";
-import * as fs from "node:fs";
+import { chunkByteArray, createWebSocketStreams } from "./WSStream.js";
 
 describe("chunkByteArray", () => {
   it("provides evenly divisible chunks", () => {

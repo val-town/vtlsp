@@ -1,7 +1,6 @@
-import type { CompletionContext } from "@codemirror/autocomplete";
 import type { Text } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
-import * as LSP from "vscode-languageserver-protocol";
+import type * as LSP from "vscode-languageserver-protocol";
 
 export function posToOffset(
   doc: Text,

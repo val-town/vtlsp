@@ -8,7 +8,8 @@
     "./demo"
   ],
   "scripts": {
-    "test": "vitest"
+    "test": "vitest",
+    "lint": "biome check"
   },
   "author": "Val Town",
   "license": "ISC",

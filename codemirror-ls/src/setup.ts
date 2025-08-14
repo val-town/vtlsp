@@ -1,4 +1,4 @@
-import { Prec, type Extension } from "@codemirror/state";
+import { type Extension, Prec } from "@codemirror/state";
 import { asyncNoop } from "es-toolkit";
 import {
   completions,
