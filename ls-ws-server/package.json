@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "@valtown/ls-ws-server",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Language server WebSocket server and proxy",
   "repository": {
     "type": "git",
@@ -11,7 +11,8 @@
   "scripts": {
     "format": "biome format --write .",
     "test": "vitest",
-    "build": "tsc --build && tsc-alias"
+    "build": "tsc --build && tsc-alias",
+    "bump": "npm version patch"
   },
   "files": [
     "dist"
