@@ -7,7 +7,7 @@ import type { Extension } from "@codemirror/state";
  * This is useful for using external rendering libraries like React to render
  * onto codemirror elements.
  */
-export type Renderer<T extends any[]> = (
+export type Renderer<T extends unknown[]> = (
   element: HTMLElement,
   ...args: T
 ) => Promise<void>;

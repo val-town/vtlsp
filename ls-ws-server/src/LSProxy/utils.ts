@@ -33,7 +33,7 @@ export function replaceFileUris(
 
   // If the input is an object, recurse on each key-value pair, and do replacements on keys
   // and recursive calls on values
-  const result: Record<string, any> = {};
+  const result: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(obj)) {
     const newKey = key.replace(FILE_URI_PATTERN, convertUri);
@@ -52,7 +52,7 @@ export function replaceFileUris(
  */
 export function isLspParamsLike(
   obj: unknown,
-): obj is object | any[] | undefined {
+): obj is object | unknown[] | undefined {
   return (
     (typeof obj === "object" || Array.isArray(obj) || obj === undefined) &&
     obj !== null
@@ -68,7 +68,7 @@ export function isLspParamsLike(
  */
 export function isLspRespLike(
   obj: unknown,
-): obj is object | any[] | string | null {
+): obj is object | unknown[] | string | null {
   return (
     typeof obj === "object" ||
     Array.isArray(obj) ||

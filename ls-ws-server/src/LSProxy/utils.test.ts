@@ -1,4 +1,4 @@
-// deno-lint-ignore-file no-explicit-any
+/** biome-ignore-all lint/suspicious/noExplicitAny: useful for tests */
 
 import { describe, expect, it } from "vitest";
 import { replaceFileUris } from "./utils.ts";

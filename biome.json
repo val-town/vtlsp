@@ -9,7 +9,8 @@
     "includes": [
       "./demo/**/*{ts,tsx,js,jsx,json,html,css}",
       "./ls-ws-server/**/*{ts,tsx,js,jsx,json,html,css}",
-      "./codemirror-ls/**/*{ts,tsx,js,jsx,json,html,css}"
+      "./codemirror-ls/**/*{ts,tsx,js,jsx,json,html,css}",
+      "!**/worker-configuration.d.ts"
     ]
   },
   "formatter": {
@@ -24,7 +25,8 @@
         "noNonNullAssertion": "off"
       },
       "suspicious": {
-        "noConsole": "error"
+        "noConsole": "error",
+        "noTemplateCurlyInString": "off"
       }
     }
   },

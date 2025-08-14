@@ -1,5 +1,3 @@
-// deno-lint-ignore-file no-explicit-any
-
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import fs from "node:fs";
 import process from "node:process";
