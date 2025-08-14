@@ -1,5 +1,5 @@
 import { LSProc } from "~/LSWSServer/procs/LSProc.js";
-import { defaultLogger as defaultLogger, type Logger } from "~/logger.js";
+import { defaultLogger, type Logger } from "~/logger.js";
 
 export interface LSProcManagerOptions {
   lsCommand: string;

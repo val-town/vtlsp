@@ -36,7 +36,7 @@ export type CatchAllHandlerFunction = (
   params: unknown,
 ) => MaybePromise<MaybeWithLSProxyCode<unknown>>;
 
-export type LSPProxyClientToProcHandlers = {
+export type LSProxyClientToProcHandlers = {
   [K in keyof LSPNotifyMap]?: HandlerFunction<LSPNotifyMap[K], void>;
 } & {
   [K in keyof LSPRequestMap]?: HandlerFunction<
@@ -45,7 +45,7 @@ export type LSPProxyClientToProcHandlers = {
   >;
 } & Record<string, HandlerFunction | CatchAllHandlerFunction | undefined>;
 
-export type LSPProxyProcToClientHandlers = {
+export type LSProxyProcToClientHandlers = {
   [K in keyof LSPNotifyMap]?: HandlerFunction<LSPNotifyMap[K], void>;
 } & {
   [K in keyof LSPRequestMap]?: HandlerFunction<
@@ -54,7 +54,7 @@ export type LSPProxyProcToClientHandlers = {
   >;
 } & Record<string, HandlerFunction | CatchAllHandlerFunction | undefined>;
 
-export type LSPProxyClientToProcMiddlewares = {
+export type LSProxyClientToProcMiddlewares = {
   [K in keyof LSPNotifyMap]?: ParamsMiddlewareFunction<LSPNotifyMap[K]>;
 } & {
   [K in keyof LSPRequestMap]?: ResultMiddlewareFunction<
@@ -68,7 +68,7 @@ export type LSPProxyClientToProcMiddlewares = {
     | CatchAllMiddlewareFunction
   >;
 
-export type LSPProxyProcToClientMiddlewares = {
+export type LSProxyProcToClientMiddlewares = {
   [K in keyof LSPNotifyMap]?: ParamsMiddlewareFunction<LSPNotifyMap[K]>;
 } & {
   // (result)
@@ -84,7 +84,7 @@ export type LSPProxyProcToClientMiddlewares = {
     | CatchAllMiddlewareFunction
   >; // (method, original-params, result)
 
-export type LSPProxyCallbacks = {
+export type LSProxyCallbacks = {
   onNotification?: (method: string, params: any) => MaybePromise<void>;
   onRequest?: (method: string, params: any) => MaybePromise<any>;
 };
@@ -140,7 +140,7 @@ export type LSPExec = {
   };
 };
 
-export interface LSPProxyParams {
+export interface LSProxyParams {
   name: string;
   /**
    * Information to spawn the language server process.
@@ -161,19 +161,19 @@ export interface LSPProxyParams {
   /**
    * Callbacks that intercept and maybe transform messages sent from the language server consumer client en route to the language server process.
    */
-  clientToProcMiddlewares?: LSPProxyClientToProcMiddlewares;
+  clientToProcMiddlewares?: LSProxyClientToProcMiddlewares;
   /**
    * Callbacks that intercept and maybe transform messages sent from the language server process en route to the language server consumer client.
    */
-  procToClientMiddlewares?: LSPProxyProcToClientMiddlewares;
+  procToClientMiddlewares?: LSProxyProcToClientMiddlewares;
   /**
    * Callbacks that handle messages sent from the language server consumer client en route to the language server process.
    */
-  clientToProcHandlers?: LSPProxyClientToProcHandlers;
+  clientToProcHandlers?: LSProxyClientToProcHandlers;
   /**
    * Callbacks that handle messages sent from the language server process en route to the language server consumer client.
    */
-  procToClientHandlers?: LSPProxyProcToClientHandlers;
+  procToClientHandlers?: LSProxyProcToClientHandlers;
   /**
    * Callbacks that handle messages sent from the language server consumer client or process.
    */

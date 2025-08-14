@@ -52,9 +52,9 @@
       "default": "./dist/logger.js"
     },
     "./proxy": {
-      "types": "./dist/LSPProxy/index.d.ts",
-      "import": "./dist/LSPProxy/index.js",
-      "default": "./dist/LSPProxy/index.js"
+      "types": "./dist/LSroxy/index.d.ts",
+      "import": "./dist/LSroxy/index.js",
+      "default": "./dist/LSroxy/index.js"
     },
     "./server": {
       "types": "./dist/LSWSServer/index.d.ts",

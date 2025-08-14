@@ -7,7 +7,7 @@ It is meant to be used with your framework of choice, and provides a simple `han
 Here's a simple example set up for the Deno language server:
 
 ```typescript
-// lsp-proxy.ts
+// ls-proxy.ts
 
 import { LSWSServer } from "vtls-server";
 import { Hono } from "hono";
@@ -15,7 +15,7 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 
 const lsWsServer = new LSWSServer({
-  lsCommand: "deno", // real LSP (we're using deno to run the deno LSP)
+  lsCommand: "deno", // real LS (we're using deno to run the deno LS)
   lsArgs: ["lsp", "-q"],
   lsLogPath: Deno.makeTempDirSync({ prefix: "vtlsp-procs" }),
 });
@@ -37,7 +37,7 @@ Including a small language server "proxy" server:
 ```ts
 // main.ts
 
-import { LSPProxy, utils } from "vtls-server";
+import { LSroxy, utils } from "vtls-server";
 
 const TEMP_DIR = await Deno.makeTempDir({ prefix: "vtlsp-proxy" });
 
@@ -45,12 +45,12 @@ const onExit = async () => await Deno.remove(TEMP_DIR, { recursive: true });
 Deno.addSignalListener("SIGINT", onExit);
 Deno.addSignalListener("SIGTERM", onExit);
 
-const proxy = new LSPProxy({
+const proxy = new LSroxy({
   name: "lsp-server",
-  cwd: TEMP_DIR, // Where the LSP gets spawned from
+  cwd: TEMP_DIR, // Where the LS gets spawned from
   exec: {
-    command: "deno", // proxy LSP
-    args: ["run", "-A", "./lsp-proxy.ts"],
+    command: "deno", // proxy LS
+    args: ["run", "-A", "./ls-proxy.ts"],
   },
   // Also, you can use procToClientMiddlewares, procToClientHandlers, and clientToProcHandlers
   clientToProcMiddlewares: {
@@ -61,7 +61,7 @@ const proxy = new LSPProxy({
     "textDocument/publishDiagnostics": async (params) => { // Params are automatically typed! All "official" LSP methods have strong types
       if (params.uri.endsWith(".test.ts")) {
         return {
-          ls_proxy_code: "cancel_response" // A "magic" code that makes it so that the message is NOT passed on to the LSP
+          ls_proxy_code: "cancel_response" // A "magic" code that makes it so that the message is NOT passed on to the LS
         }
       }
   }
@@ -78,7 +78,7 @@ const proxy = new LSPProxy({
   },
 });
 
-proxy.listen(); // Listens by default on standard in / out, and acts as a real LSP
+proxy.listen(); // Listens by default on standard in / out, and acts as a real LS
 ```
 
 We're using Deno, but you could just as well write this in Node. To run it, you'd use a command like:

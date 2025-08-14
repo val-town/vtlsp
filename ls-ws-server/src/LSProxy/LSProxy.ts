@@ -9,11 +9,11 @@ import type {
   CatchAllMiddlewareFunction,
   HandlerFunction,
   LSPExec,
-  LSPProxyClientToProcHandlers,
-  LSPProxyClientToProcMiddlewares,
-  LSPProxyProcToClientHandlers,
-  LSPProxyProcToClientMiddlewares,
-  LSPProxyParams as LSProxyParams,
+  LSProxyClientToProcHandlers,
+  LSProxyClientToProcMiddlewares,
+  LSProxyParams,
+  LSProxyProcToClientHandlers,
+  LSProxyProcToClientMiddlewares,
   ParamsMiddlewareFunction,
   ResultMiddlewareFunction,
   UriConverters,
@@ -22,11 +22,17 @@ import type { LSPNotifyMap, LSPRequestMap } from "./types.lsp.js";
 import { isLspParamsLike, isLspRespLike, replaceFileUris } from "./utils.js";
 
 /**
- * LSPProxy creates a bridge between a client and a language server process.
+ * LSProxy creates a bridge between a client and a language server process, and
+ * functions as a brand new language server itself.
  *
- * It spawns the language server, handles communication between the client and
- * server, and provides middleware hooks for intercepting and modifying
- * messages. Then, it rebroadcasts the messages to act as an LSP.
+ * Since language servers normally operate via standard in/out, LSProxy defaults
+ * to proxy input from standard in, maybe run middlewares on inbound messages,
+ * and then send them to the language server process via its own standard in/out
+ * streams. It does the same for messages from the language server process back
+ * to the client.
+ *
+ * You can easily register middlewares and handlers to modify, intercept, or
+ * even cancel messages in either direction.
  */
 export class LSProxy {
   /** The working directory for the LSP process. */
@@ -45,11 +51,11 @@ export class LSProxy {
   #execOptions: LSPExec;
 
   /** Middlewares and handlers for communication between client and process */
-  #clientToProcMiddlewares: LSPProxyClientToProcMiddlewares;
-  #procToClientMiddlewares: LSPProxyProcToClientMiddlewares;
+  #clientToProcMiddlewares: LSProxyClientToProcMiddlewares;
+  #procToClientMiddlewares: LSProxyProcToClientMiddlewares;
 
-  #clientToProcHandlers: LSPProxyClientToProcHandlers;
-  #procToClientHandlers: LSPProxyProcToClientHandlers;
+  #clientToProcHandlers: LSProxyClientToProcHandlers;
+  #procToClientHandlers: LSProxyProcToClientHandlers;
 
   /** Custom methods for the LSP proxy */
   // biome-ignore lint/suspicious/noExplicitAny: Allowing any type for custom methods
@@ -471,7 +477,7 @@ export class LSProxy {
       // If there's a procToClient middleware, apply it to the response
       if (
         this.#procToClientMiddlewares[
-          method as string & keyof LSPProxyProcToClientMiddlewares
+          method as string & keyof LSProxyProcToClientMiddlewares
         ]
       ) {
         const result = await this.applyMiddleware(
@@ -496,8 +502,8 @@ export class LSProxy {
     // biome-ignore lint/suspicious/noExplicitAny: arbitrary params for middleware
     params: any,
     middlewares:
-      | LSPProxyClientToProcMiddlewares
-      | LSPProxyProcToClientMiddlewares,
+      | LSProxyClientToProcMiddlewares
+      | LSProxyProcToClientMiddlewares,
     isRequest = false,
     // biome-ignore lint/suspicious/noExplicitAny: arbitrary result for middleware
     result: any | null = null,
@@ -577,7 +583,7 @@ export class LSProxy {
   }
 
   private async applyHandler<
-    T extends LSPProxyClientToProcHandlers | LSPProxyProcToClientHandlers,
+    T extends LSProxyClientToProcHandlers | LSProxyProcToClientHandlers,
     // biome-ignore lint/suspicious/noExplicitAny: arbitrary params for handler
   >(method: string, params: any, handlers: T, isRequest = false): Promise<any> {
     let handlerResult = null;
