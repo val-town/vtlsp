@@ -9,7 +9,8 @@
   ],
   "scripts": {
     "test": "vitest",
-    "lint": "biome check"
+    "lint": "biome check",
+    "format": "biome format --write ."
   },
   "author": "Val Town",
   "license": "ISC",

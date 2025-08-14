@@ -48,7 +48,10 @@ class WebSocketReadableStream extends Readable {
     );
 
     const errorHandler = (event: ErrorEvent) => {
-      defaultLogger.error({ event }, "WebSocketReadableStream received error event");
+      defaultLogger.error(
+        { event },
+        "WebSocketReadableStream received error event",
+      );
       this.emit("error", event);
     };
     ws.addEventListener("error", errorHandler as EventListener);
@@ -194,7 +197,9 @@ class WebSocketWritableStream extends Writable {
     }
 
     // Don't close the WebSocket - let the application manage the WebSocket lifecycle
-    defaultLogger.debug("WebSocketWritableStream finalized without closing WebSocket");
+    defaultLogger.debug(
+      "WebSocketWritableStream finalized without closing WebSocket",
+    );
     callback();
   }
 

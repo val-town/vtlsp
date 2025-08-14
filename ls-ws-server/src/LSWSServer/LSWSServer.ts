@@ -76,12 +76,12 @@ export interface LSWSServerOptions {
 /**
  * LSWSServer is a WebSocket server for managing Language Server Protocol (LSP)
  * processes with associated sessions.
- * 
+ *
  * Every language server process that gets spawned by this class corresponds to
  * some unique session ID.  When someone connects to the server, if they are
  * re-joining and use the same session ID as a previous connection, they will
  * be reconnected to the same LSP process.
- * 
+ *
  * If many people connect to the same session ID, they will all share the same
  * LSP process and its associated streams. All messages will go to the LSP, but
  * responses for requests that some specific WebSocket sent will be responded to
@@ -94,12 +94,12 @@ export interface LSWSServerOptions {
  * - Each WebSocket gets its own consumer streams from the multicast.
  * - The WebSocket connection is registered in the session's connection map.
  * - When the WebSocket closes, it deregisters the consumer and cleans up streams.
- * 
+ *
  * This class acts as a manager for sessions and LSP processes, and
  * intentionally does no actually handle any requests or responses itself. We
  * simply take any WebSocket that conforms to the WebSocket API, and wire it
  * based on its session ID when it "joins" the pool.
- * 
+ *
  * Note that once this class has been fed a WebSocket, you shouldn't try to use
  * that WebSocket elsewhere or for other purposes.
  */
@@ -132,7 +132,7 @@ export class LSWSServer {
     logger = defaultLogger,
   }: LSWSServerOptions) {
     this.logger = logger;
-    
+
     this.logger.info(
       `Initializing LSWSServer with command: ${lsCommand} ${lsArgs.join(" ")}`,
     );
@@ -212,13 +212,19 @@ export class LSWSServer {
 
   public handleNewWebsocket(socket: WebSocket, sessionId: string) {
     if (!this.acceptingConnections) {
-      this.logger.warn({ sessionId }, "New WebSocket connection request rejected");
+      this.logger.warn(
+        { sessionId },
+        "New WebSocket connection request rejected",
+      );
       return new Response("Server is not accepting new connections", {
         status: 503,
       });
     }
 
-    this.logger.info({ sessionId }, "New WebSocket connection request for session");
+    this.logger.info(
+      { sessionId },
+      "New WebSocket connection request for session",
+    );
 
     let proc: LSProc;
     let sessionData = this.sessionMap.get(sessionId);
@@ -247,7 +253,10 @@ export class LSWSServer {
       );
 
       if (!proc.stdout || !proc.stdin) {
-        this.logger.error({ sessionId }, "Failed to create LSP process streams");
+        this.logger.error(
+          { sessionId },
+          "Failed to create LSP process streams",
+        );
         return new Response("Failed to create LSP process streams", {
           status: 500,
         });

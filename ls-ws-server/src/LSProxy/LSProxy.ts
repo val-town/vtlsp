@@ -255,7 +255,10 @@ export class LSProxy {
       throw new Error("LSP process connection not initialized");
 
     this.procConn.onNotification(async (method, params) => {
-      defaultLogger.debug({ method, params }, "Received notification from process");
+      defaultLogger.debug(
+        { method, params },
+        "Received notification from process",
+      );
 
       const transformedParams = replaceFileUris(
         params,
@@ -287,7 +290,10 @@ export class LSProxy {
         this.#procToClientMiddlewares,
         false,
       );
-      defaultLogger.debug({ method, params }, "Transformed params from process");
+      defaultLogger.debug(
+        { method, params },
+        "Transformed params from process",
+      );
       if (hasALsProxyCode(params) && params.ls_proxy_code === "cancel_response")
         return;
 
@@ -319,7 +325,10 @@ export class LSProxy {
         this.#procToClientMiddlewares,
         true,
       );
-      defaultLogger.debug({ method, params }, "Transformed params from process");
+      defaultLogger.debug(
+        { method, params },
+        "Transformed params from process",
+      );
       if (hasALsProxyCode(params) && params.ls_proxy_code === "cancel_response")
         return;
 
@@ -329,7 +338,10 @@ export class LSProxy {
 
   private setupClientToProc() {
     this.clientConn.onNotification(async (method, params) => {
-      defaultLogger.debug({ method, params }, "Received notification from client");
+      defaultLogger.debug(
+        { method, params },
+        "Received notification from client",
+      );
 
       const transformedParams = replaceFileUris(
         params,
@@ -364,7 +376,10 @@ export class LSProxy {
         this.#clientToProcMiddlewares,
         false,
       );
-      defaultLogger.debug({ method, params }, "Applied client-to-proc middleware");
+      defaultLogger.debug(
+        { method, params },
+        "Applied client-to-proc middleware",
+      );
       if (hasALsProxyCode(params) && params.ls_proxy_code === "cancel_response")
         return;
 
@@ -402,7 +417,10 @@ export class LSProxy {
         true,
         null, // No result yet, since this is a request
       );
-      defaultLogger.debug({ method, params }, "Applied client-to-proc middleware");
+      defaultLogger.debug(
+        { method, params },
+        "Applied client-to-proc middleware",
+      );
 
       if (hasALsProxyCode(params) && params.ls_proxy_code === "cancel_response")
         return;
@@ -445,7 +463,10 @@ export class LSProxy {
             JSON.stringify(transformedResp),
         );
       resp = transformedResp as typeof resp; // Resp is "more specific"
-      defaultLogger.debug({ method, params }, "Transformed response from process");
+      defaultLogger.debug(
+        { method, params },
+        "Transformed response from process",
+      );
 
       // If there's a procToClient middleware, apply it to the response
       if (
