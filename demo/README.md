@@ -4,9 +4,7 @@ This is a simple demo of all the components of this repo: A language server WebS
 
 There are two components, the language server client editor, and the WebSocket server.
 
-The client is a React app that uses our codemirror client library, built with Vite, and running as a Cloudflare Worker with an associated [Cloudflare container](https://developers.cloudflare.com/containers/) to actually run the language server.
-
-The server runs as a Cloudflare containers. Cloudflare containers make it very easy to dynamically prevision sandboxed instances to individual users, and because routing is very easy and can be done with arbitrary keys.
+The client is a React app that uses our codemirror client library, built with Vite, and running as a Cloudflare Worker with an associated [Cloudflare container](https://developers.cloudflare.com/containers/) to actually run the language server. Cloudflare containers make it very easy to dynamically prevision sandboxed instances to individual users, and routing is very easy and is done with arbitrary keys.
 
 In this demo, you'll find:
 
