@@ -15,8 +15,8 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 
 const lsWsServer = new LSWSServer({
-  lsCommand: "deno", // real LS (we're using deno to run the deno LS)
-  lsArgs: ["lsp", "-q"],
+  lsCommand: "deno", // proxy LS
+  lsArgs: ["run", "-A", "./ls-proxy.ts"],
   lsLogPath: Deno.makeTempDirSync({ prefix: "vtlsp-procs" }),
 });
 
@@ -45,12 +45,12 @@ const onExit = async () => await Deno.remove(TEMP_DIR, { recursive: true });
 Deno.addSignalListener("SIGINT", onExit);
 Deno.addSignalListener("SIGTERM", onExit);
 
-const proxy = new LSroxy({
+const proxy = new LSProxy({
   name: "lsp-server",
   cwd: TEMP_DIR, // Where the LS gets spawned from
   exec: {
-    command: "deno", // proxy LS
-    args: ["run", "-A", "./ls-proxy.ts"],
+    command: "deno", // real LS (we're using deno to run, and proxy, the deno language server)
+    args: ["lsp", "-q"],
   },
   // Also, you can use procToClientMiddlewares, procToClientHandlers, and clientToProcHandlers
   clientToProcMiddlewares: {
