@@ -10,7 +10,8 @@
   "scripts": {
     "test": "vitest",
     "lint": "biome check",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "ci:tsc": "tsc -p ./ls-ws-server/tsconfig.json --noEmit && tsc -p ./codemirror-ls/tsconfig.json --noEmit"
   },
   "author": "Val Town",
   "license": "ISC",

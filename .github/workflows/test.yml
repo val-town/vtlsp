@@ -21,3 +21,17 @@ jobs:
 
       - name: Run tests
         run: npm test
+  tsc:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Install mise
+        uses: jdx/mise-action@v2
+        
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: TypeScript check
+        run: npm run ci:tsc
