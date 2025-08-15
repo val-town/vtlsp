@@ -1,4 +1,13 @@
-// Largely from https://github.com/codemirror/lsp-client/blob/main/src/signature.ts
+/**
+ * @module signatures
+ * @description Extensions for handling signature help in the editor.
+ * @author Modification of code from Marijnh's codemirror-lsp-client
+ *
+ * Signature help provides information about the parameters of a function
+ * or method call, including their names, types, and documentation.
+ *
+ * @see https://github.com/codemirror/lsp-client/blob/main/src/signature.ts
+ */
 
 import { StateEffect, StateField } from "@codemirror/state";
 import type { EditorView, Tooltip, ViewUpdate } from "@codemirror/view";
@@ -8,6 +17,10 @@ import { LSCore } from "../LSPlugin.js";
 import { offsetToPos } from "../utils.js";
 import type { LSExtensionGetter } from "./types.js";
 
+/**
+ * Renderer for the signature help popup that shows up above a function when you
+ * are typing out an invocation.
+ */
 export interface SignatureSuggestionArgs {
   render: RenderSignatureHelp;
 }
@@ -15,7 +28,9 @@ export interface SignatureSuggestionArgs {
 export type RenderSignatureHelp = (
   element: HTMLElement,
   data: LSP.SignatureHelp,
+  /** The currently active signature in the signature help popup. Often there are just one signatures and this is 0. */
   activeSignature: number,
+  /** The currently active function/method parameter in the signature help popup. */
   activeParameter?: number,
 ) => Promise<void>;
 
@@ -237,6 +252,7 @@ const signatureEffect = StateEffect.define<{
   render: RenderSignatureHelp;
 } | null>();
 
+/** Display the signature tooltip for a specific position */
 function signatureTooltip({
   data,
   activeSignature,

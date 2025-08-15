@@ -51,7 +51,7 @@ jobs:
         run: npm run build
 
       - name: Publish ls-ws-server package
-        uses: JS-DevTools/npm-publish@v3
+        uses: JS-DevTools/npm-publish@v3 # todo: change to review please
         with:
           token: ${{ secrets.NPM_ACCESS_TOKEN }}
           package: ./ls-ws-server

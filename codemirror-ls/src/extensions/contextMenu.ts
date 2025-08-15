@@ -1,3 +1,16 @@
+/**
+ * @module contextMenu
+ * @description Extensions for handling context menus in the editor.
+ * @author Modification of code from Marijnh's codemirror-lsp-client
+ *
+ * Context menus are an override for the default right-click context menu
+ * that allows users to perform actions like going to definitions, finding
+ * references, renaming symbols, etc.
+ *
+ * Note that this is not a standard LSP feature, but rather a custom
+ * implementation that uses the LSP for callbacks with various actions.
+ */
+
 import { Annotation, StateField } from "@codemirror/state";
 import { EditorView, showTooltip, type Tooltip } from "@codemirror/view";
 import {

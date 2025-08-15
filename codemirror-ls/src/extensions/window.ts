@@ -1,11 +1,23 @@
+/**
+ * @module window
+ * @description Extensions for handling window/showMessage notifications from the LSP server.
+ *
+ * These notifications are used to display messages to the user, such as errors,
+ * warnings, or informational messages.
+ *
+ * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#window_showMessage
+ */
+
 import type { EditorView } from "@codemirror/view";
 import { ViewPlugin } from "@codemirror/view";
-import type * as LSP from "vscode-languageserver-protocol";
+import * as LSP from "vscode-languageserver-protocol";
 import { LSCore } from "../LSPlugin.js";
 import type { LSExtensionGetter, Renderer } from "./types.js";
 
 export interface WindowExtensionArgs {
   render: WindowRenderer;
+  /** Minimum message level to render/display */
+  minLevel?: LSP.MessageType;
 }
 
 export type WindowRenderer = Renderer<
@@ -14,6 +26,7 @@ export type WindowRenderer = Renderer<
 
 export const getWindowExtensions: LSExtensionGetter<WindowExtensionArgs> = ({
   render,
+  minLevel = LSP.MessageType.Warning,
 }) => {
   return [
     ViewPlugin.fromClass(
@@ -26,7 +39,10 @@ export const getWindowExtensions: LSExtensionGetter<WindowExtensionArgs> = ({
           this.#disposeHandler = lsPlugin.client.onNotification(
             async (method, params) => {
               if (method === "window/showMessage") {
-                this.#showMessage(params as LSP.ShowMessageParams);
+                const messageParams = params as LSP.ShowMessageParams;
+                if (messageParams.type < minLevel) return;
+
+                this.#showMessage(messageParams);
               }
             },
           );

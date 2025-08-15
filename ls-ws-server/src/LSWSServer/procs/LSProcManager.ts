@@ -2,14 +2,26 @@ import { LSProc } from "~/LSWSServer/procs/LSProc.js";
 import { defaultLogger, type Logger } from "~/logger.js";
 
 export interface LSProcManagerOptions {
+  /** Command to spawn the LS process */
   lsCommand: string;
+  /** Arguments to pass to the LS process */
   lsArgs: string[];
+  /** Maximum number of LS processes to allow at once. 0 for unlimited. */
   maxProcs?: number;
+  /** Callback for when LS process errors  */
   onProcError?: (sessionId: string, error: Error) => void;
+  /** Callback for when LS process exits  */
   onProcExit?: (
+    /** Session ID for the LS process that exited */
     sessionId: string,
     code: number | null,
     signal: string | null,
+    /**
+     * The LSProc instance that exited.
+     *
+     * By the time that the proc exits it may have been removed from the session
+     * map. Use this instead if you still need to access it.
+     **/
     lsProc: LSProc,
   ) => void;
   lsStdoutLogPath?: string;
@@ -20,6 +32,10 @@ export interface LSProcManagerOptions {
 /**
  * The LSProcManager manages Language Server processes for different sessions by session ID,
  * providing utility functions to spawn, release, and clean up these processes.
+ *
+ * This is used by the LS WebSocket Server to manage LS processes for different
+ * client sessions, but can also be used in other contexts where managing
+ * multiple LS processes is needed.
  */
 export class LSProcManager {
   public readonly lsCommand: string;

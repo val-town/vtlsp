@@ -13,6 +13,60 @@ import {
 import type { LSClient } from "./LSClient.js";
 import { LSPlugin } from "./LSPlugin.js";
 
+/**
+ * Utility function to set up a CodeMirror extension array that includes
+ * everything needed to connect to a language server via the provided client.
+ *
+ * Gets extensions for all supported features, unless explicitly disabled, and
+ * uses all provided configs.
+ *
+ * @example
+ * ```ts
+ * const lspExtensions = languageServerWithClient({
+ *   client: lsClient,
+ *   documentUri: `file://${path}`,
+ *   languageId: "typescript",
+ *   sendIncrementalChanges: false,
+ *   sendDidOpen: true,
+ *   features: {
+ *     signatureHelp: {
+ *       render: async (dom, data, activeSignature, activeParameter) => {
+ *         const root = ReactDOM.createRoot(dom);
+ *         root.render(
+ *           <LSSignatureHelp
+ *             data={data}
+ *             activeParameter={activeParameter}
+ *             activeSignature={activeSignature}
+ *           />,
+ *         );
+ *       },
+ *     },
+ *     linting: {
+ *       disable: true,
+ *     },
+ *     references: {
+ *       render: async (dom, references, goToReference, onClose, kind) => {
+ *         const root = ReactDOM.createRoot(dom);
+ *         root.render(
+ *           <LSGoTo
+ *             onClose={onClose}
+ *             locations={references}
+ *             goTo={goToReference}
+ *             kind={kind}
+ *           />,
+ *         );
+ *       },
+ *       modClickForDefinition: true,
+ *       onExternalReference: (uri) => {
+ *         console.log("Go to external reference", uri);
+ *       },
+ *       goToDefinitionShortcuts: ["F12"],
+ *       modClickForDefinition: true,
+ *     },
+ *   },
+ * });
+ * ```
+ */
 export function languageServerWithClient(options: LanguageServerOptions) {
   const features = {
     signatureHelp: { render: asyncNoop },

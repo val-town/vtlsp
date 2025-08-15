@@ -1,4 +1,29 @@
-import { type Extension, StateEffect, StateField } from "@codemirror/state";
+/**
+ * @module references
+ * @description Extensions for handling code references and go to definition.
+ * @author Modification of code from Marijnh's codemirror-lsp-client
+ *
+ * Code references are the list of locations in the code where a symbol is
+ * defined or used, such as function definitions, variable declarations, or
+ * type definitions.
+ *
+ * Go to definition is related -- with go to definition the LSP requests a list
+ * of locations a symbol occurs, the difference is that that list is
+ * specifically locations that you can jump to, and that you automatically jump
+ * to the location if there is only one definition found.
+ *
+ * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_references
+ * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_definition
+ * @see https://github.com/codemirror/lsp-client/blob/main/src/references.ts
+ * @see https://github.com/codemirror/lsp-client/blob/main/src/definition.ts
+ */
+
+import {
+  Annotation,
+  type Extension,
+  StateEffect,
+  StateField,
+} from "@codemirror/state";
 import {
   type Command,
   EditorView,
@@ -24,7 +49,14 @@ export type ReferencesRenderer = Renderer<
   ]
 >;
 
-/** The different kinds of language server textDocument/* reference. */
+/**
+ * The different kinds of language server textDocument/* reference.
+ *
+ * These all have generally similar behavior, but the kind to use depends on the
+ * context of the request. For example, "textDocument/definition" is used for
+ * going to a definition, while "textDocument/references" is used for finding
+ * all references to a symbol regardless of whether you can jump to them.
+ **/
 export type ReferenceKind =
   | "textDocument/definition"
   | "textDocument/typeDefinition"
@@ -50,17 +82,13 @@ export type ReferenceLocation = {
 };
 
 /** Human-readable labels for reference kinds */
-export const REFERENCE_KIND_LABELS = {
+export const REFERENCE_KIND_LABELS: Record<ReferenceKind, string> = {
   "textDocument/definition": "Definitions",
   "textDocument/typeDefinition": "Type Definitions",
   "textDocument/implementation": "Implementations",
   "textDocument/references": "References",
-};
+} as const;
 
-/**
- * Get extensions for go to definition, type definition, implementation, and
- * view all references.
- */
 export const getReferencesExtensions: LSExtensionGetter<
   ReferenceExtensionsArgs
 > = ({
@@ -76,25 +104,28 @@ export const getReferencesExtensions: LSExtensionGetter<
     keymap.of([
       ...shortcuts.map((shortcut) => ({
         ...shortcut,
+        // doesn't take an async function unfortunately, so we just always eat the keypress
         run: (view: EditorView) => {
-          return handleFindReferences({
+          void handleFindReferences({
             view,
             render,
             kind: "textDocument/references",
           });
+          return true;
         },
         preventDefault: true,
       })),
       ...goToDefinitionShortcuts.map((shortcut) => ({
         ...shortcut,
         run: (view: EditorView) => {
-          return handleFindReferences({
+          void handleFindReferences({
             view,
             render,
             kind: "textDocument/definition",
             goToIfOneOption: true,
             onExternalReference,
           });
+          return true;
         },
         preventDefault: true,
       })),
@@ -110,7 +141,7 @@ export const getReferencesExtensions: LSExtensionGetter<
           if (event.detail > 1) return false;
 
           if (event.ctrlKey || event.metaKey) {
-            return handleFindReferences({
+            void handleFindReferences({
               view,
               render,
               kind: "textDocument/definition",
@@ -120,6 +151,7 @@ export const getReferencesExtensions: LSExtensionGetter<
                 undefined,
               onExternalReference,
             });
+            return true;
           }
           return false;
         },
@@ -130,7 +162,14 @@ export const getReferencesExtensions: LSExtensionGetter<
   return extensions;
 };
 
-export function handleFindReferences({
+/**
+ * Find references for a symbol at the given position and displays them.
+ *
+ * Uses a definition LSP method.
+ *
+ * @returns true if the references were found and displayed, false otherwise.
+ */
+export async function handleFindReferences({
   view,
   onExternalReference,
   pos,
@@ -148,7 +187,7 @@ export function handleFindReferences({
     | "textDocument/typeDefinition"
     | "textDocument/implementation"
     | "textDocument/references";
-}): boolean {
+}): Promise<boolean> {
   const lsPlugin = LSCore.ofOrThrow(view);
 
   if (!lsPlugin.client.capabilities?.referencesProvider) {
@@ -159,76 +198,81 @@ export function handleFindReferences({
   pos ??= view.state.selection.main.head;
   const position = offsetToPos(view.state.doc, pos);
 
-  lsPlugin
-    .requestWithLock(kind, {
+  try {
+    const response = await lsPlugin.requestWithLock(kind, {
       textDocument: { uri: lsPlugin.documentUri },
       position,
       context: {
         includeDeclaration: true,
       },
-    })
-    .then((response) => {
-      const onNoneFound = () =>
-        showDialog(view, { label: `No ${REFERENCE_KIND_LABELS[kind]} found` });
-
-      if (response === null) {
-        onNoneFound();
-        return;
-      }
-
-      const responseArr = Array.isArray(response) ? response : [response];
-
-      if (responseArr.length === 0) {
-        onNoneFound();
-        return;
-      }
-
-      const referenceLocations: ReferenceLocation[] = responseArr
-        .filter((loc): loc is LSP.Location | LSP.LocationLink => loc !== null)
-        .map((loc: LSP.Location | LSP.LocationLink) => ({
-          uri: "uri" in loc ? loc.uri : loc.targetUri,
-          range: "range" in loc ? loc.range : loc.targetRange,
-        }));
-
-      if (referenceLocations.length === 1 && goToIfOneOption) {
-        const ref = referenceLocations[0];
-        if (!ref) {
-          showDialog(view, {
-            label: `No ${REFERENCE_KIND_LABELS[kind]} found`,
-          });
-          return;
-        }
-
-        if (ref.uri !== lsPlugin.documentUri) {
-          onExternalReference?.(ref);
-          return;
-        }
-        hopToDefinition({
-          view,
-          range: ref.range,
-        });
-        return;
-      } else {
-        displayReferences(
-          view,
-          referenceLocations,
-          lsPlugin.documentUri,
-          kind,
-          onExternalReference,
-          render,
-        );
-      }
-    })
-    .catch((error) => {
-      showDialog(view, {
-        label: `Find references failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-      });
     });
+
+    const onNoneFound = () =>
+      showDialog(view, { label: `No ${REFERENCE_KIND_LABELS[kind]} found` });
+
+    if (response === null) {
+      onNoneFound();
+      return false;
+    }
+
+    const responseArr = Array.isArray(response) ? response : [response];
+
+    if (responseArr.length === 0) {
+      onNoneFound();
+      return false;
+    }
+
+    const referenceLocations: ReferenceLocation[] = responseArr
+      .filter((loc): loc is LSP.Location | LSP.LocationLink => loc !== null)
+      .map((loc: LSP.Location | LSP.LocationLink) => ({
+        uri: "uri" in loc ? loc.uri : loc.targetUri,
+        range: "range" in loc ? loc.range : loc.targetRange,
+      }));
+
+    if (referenceLocations.length === 1 && goToIfOneOption) {
+      const ref = referenceLocations[0];
+      if (!ref) {
+        showDialog(view, {
+          label: `No ${REFERENCE_KIND_LABELS[kind]} found`,
+        });
+        return false;
+      }
+
+      if (ref.uri !== lsPlugin.documentUri) {
+        onExternalReference?.(ref);
+        return false;
+      }
+      hopToDefinition({
+        view,
+        range: ref.range,
+      });
+      return false;
+    } else {
+      displayReferences(
+        view,
+        referenceLocations,
+        lsPlugin.documentUri,
+        kind,
+        onExternalReference,
+        render,
+      );
+    }
+  } catch (error) {
+    showDialog(view, {
+      label: `Find references failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+    });
+  }
 
   return true;
 }
 
-function hopToDefinition({
+/** Whether a navigation to a spot in the editor was a result of a go to definition. */
+export const wasScrollToDefinition = Annotation.define<boolean>();
+
+/**
+ * Navigate to the definition of a symbol in an EditorView.
+ */
+export function hopToDefinition({
   view,
   range,
 }: {
@@ -241,10 +285,17 @@ function hopToDefinition({
         anchor: posToOffsetOrZero(view.state.doc, range.start),
         head: posToOffset(view.state.doc, range.end),
       },
+      scrollIntoView: true,
+      annotations: [wasScrollToDefinition.of(true)],
     }),
   );
 }
 
+/**
+ * Closes the reference panel if it is open.
+ *
+ * @returns true if the panel was closed, false if it was not open.
+ */
 export const closeReferencePanel: Command = (view) => {
   if (!view.state.field(referencePanel, false)) return false;
   view.dispatch({ effects: setReferencePanel.of(null) });

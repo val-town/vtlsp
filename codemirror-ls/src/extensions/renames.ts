@@ -1,4 +1,15 @@
-import type { Extension } from "@codemirror/state";
+/**
+ * @module renames
+ * @description Extensions for handling renaming of symbols in the editor.
+ *
+ * Renaming allows users to change the name of a symbol across the codebase.
+ * This is a "refactor" operation that updates all references to the symbol
+ * in the current document and potentially across multiple files.
+ *
+ * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_rename
+ */
+
+import { Annotation, type Extension } from "@codemirror/state";
 import type { EditorView, KeyBinding } from "@codemirror/view";
 import { getDialog, keymap, showDialog } from "@codemirror/view";
 import type * as LSP from "vscode-languageserver-protocol";
@@ -7,8 +18,11 @@ import { offsetToPos, posToOffset } from "../utils.js";
 import type { LSExtensionGetter } from "./types.js";
 
 export interface RenameExtensionsArgs {
+  /** Keybindings to trigger the rename action. */
   shortcuts?: KeyBinding[];
+  /** Callback for when a rename is received that affects other (non active) files. */
   onExternalRename?: OnExternalRenameCallback;
+  /** Callback for when a rename is received. */
   onRename?: OnRenameCallback;
 }
 
@@ -22,7 +36,7 @@ export type OnRenameCallback = (
 export type OnExternalRenameCallback = OnRenameCallback;
 
 export const getRenameExtensions: LSExtensionGetter<RenameExtensionsArgs> = ({
-  shortcuts = [{ key: "F2" }],
+  shortcuts = [],
   onExternalRename,
   onRename,
 }: RenameExtensionsArgs): Extension[] => {
@@ -31,19 +45,24 @@ export const getRenameExtensions: LSExtensionGetter<RenameExtensionsArgs> = ({
       shortcuts.map((shortcut) => ({
         ...shortcut,
         run: (view: EditorView) => {
-          return handleRename({
+          void handleRename({
+            // unfortunately we can't take async, so we always eat the keybind
             view,
             renameEnabled: true,
             onExternalRename,
             onRename,
           });
+          return true;
         },
       })),
     ),
   ];
 };
 
-export function handleRename({
+/**
+ * Handles the renaming of a symbol in the editor.
+ */
+export async function handleRename({
   view,
   renameEnabled = true,
   onExternalRename,
@@ -53,14 +72,14 @@ export function handleRename({
   renameEnabled?: boolean;
   onExternalRename?: OnExternalRenameCallback;
   onRename?: OnRenameCallback;
-}): boolean {
+}): Promise<boolean> {
   if (!renameEnabled) return false;
 
   const lsPlugin = LSCore.ofOrThrow(view);
 
   const pos = view.state.selection.main.head;
   const { line, character } = offsetToPos(view.state.doc, pos);
-  requestRename({
+  await requestRename({
     view,
     line,
     character,
@@ -71,6 +90,9 @@ export function handleRename({
   return true;
 }
 
+/**
+ * Requests a rename operation from the language server.
+ */
 async function requestRename({
   view,
   line,
@@ -245,7 +267,15 @@ function prepareRenameFallback({
   };
 }
 
-async function applyRenameEdit(
+/**
+ * Annotation to mark transactions that apply rename edits.
+ */
+const wasRenameApplication = Annotation.define<boolean>();
+
+/**
+ * Handles the renaming of a symbol in the editor.
+ */
+export async function applyRenameEdit(
   view: EditorView,
   edit: LSP.WorkspaceEdit | null,
   documentUri: string,
@@ -293,7 +323,12 @@ async function applyRenameEdit(
           insert: edit.newText,
         }));
 
-        view.dispatch(view.state.update({ changes }));
+        view.dispatch(
+          view.state.update({
+            changes,
+            annotations: wasRenameApplication.of(true),
+          }),
+        );
         return true;
       }
 
@@ -340,7 +375,12 @@ async function applyRenameEdit(
         insert: change.newText,
       }));
 
-      view.dispatch(view.state.update({ changes: changeSpecs }));
+      view.dispatch(
+        view.state.update({
+          changes: changeSpecs,
+          annotations: wasRenameApplication.of(true),
+        }),
+      );
     }
     return true;
   }

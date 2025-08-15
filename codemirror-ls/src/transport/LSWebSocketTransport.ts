@@ -13,8 +13,6 @@ import {
 } from "vscode-jsonrpc";
 import type { LSITransport } from "./LSITransport.js";
 
-const MAX_CHUNK = 900 * 1024;
-
 interface LSWebSocketTransportOptions {
   /** Called when the WebSocket connection is opened */
   onWSOpen?: (e: Event) => void;
@@ -26,8 +24,31 @@ interface LSWebSocketTransportOptions {
   onLSHealthy?: () => void;
   /** The notification path to listen for to consider the LS "healthy" */
   healthyNotificationPath?: string;
+  /**
+   * The maximum message size in bytes.
+   *
+   * This is useful because some cloud providers (like Cloudflare on Cloudflare
+   * containers) limit the maximum inbound/outbound message size. Since the LSP
+   * protocol already offers support for chunking by requiring specifying
+   * "Content-Length" headers, we can use this to limit the maximum size of
+   * messages we will handle by arbitrarily chunking messages before sending
+   * them.
+   *
+   * @default 512000 (500 KB)
+   **/
+  maxMessageSize?: number;
 }
 
+/**
+ * A transport implementation for connecting to a language server over WebSocket.
+ *
+ * This is unique to many WebSocket transport implementations (for example OpenRPC's
+ * https://github.com/open-rpc/client-js/blob/master/src/transports/WebSocketTransport.ts)
+ * in that we use the native vscode-jsonrpc library to handle the JSON-RPC protocol
+ * messages over the WebSocket connection as if it were just a regular stream.
+ * We include the full output of LSP messages including the Content-Length headers
+ * and so forth.
+ */
 export class LSWebSocketTransport implements LSITransport {
   public connection?: WebSocket;
   public uri: string;
@@ -37,6 +58,7 @@ export class LSWebSocketTransport implements LSITransport {
   public onWSError?: (error: ErrorEvent) => void;
   public onLSHealthy?: () => void;
   public healthyNotificationPath?: string;
+  public readonly maxMessageSize: number;
 
   #messageConnection: MessageConnection | null = null;
   #connectingPromise: Promise<void> | null = null;
@@ -65,6 +87,7 @@ export class LSWebSocketTransport implements LSITransport {
       onLSHealthy,
       onWSError,
       healthyNotificationPath,
+      maxMessageSize = 500 * 1024, // 500 KB
     }: LSWebSocketTransportOptions = {},
   ) {
     this.uri = uri.replace("http", "ws");
@@ -73,6 +96,7 @@ export class LSWebSocketTransport implements LSITransport {
     this.onWSClose = onWSClose;
     this.onWSError = onWSError;
     this.healthyNotificationPath = healthyNotificationPath;
+    this.maxMessageSize = maxMessageSize;
   }
 
   async sendRequest(
@@ -205,7 +229,10 @@ export class LSWebSocketTransport implements LSITransport {
       return;
     }
 
-    const { reader, writer } = createWebSocketConnection(this.connection);
+    const { reader, writer } = createWebSocketConnection(
+      this.connection,
+      this.maxMessageSize,
+    );
     this.#messageConnection = createMessageConnection(reader, writer);
 
     this.#messageConnection.onNotification((method, params) => {
@@ -264,8 +291,10 @@ class WebSocketWritableStream implements RAL.WritableStream {
   #pendingContentLength: number | null = null;
   #pendingBuffer: Uint8Array[] = [];
   #supportedEncodings: string[] = ["utf-8", "utf8", "ascii"];
+  #chunkSize: number;
 
-  constructor(socket: WebSocket) {
+  constructor(socket: WebSocket, chunkSize: number) {
+    this.#chunkSize = chunkSize;
     this.#socket = socket;
     this.#socket.binaryType = "arraybuffer";
     this.#socket.addEventListener("error", (event) => {
@@ -330,7 +359,7 @@ class WebSocketWritableStream implements RAL.WritableStream {
       }
 
       // Chunk after we've loaded up the full content length header + body Uint8Array
-      for (const chunk of chunkByteArray(combinedData, MAX_CHUNK)) {
+      for (const chunk of chunkByteArray(combinedData, this.#chunkSize)) {
         this.#socket.send(chunk.buffer);
       }
 
@@ -339,7 +368,7 @@ class WebSocketWritableStream implements RAL.WritableStream {
       this.#pendingBuffer = [];
     } else {
       // Send normally if no pending content length
-      for (const chunk of chunkByteArray(uint8Data, MAX_CHUNK)) {
+      for (const chunk of chunkByteArray(uint8Data, this.#chunkSize)) {
         this.#socket.send(chunk.buffer);
       }
     }
@@ -413,14 +442,17 @@ class WebSocketReadableStream implements RAL.ReadableStream {
   }
 }
 
-function createWebSocketConnection(socket: WebSocket): {
+function createWebSocketConnection(
+  socket: WebSocket,
+  chunkSize: number,
+): {
   reader: MessageReader;
   writer: MessageWriter;
 } {
   const readableStream = new WebSocketReadableStream(socket);
   const reader = new ReadableStreamMessageReader(readableStream);
 
-  const writerStream = new WebSocketWritableStream(socket);
+  const writerStream = new WebSocketWritableStream(socket, chunkSize);
   const writer = new WriteableStreamMessageWriter(writerStream);
 
   return { reader, writer };

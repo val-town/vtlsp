@@ -4,11 +4,27 @@ import type { Readable, Writable } from "node:stream";
 import { $ } from "execa";
 
 interface LSProcOptions {
+  /** command to run the LS process */
   lsCommand: string;
+  /** Arguments to pass to the LS process */
   lsArgs: string[];
+  /** Callback for when LS process exits */
   onExit?: (code: number | null, signal: NodeJS.Signals | null) => void;
+  /** Callback for when LS process errors  */
   onError?: (error: Error) => void;
+  /**
+   * File to stream stdout to.
+   *
+   * Useful since the LSP naturally communicates over stdout/stderr, so teeing
+   * it to a file is often useful for debugging.
+   **/
   lsStdoutLogPath?: string;
+  /**
+   * File to stream stderr to.
+   *
+   * Useful since the LSP naturally communicates over stdout/stderr, so teeing
+   * it to a file is often useful for debugging.
+   **/
   lsStderrLogPath?: string;
 }
 

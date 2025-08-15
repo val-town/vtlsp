@@ -1,3 +1,14 @@
+/**
+ * @module completions
+ * @description Extensions for handling code completions.
+ * 
+ * Code completions are the list of suggestions that appear when a user types in
+ * the editor, such as variable names, function names, or snippets; or, when
+ * manually invoked.
+ * 
+ * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_completion
+ */
+
 import type { Completion, CompletionContext } from "@codemirror/autocomplete";
 import {
   autocompletion,
@@ -18,9 +29,23 @@ import type { LSExtensionGetter } from "./types.js";
 
 export interface CompletionExtensionsArgs {
   render: CompletionRenderer;
+  /**
+   * Regular expression to match the completion text before the cursor
+   *
+   * When the character before the cursor fail to match this pattern,
+   * completions will not be triggered.
+   **/
   completionMatchBefore?: RegExp;
+  /** Additional completion options for codemirror completions */
+  additionalCompletionConfig?: Partial<Parameters<typeof autocompletion>[0]>;
 }
 
+/**
+ * Renderer for additional content in completion popups.
+ *
+ * This is shown when a user focuses but does not yet select a completion item.
+ * It may include things like documentation on the symbol.
+ */
 export type CompletionRenderer = (
   element: HTMLElement,
   contents: LSP.MarkupContent | LSP.MarkedString | LSP.MarkedString[] | string,
@@ -28,9 +53,10 @@ export type CompletionRenderer = (
 
 export const getCompletionsExtensions: LSExtensionGetter<
   CompletionExtensionsArgs
-> = ({ render, completionMatchBefore }) => {
+> = ({ render, completionMatchBefore, additionalCompletionConfig }) => {
   return [
     autocompletion({
+      ...additionalCompletionConfig,
       override: [
         async (context: CompletionContext) => {
           if (!context.view) return null;
@@ -148,6 +174,12 @@ export function toCodemirrorSnippet(snippet: string): string {
   );
 }
 
+/**
+ * Converts a LSP.CompletionItem to a CodeMirror completion item.
+ *
+ * - Has a resolveable info function that fetches additional details
+ * - Applies text edits or insertText based on the item
+ */
 export function toCodemirrorCompletion(
   item: LSP.CompletionItem,
   options: {
@@ -239,6 +271,9 @@ export function toCodemirrorCompletion(
       if (!additionalTextEdits) {
         return;
       }
+
+      // Apply edits in reverse order of position (bottom of document to top of
+      // document) in case there are overlapping edits
 
       const sortedEdits = additionalTextEdits.sort(
         ({ range: { end: a } }, { range: { end: b } }) => {
@@ -343,10 +378,33 @@ export function toCodemirrorCompletion(
   return completion;
 }
 
+/**
+ * Sort completion items based on:
+ * 1. Preselected items first
+ * 2. SortText or label
+ * 3. If matchBefore exists, prioritize items that match the prefix
+ */
 export function sortCompletionItems(
   items: LSP.CompletionItem[],
   matchBefore: string | undefined,
 ): LSP.CompletionItem[] {
+  function prefixSortCompletion(prefix: string) {
+    // Sort completion items:
+    // 1. Prioritize items that start with the exact token text
+    // 2. Otherwise maintain original order
+    return (a: LSP.CompletionItem, b: LSP.CompletionItem) => {
+      const aText = a.sortText ?? a.label;
+      const bText = b.sortText ?? b.label;
+      switch (true) {
+        case aText.startsWith(prefix) && !bText.startsWith(prefix):
+          return -1;
+        case !aText.startsWith(prefix) && bText.startsWith(prefix):
+          return 1;
+      }
+      return aText.localeCompare(bText);
+    };
+  }
+
   // Create an array of sort functions to apply in order
   const sortFunctions = [
     // First prioritize preselected items
@@ -389,23 +447,11 @@ export function sortCompletionItems(
   return result;
 }
 
-function prefixSortCompletion(prefix: string) {
-  // Sort completion items:
-  // 1. Prioritize items that start with the exact token text
-  // 2. Otherwise maintain original order
-  return (a: LSP.CompletionItem, b: LSP.CompletionItem) => {
-    const aText = a.sortText ?? a.label;
-    const bText = b.sortText ?? b.label;
-    switch (true) {
-      case aText.startsWith(prefix) && !bText.startsWith(prefix):
-        return -1;
-      case !aText.startsWith(prefix) && bText.startsWith(prefix):
-        return 1;
-    }
-    return aText.localeCompare(bText);
-  };
-}
-
+/**
+ * Get the "TriggerKind" for completions based on the context.
+ *
+ * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#completionTriggerKind
+ */
 function getCompletionTriggerKind(
   context: CompletionContext,
   triggerCharacters: string[],

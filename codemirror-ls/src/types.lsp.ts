@@ -1,3 +1,5 @@
+// Generated file, do not edit
+
 /** biome-ignore-all lint/suspicious/noExplicitAny: generated */
 import type * as LSP from "vscode-languageserver-protocol";
 

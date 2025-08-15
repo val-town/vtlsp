@@ -18,6 +18,9 @@ interface WebSocketStreamOptions {
   chunkSize?: number;
 }
 
+/**
+ * A NodeJS readable stream that reads data from a WebSocket as a stream of bytes.
+ */
 class WebSocketReadableStream extends Readable {
   #cleanupCbs: (() => void)[] = [];
 
@@ -96,7 +99,7 @@ class WebSocketReadableStream extends Readable {
 }
 
 /**
- * A Writable stream that sends data to a WebSocket
+ * A NodeJS writable stream that writes data to a WebSocket as a stream of bytes.
  */
 class WebSocketWritableStream extends Writable {
   #websocket: WebSocket;

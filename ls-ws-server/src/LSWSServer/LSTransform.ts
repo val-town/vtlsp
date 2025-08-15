@@ -12,6 +12,15 @@ import { defaultLogger } from "~/logger.js";
 
 type ReceiveState = "content-length" | "jsonrpc";
 
+/**
+ * Take a raw input stream of bytes, parse out LSP messages, and re-output as a
+ * stream of bytes, but as chunks that are entire LSP messages.
+ * 
+ * We want to send full LSP messages to the language server process in case we
+ * have multiple workers sending chunks to the language server at the same time.
+ * 
+ * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#baseProtocol
+ */
 export class ToLSTransform extends Transform {
   private _state: ReceiveState;
   private _curContentLength: number = 0;
@@ -155,6 +164,13 @@ export class ToLSTransform extends Transform {
   }
 }
 
+/**
+ * Takes object LSP messages as input and formats them according to LSP spec to
+ * add things like the Content-Length header. Outputs as a stream of bytes that
+ * conforms to the LSP protocol.
+ * 
+ * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#baseProtocol
+ */
 export class FromLSTransform extends Transform {
   private _encoding: NodeJS.BufferEncoding;
 

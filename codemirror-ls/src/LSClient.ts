@@ -4,6 +4,26 @@ import type { LSCore } from "./LSPlugin.js";
 import type { LSITransport } from "./transport/LSITransport.js";
 import type { LSPNotifyMap, LSPRequestMap } from "./types.lsp.js";
 
+export interface LanguageServerClientOptions {
+  /** List of workspace folders to send to the language server */
+  workspaceFolders: LSP.WorkspaceFolder[] | null;
+  /** Whether to automatically close the connection when the editor is destroyed */
+  autoClose?: boolean;
+  /**
+   * Client capabilities to send to the server during initialization.
+   * Can be an object or a function that modifies the default capabilities.
+   */
+  capabilities?:
+    | LSP.InitializeParams["capabilities"]
+    | ((
+        defaultCapabilities: LSP.InitializeParams["capabilities"],
+      ) => LSP.InitializeParams["capabilities"]);
+  /** Additional initialization options to send to the language server */
+  initializationOptions?: LSP.InitializeParams["initializationOptions"];
+  /** JSON-RPC client for communication with the language server */
+  transport: LSITransport;
+}
+
 export class LSClient {
   public ready: boolean;
   public capabilities: LSP.ServerCapabilities | null;
@@ -256,27 +276,4 @@ export class LSClient {
   public onError(handler: (error: any) => void): () => void {
     return this.#errorEmitter.event(handler).dispose;
   }
-}
-
-/**
- * Options for configuring the language server client
- */
-export interface LanguageServerClientOptions {
-  /** List of workspace folders to send to the language server */
-  workspaceFolders: LSP.WorkspaceFolder[] | null;
-  /** Whether to automatically close the connection when the editor is destroyed */
-  autoClose?: boolean;
-  /**
-   * Client capabilities to send to the server during initialization.
-   * Can be an object or a function that modifies the default capabilities.
-   */
-  capabilities?:
-    | LSP.InitializeParams["capabilities"]
-    | ((
-        defaultCapabilities: LSP.InitializeParams["capabilities"],
-      ) => LSP.InitializeParams["capabilities"]);
-  /** Additional initialization options to send to the language server */
-  initializationOptions?: LSP.InitializeParams["initializationOptions"];
-  /** JSON-RPC client for communication with the language server */
-  transport: LSITransport;
 }
