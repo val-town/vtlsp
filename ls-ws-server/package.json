@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "@valtown/ls-ws-server",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "description": "Language server WebSocket server and proxy",
   "repository": {
     "type": "git",
@@ -52,9 +52,9 @@
       "default": "./dist/logger.js"
     },
     "./proxy": {
-      "types": "./dist/LSroxy/index.d.ts",
-      "import": "./dist/LSroxy/index.js",
-      "default": "./dist/LSroxy/index.js"
+      "types": "./dist/LSProxy/index.d.ts",
+      "import": "./dist/LSProxy/index.js",
+      "default": "./dist/LSProxy/index.js"
     },
     "./server": {
       "types": "./dist/LSWSServer/index.d.ts",

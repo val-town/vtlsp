@@ -1,9 +1,9 @@
 {
   "version": "5",
   "specifiers": {
-    "npm:@hono/zod-validator@~0.7.2": "0.7.2_hono@4.9.1_zod@4.0.17",
-    "npm:@valtown/ls-ws-server@^0.0.18": "0.0.18_@codemirror+autocomplete@6.18.6_@codemirror+lint@6.8.5_@codemirror+state@6.5.2_@codemirror+view@6.38.1_codemirror@6.0.2",
-    "npm:hono@^4.9.1": "4.9.1",
+    "npm:@hono/zod-validator@~0.7.2": "0.7.2_hono@4.9.2_zod@4.0.17",
+    "npm:@valtown/ls-ws-server@^0.0.19": "0.0.19_@codemirror+autocomplete@6.18.6_@codemirror+lint@6.8.5_@codemirror+state@6.5.2_@codemirror+view@6.38.1_codemirror@6.0.2",
+    "npm:hono@^4.9.2": "4.9.2",
     "npm:vscode-languageserver-protocol@^3.17.5": "3.17.5",
     "npm:zod@^4.0.17": "4.0.17"
   },
@@ -68,7 +68,7 @@
         "w3c-keyname"
       ]
     },
-    "@hono/zod-validator@0.7.2_hono@4.9.1_zod@4.0.17": {
+    "@hono/zod-validator@0.7.2_hono@4.9.2_zod@4.0.17": {
       "integrity": "sha512-ub5eL/NeZ4eLZawu78JpW/J+dugDAYhwqUIdp9KYScI6PZECij4Hx4UsrthlEUutqDDhPwRI0MscUfNkvn/mqQ==",
       "dependencies": [
         "hono",
@@ -99,8 +99,8 @@
     "@sindresorhus/merge-streams@4.0.0": {
       "integrity": "sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ=="
     },
-    "@valtown/ls-ws-server@0.0.18_@codemirror+autocomplete@6.18.6_@codemirror+lint@6.8.5_@codemirror+state@6.5.2_@codemirror+view@6.38.1_codemirror@6.0.2": {
-      "integrity": "sha512-lZqdb1aIUotj8Jp5JmYPo8xGpSEq2wJ5T+u3DK6ZdxkLVdMkdVYfncaJWg+RjrzadRXuIGrGx3hicg/8Flhrmg==",
+    "@valtown/ls-ws-server@0.0.19_@codemirror+autocomplete@6.18.6_@codemirror+lint@6.8.5_@codemirror+state@6.5.2_@codemirror+view@6.38.1_codemirror@6.0.2": {
+      "integrity": "sha512-b/OW5WEECWeAhZWp6QKKJ2ceghmNf2ATFikQX/rmXg5NHFBf/7HFJFT9plRURIlj8pLpESvQ6pUICdewXq69BQ==",
       "dependencies": [
         "@codemirror/autocomplete",
         "@codemirror/lint",
@@ -205,8 +205,8 @@
     "help-me@5.0.0": {
       "integrity": "sha512-7xgomUX6ADmcYzFik0HzAxh/73YlKR9bmFzf51CZwR+b6YtzU2m0u49hQCqV6SvlqIqsaxovfwdvbnsw3b/zpg=="
     },
-    "hono@4.9.1": {
-      "integrity": "sha512-qfvdJ42t6CQE0N/iSCa8KsW8SQqYD67YB+TYbwPHlnALvX+s7ynh8otR1NEk5jXtUg73gpV/B82OSufDmwtX3w=="
+    "hono@4.9.2": {
+      "integrity": "sha512-UG2jXGS/gkLH42l/1uROnwXpkjvvxkl3kpopL3LBo27NuaDPI6xHNfuUSilIHcrBkPfl4y0z6y2ByI455TjNRw=="
     },
     "human-signals@8.0.1": {
       "integrity": "sha512-eKCa6bwnJhvxj14kZk5NCPc6Hb6BdsU9DZcOnmQKSnO1VKrfV0zCvtttPZUsBvjmNDn8rpcJfpwSYnHBjc95MQ=="
@@ -430,8 +430,8 @@
   "workspace": {
     "dependencies": [
       "npm:@hono/zod-validator@~0.7.2",
-      "npm:@valtown/ls-ws-server@^0.0.18",
-      "npm:hono@^4.9.1",
+      "npm:@valtown/ls-ws-server@^0.0.19",
+      "npm:hono@^4.9.2",
       "npm:vscode-languageserver-protocol@^3.17.5",
       "npm:zod@^4.0.17"
     ]
