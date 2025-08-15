@@ -5,6 +5,7 @@
     "url": "git+https://github.com/val-town/vtlsp.git"
   },
   "homepage": "https://github.com/val-town/vtlsp",
+  "private": true,
   "version": "0.0.2",
   "license": "ISC",
   "type": "module",

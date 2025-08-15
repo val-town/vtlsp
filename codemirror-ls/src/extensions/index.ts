@@ -1,7 +1,7 @@
 /**
  * @module index
  * @description Entry point for all editor extensions.
- * 
+ *
  * Every extension export provides a "get"-extensions function that returns
  * an array of extensions that can be used with codemirror.
  */

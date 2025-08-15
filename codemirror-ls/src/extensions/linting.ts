@@ -1,11 +1,11 @@
 /**
  * @module linting
  * @description Extensions for handling diagnostics and code actions in the editor.
- * 
+ *
  * "Linting" here refers to all diagnostics and associated code actions. These
  * are the buttons that show up on top of squiggly lines like "infer return
  * type."
- * 
+ *
  * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_publishDiagnostics
  * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_codeAction
  */

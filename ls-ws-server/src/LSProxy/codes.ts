@@ -2,7 +2,7 @@ import type { LSProxyCode } from "./types.js";
 
 /**
  * Codes used in the `ls_proxy_code` field of responses from the LS Proxy.
- * 
+ *
  * Used for "meta" responses that indicate special conditions, such as a
  * request being cancelled.
  */

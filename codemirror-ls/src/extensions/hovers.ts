@@ -5,7 +5,7 @@
  * Hover tooltips provide additional context and information about code elements
  * when users hover over them. This can include documentation, type information,
  * and other relevant details.
- * 
+ *
  * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_hover
  */
 

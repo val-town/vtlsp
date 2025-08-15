@@ -1,11 +1,11 @@
 /**
  * @module completions
  * @description Extensions for handling code completions.
- * 
+ *
  * Code completions are the list of suggestions that appear when a user types in
  * the editor, such as variable names, function names, or snippets; or, when
  * manually invoked.
- * 
+ *
  * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_completion
  */
 
