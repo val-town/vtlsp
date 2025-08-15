@@ -23,7 +23,7 @@ Our language server WebSocket server is able to multicast messages to many consu
 
 Additionally, to run an LSP remotely, some language servers, like the Deno language server, rely on file system events and require physical files on disc to work properly. There are also other language server lifecycle events that are useful to intercept or handle differently in a remote environment, like for example installing packages as the user imports them. We provide an LS proxy to make it easy to automatically transform requests for specific methods with arbitrary middleware.
 
-# [Live Demo](https://cf-vtlsp-demo.val-town.workers.dev)
+# [Live Demo (Here)](https://cf-vtlsp-demo.val-town.workers.dev/demo)
 
 ![The live demo](https://filedumpthing.val.run/blob/blob_file_1755126264734_output.gif)
 
