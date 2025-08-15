@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "@valtown/ls-ws-server",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "Language server WebSocket server and proxy",
   "repository": {
     "type": "git",

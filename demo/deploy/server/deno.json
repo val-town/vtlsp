@@ -8,5 +8,7 @@
     "hono": "npm:hono@^4.9.2",
     "vscode-languageserver-protocol": "npm:vscode-languageserver-protocol@^3.17.5",
     "zod": "npm:zod@^4.0.17"
-  }
+  },
+  "nodeModulesDir": "auto",
+  "links": ["../../../ls-ws-server/"]
 }

@@ -100,7 +100,6 @@
       "integrity": "sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ=="
     },
     "@valtown/ls-ws-server@0.0.20_@codemirror+autocomplete@6.18.6_@codemirror+lint@6.8.5_@codemirror+state@6.5.2_@codemirror+view@6.38.1_codemirror@6.0.2": {
-      "integrity": "sha512-6uxDvbiu/rSr8IL4QI+avaJ45gzoiWBdiD6h4d/0NuPQoarWl8eNeyRr4YohzGFsQ+F3cx7omlr3hlMo+x/P2w==",
       "dependencies": [
         "@codemirror/autocomplete",
         "@codemirror/lint",
@@ -434,6 +433,79 @@
       "npm:hono@^4.9.2",
       "npm:vscode-languageserver-protocol@^3.17.5",
       "npm:zod@^4.0.17"
-    ]
+    ],
+    "links": {
+      "npm:@valtown/codemirror-ls@0.0.10": {
+        "dependencies": [
+          "npm:es-toolkit@^1.39.8",
+          "npm:p-queue@^8.1.0",
+          "npm:vscode-jsonrpc@^8.2.1",
+          "npm:vscode-languageserver-protocol@^3.17.5"
+        ],
+        "peerDependencies": [
+          "npm:@codemirror/autocomplete@6",
+          "npm:@codemirror/lint@6",
+          "npm:@codemirror/state@6",
+          "npm:@codemirror/view@6",
+          "npm:codemirror@6"
+        ]
+      },
+      "npm:@valtown/ls-ws-server@0.0.20": {
+        "dependencies": [
+          "npm:es-toolkit@^1.39.8",
+          "npm:execa@^9.6.0",
+          "npm:isows@^1.0.7",
+          "npm:json-rpc-2.0@^1.7.1",
+          "npm:p-queue@^8.1.0",
+          "npm:pino-pretty@^13.1.1",
+          "npm:pino@^9.8.0",
+          "npm:vscode-jsonrpc@^8.2.1",
+          "npm:vscode-languageserver-protocol@^3.17.5",
+          "npm:vscode-uri@^3.1.0"
+        ],
+        "peerDependencies": [
+          "npm:@codemirror/autocomplete@6",
+          "npm:@codemirror/lint@6",
+          "npm:@codemirror/state@6",
+          "npm:@codemirror/view@6",
+          "npm:codemirror@6"
+        ]
+      },
+      "npm:demo@0.0.2": {
+        "dependencies": [
+          "npm:@cloudflare/containers@^0.0.25",
+          "npm:@cloudflare/wrangler@^1.21.0",
+          "npm:@codemirror/lang-javascript@^6.2.4",
+          "npm:@codemirror/state@6.5.2",
+          "npm:@hono/zod-validator@~0.7.2",
+          "npm:@tailwindcss/vite@^4.1.11",
+          "npm:@uiw/react-codemirror@^4.24.2",
+          "npm:@valtown/codemirror-ls@^0.0.8",
+          "npm:codemirror@^6.0.2",
+          "npm:hast-util-to-jsx-runtime@^2.3.6",
+          "npm:hono@^4.9.0",
+          "npm:lowlight@^3.3.0",
+          "npm:lucide-react@0.539",
+          "npm:react-dom@^19.1.1",
+          "npm:react-markdown@^10.1.0",
+          "npm:react@^19.1.1",
+          "npm:rehype-raw@7",
+          "npm:tailwindcss@^4.1.11",
+          "npm:vscode-languageserver-protocol@^3.17.5",
+          "npm:vscode-uri@^3.1.0",
+          "npm:wrangler@^4.29.1",
+          "npm:ws@^8.18.3",
+          "npm:zod@^4.0.17"
+        ]
+      },
+      "npm:vtlsp@0.0.1": {
+        "dependencies": [
+          "npm:@types/ws@^8.18.1",
+          "npm:json-rpc-2.0@^1.7.1",
+          "npm:msw@^2.10.4",
+          "npm:pino@^9.8.0"
+        ]
+      }
+    }
   }
 }

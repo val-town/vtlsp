@@ -87,7 +87,7 @@ export class LSWebSocketTransport implements LSITransport {
       onLSHealthy,
       onWSError,
       healthyNotificationPath,
-      maxMessageSize = 500 * 1024, // 500 KB
+      maxMessageSize = 100 * 1024, // 500 KB
     }: LSWebSocketTransportOptions = {},
   ) {
     this.uri = uri.replace("http", "ws");
