@@ -2,7 +2,7 @@ FROM denoland/deno:2.3.6
 
 COPY . /app
 WORKDIR /app/deploy/server
-RUN deno cache .
+RUN deno cache . --frozen=true
 
 EXPOSE 5002
 
