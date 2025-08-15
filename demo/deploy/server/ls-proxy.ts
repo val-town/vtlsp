@@ -1,4 +1,5 @@
-import { LSProxy, utils } from "../../../ls-ws-server/dist/LSProxy";
+import { LSProxy } from "@valtown/ls-ws-server";
+import { utils } from "@valtown/ls-ws-server/proxy";
 
 const TEMP_DIR = await Deno.makeTempDir({ prefix: "vtlsp-proxy" });
 
