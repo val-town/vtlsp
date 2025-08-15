@@ -10,6 +10,7 @@ export class VTLSPDemoContainer extends Container {
 export default {
   fetch: new Hono<{ Bindings: Env }>()
     .use(honoLogger())
+    .get("/demo", (c) => c.redirect(`/?id=${crypto.randomUUID()}`))
     .all("/lsp/*", async (c) => {
       const container = getContainer(
         c.env.VTLSP_DEMO_CONTAINER,
