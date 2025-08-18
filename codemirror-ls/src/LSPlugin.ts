@@ -84,6 +84,7 @@ class LSCoreBase {
     timeout = 5_000,
   ): Promise<T> {
     await this.syncChanges();
+    await this.#sendChangesDispatchQueue.onIdle();
     this.#sendChangesDispatchQueue.pause();
     try {
       return await Promise.race([
@@ -98,6 +99,7 @@ class LSCoreBase {
       ]);
     } finally {
       this.#sendChangesDispatchQueue.start();
+      await this.syncChanges();
     }
   }
 
