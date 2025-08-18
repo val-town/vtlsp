@@ -1,10 +1,9 @@
-import { describe } from "vitest";
-import { beforeEach, it, expect, vi } from "vitest";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { LSClient } from "./LSClient.js";
 import { LSCore } from "./LSPlugin.js";
 import { LSMockTransport } from "./transport/LSMockTransport.js";
-import { LSClient } from "./LSClient.js";
 
 describe("LSPlugin", () => {
   let mockTransport: LSMockTransport;

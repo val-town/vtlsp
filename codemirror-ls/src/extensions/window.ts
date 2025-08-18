@@ -11,8 +11,8 @@
 import type { EditorView } from "@codemirror/view";
 import { ViewPlugin } from "@codemirror/view";
 import * as LSP from "vscode-languageserver-protocol";
-import type { LSExtensionGetter, Renderer } from "./types.js";
 import { LSCore } from "../LSPlugin.js";
+import type { LSExtensionGetter, Renderer } from "./types.js";
 
 export interface WindowExtensionArgs {
   render: WindowRenderer;
