@@ -12,7 +12,7 @@
 import { StateEffect, StateField } from "@codemirror/state";
 import type { EditorView, Tooltip, ViewUpdate } from "@codemirror/view";
 import { showTooltip, ViewPlugin } from "@codemirror/view";
-import type * as LSP from "vscode-languageserver-protocol";
+import * as LSP from "vscode-languageserver-protocol";
 import { LSCore } from "../LSPlugin.js";
 import { offsetToPos } from "../utils.js";
 import type { LSExtensionGetter } from "./types.js";
@@ -32,6 +32,11 @@ export type RenderSignatureHelp = (
   activeSignature: number,
   /** The currently active function/method parameter in the signature help popup. */
   activeParameter?: number,
+  /**
+   * Sometimes signature help lags a bit while the LSP is processing updates.
+   * This is the number of times to retry getting signature help.
+   */
+  maxAttempts?: number,
 ) => Promise<void>;
 
 export const getSignatureExtensions: LSExtensionGetter<
@@ -94,8 +99,8 @@ function createSignaturePlugin(
         }
 
         if (triggerCharacter) {
-          this.startRequest(update.view, {
-            triggerKind: 2 /* TriggerCharacter */,
+          void this.startRequest(update.view, {
+            triggerKind: LSP.SignatureHelpTriggerKind.TriggerCharacter,
             isRetrigger: !!sigState,
             triggerCharacter,
             activeSignatureHelp: sigState ? sigState.data : undefined,
@@ -103,8 +108,8 @@ function createSignaturePlugin(
         } else if (sigState && update.selectionSet) {
           if (this.delayedRequest) clearTimeout(this.delayedRequest);
           this.delayedRequest = window.setTimeout(() => {
-            this.startRequest(update.view, {
-              triggerKind: 3 /* ContentChange */,
+            void this.startRequest(update.view, {
+              triggerKind: LSP.SignatureHelpTriggerKind.ContentChange,
               isRetrigger: true,
               activeSignatureHelp: sigState.data,
             });
@@ -123,14 +128,21 @@ function createSignaturePlugin(
         const req = this.activeRequest;
 
         try {
-          const result = await lsPlugin.requestWithLock(
-            "textDocument/signatureHelp",
-            {
-              context,
-              position: offsetToPos(view.state.doc, pos),
-              textDocument: { uri: documentUri },
-            },
-          ); // TODO: check type of result
+          let result = null;
+          let attempts = 0;
+          const maxAttempts = 3;
+          await new Promise((r) => setTimeout(r, 150));
+          while (attempts < maxAttempts && !result) {
+            result = await lsPlugin.requestWithLock(
+              "textDocument/signatureHelp",
+              {
+                context,
+                position: offsetToPos(view.state.doc, pos),
+                textDocument: { uri: documentUri },
+              },
+            );
+            attempts++;
+          }
 
           if (req.drop) return;
           if (result && result.signatures.length > 0) {

@@ -115,9 +115,9 @@ class LSCoreBase {
     });
   }
 
-  public async syncChanges() {
-    if (this.#lastSentChanges === this.#view.state.doc.toString()) return;
-    if (!this.client.ready) return;
+  public async syncChanges(): Promise<boolean> {
+    if (this.#lastSentChanges === this.#view.state.doc.toString()) return false;
+    if (!this.client.ready) return false;
 
     const calledAtVersion = this.documentVersion;
 
@@ -125,22 +125,26 @@ class LSCoreBase {
     // the most previously successful sync.
     this.#sendChangesDispatchQueue.clear();
     await this.#sendChangesDispatchQueue.onIdle();
-    return await this.#sendChangesDispatchQueue.add(
-      async () => {
-        if (calledAtVersion !== this.documentVersion) return;
+    return (
+      (await this.#sendChangesDispatchQueue.add(
+        async () => {
+          if (calledAtVersion !== this.documentVersion) return false;
 
-        this.#currentSyncController?.abort();
-        this.#currentSyncController = new AbortController();
-        await this.client.notify("textDocument/didChange", {
-          textDocument: {
-            uri: this.documentUri,
-            version: ++this.documentVersion,
-          },
-          contentChanges: [{ text: this.#view.state.doc.toString() }],
-        });
-        this.#lastSentChanges = this.#view.state.doc.toString();
-      },
-      { priority: this.documentVersion }, // more recent = higher priority
+          this.#currentSyncController?.abort();
+          this.#currentSyncController = new AbortController();
+          await this.client.notify("textDocument/didChange", {
+            textDocument: {
+              uri: this.documentUri,
+              version: ++this.documentVersion,
+            },
+            contentChanges: [{ text: this.#view.state.doc.toString() }],
+          });
+          this.#lastSentChanges = this.#view.state.doc.toString();
+
+          return true;
+        },
+        { priority: this.documentVersion }, // more recent = higher priority
+      )) ?? false
     );
   }
 

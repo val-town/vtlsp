@@ -72,6 +72,7 @@ export const getContextMenuExtensions: LSExtensionGetter<ContextMenuArgs> = ({
     contextMenuField,
     EditorView.domEventHandlers({
       contextmenu: (event, view) => {
+        console.log("Context menu event triggered", event);
         if (event.button !== 2) return false; // Only handle right-clicks
 
         const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
