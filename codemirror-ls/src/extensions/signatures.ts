@@ -23,6 +23,11 @@ import type { LSExtensionGetter } from "./types.js";
  */
 export interface SignatureSuggestionArgs {
   render: RenderSignatureHelp;
+  /**
+   * Sometimes signature help lags a bit while the LSP is processing updates.
+   * This is the number of times to retry getting signature help.
+   */
+  maxAttempts?: number;
 }
 
 export type RenderSignatureHelp = (
@@ -32,17 +37,12 @@ export type RenderSignatureHelp = (
   activeSignature: number,
   /** The currently active function/method parameter in the signature help popup. */
   activeParameter?: number,
-  /**
-   * Sometimes signature help lags a bit while the LSP is processing updates.
-   * This is the number of times to retry getting signature help.
-   */
-  maxAttempts?: number,
 ) => Promise<void>;
 
 export const getSignatureExtensions: LSExtensionGetter<
   SignatureSuggestionArgs
-> = ({ render }) => {
-  return [signatureState, createSignaturePlugin(render)];
+> = ({ render, maxAttempts }) => {
+  return [signatureState, createSignaturePlugin(render, maxAttempts)];
 };
 
 function createSignaturePlugin(
@@ -51,6 +51,7 @@ function createSignaturePlugin(
     data: LSP.SignatureHelp,
     active: number,
   ) => Promise<void>,
+  maxAttempts = 3,
 ) {
   return ViewPlugin.fromClass(
     class {
@@ -130,7 +131,6 @@ function createSignaturePlugin(
         try {
           let result = null;
           let attempts = 0;
-          const maxAttempts = 3;
           await new Promise((r) => setTimeout(r, 150));
           while (attempts < maxAttempts && !result) {
             result = await lsPlugin.requestWithLock(
