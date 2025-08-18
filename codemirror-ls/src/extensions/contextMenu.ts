@@ -15,24 +15,31 @@ import { Annotation, StateField } from "@codemirror/state";
 import { EditorView, showTooltip, type Tooltip } from "@codemirror/view";
 import {
   handleFindReferences,
+  referencesOfKindSupported,
   type ReferenceExtensionsArgs,
 } from "./references.js";
-import { handleRename } from "./renames.js";
+import { handleRename, renameSupported } from "./renames.js";
 import type { LSExtensionGetter, Renderer } from "./types.js";
+import { LSCore } from "../LSPlugin.js";
 
 export interface ContextMenuArgs {
   render: ContextMenuRenderer;
   referencesArgs: ReferenceExtensionsArgs;
+  disableGoToDefinition?: boolean;
+  disableGoToTypeDefinition?: boolean;
+  disableGoToImplementation?: boolean;
+  disableFindAllReferences?: boolean;
+  disableRename?: boolean;
 }
 
 export type ContextMenuRenderer = Renderer<[callbacks: ContextMenuCallbacks]>;
 
 export type ContextMenuCallbacks = {
-  goToDefinition: () => void;
-  goToTypeDefinition: () => void;
-  goToImplementation: () => void;
-  findAllReferences: () => void;
-  rename: () => void;
+  goToDefinition?: () => void;
+  goToTypeDefinition?: () => void;
+  goToImplementation?: () => void;
+  findAllReferences?: () => void;
+  rename?: () => void;
 };
 
 export const getContextMenuExtensions: LSExtensionGetter<ContextMenuArgs> = ({
@@ -91,40 +98,110 @@ export const contextMenuActivated = Annotation.define<{
 export function handleContextMenu({
   view,
   referencesArgs,
+  disableGoToDefinition,
+  disableGoToTypeDefinition,
+  disableGoToImplementation,
+  disableFindAllReferences,
+  disableRename,
 }: {
   view: EditorView;
   referencesArgs: ReferenceExtensionsArgs;
+  disableGoToDefinition?: boolean;
+  disableGoToTypeDefinition?: boolean;
+  disableGoToImplementation?: boolean;
+  disableFindAllReferences?: boolean;
+  disableRename?: boolean;
 }) {
+  const lsPlugin = LSCore.ofOrThrow(view);
+
+  const { capabilities } = lsPlugin.client;
+  if (!capabilities) {
+    return {};
+  }
+
+  let goToDefinitionCallback: (() => void) | undefined;
+  let goToTypeDefinitionCallback: (() => void) | undefined;
+  let goToImplementationCallback: (() => void) | undefined;
+  let findAllReferencesCallback: (() => void) | undefined;
+  let renameCallback: (() => void) | undefined;
+
+  if (
+    !disableGoToDefinition &&
+    referencesOfKindSupported(capabilities, "textDocument/definition")
+  ) {
+    goToDefinitionCallback = () => {
+      if (lsPlugin.client.capabilities?.definitionProvider) {
+        handleFindReferences({
+          view,
+          kind: "textDocument/definition",
+          goToIfOneOption: true,
+        });
+      }
+    };
+  }
+
+  if (
+    !disableGoToTypeDefinition &&
+    referencesOfKindSupported(capabilities, "textDocument/typeDefinition")
+  ) {
+    goToTypeDefinitionCallback = () => {
+      if (lsPlugin.client.capabilities?.typeDefinitionProvider) {
+        handleFindReferences({
+          view,
+          kind: "textDocument/typeDefinition",
+          goToIfOneOption: true,
+        });
+      }
+    };
+  }
+
+  if (
+    !disableGoToImplementation &&
+    referencesOfKindSupported(capabilities, "textDocument/implementation")
+  ) {
+    goToImplementationCallback = () => {
+      if (lsPlugin.client.capabilities?.implementationProvider) {
+        handleFindReferences({
+          view,
+          kind: "textDocument/implementation",
+          goToIfOneOption: true,
+        });
+      }
+    };
+  }
+
+  if (
+    !disableFindAllReferences &&
+    referencesOfKindSupported(capabilities, "textDocument/references")
+  ) {
+    findAllReferencesCallback = () => {
+      if (lsPlugin.client.capabilities?.referencesProvider) {
+        handleFindReferences({
+          view,
+          kind: "textDocument/references",
+          ...referencesArgs,
+        });
+      }
+    };
+  }
+
+  if (!disableRename && renameSupported(capabilities)) {
+    renameCallback = () => {
+      if (lsPlugin.client.capabilities?.renameProvider) {
+        handleRename({
+          view,
+          renameEnabled: true,
+        });
+      }
+    };
+  }
+
   return {
-    goToDefinition: () =>
-      handleFindReferences({
-        view,
-        kind: "textDocument/definition",
-        goToIfOneOption: true,
-      }),
-    goToTypeDefinition: () =>
-      handleFindReferences({
-        view,
-        kind: "textDocument/typeDefinition",
-        goToIfOneOption: true,
-      }),
-    goToImplementation: () =>
-      handleFindReferences({
-        view,
-        kind: "textDocument/implementation",
-        goToIfOneOption: true,
-      }),
-    findAllReferences: () =>
-      handleFindReferences({
-        view,
-        kind: "textDocument/references",
-        ...referencesArgs,
-      }),
-    rename: () =>
-      handleRename({
-        view,
-        renameEnabled: true,
-      }),
+    goToDefinition: goToDefinitionCallback,
+    goToTypeDefinition: goToTypeDefinitionCallback,
+    goToImplementation: goToImplementationCallback,
+    findAllReferences: findAllReferencesCallback,
+    rename: renameCallback,
   };
 }
 

@@ -110,7 +110,10 @@ async function requestRename({
 }) {
   const lsPlugin = LSCore.ofOrThrow(view);
 
-  if (!lsPlugin.client.capabilities?.renameProvider) {
+  if (
+    lsPlugin.client.capabilities &&
+    !renameSupported(lsPlugin.client.capabilities)
+  ) {
     showDialog(view, { label: "Rename not supported by language server" });
     return;
   }
@@ -385,4 +388,8 @@ export async function applyRenameEdit(
     return true;
   }
   return false;
+}
+
+export function renameSupported(capabilities: LSP.ServerCapabilities): boolean {
+  return !!capabilities.renameProvider;
 }

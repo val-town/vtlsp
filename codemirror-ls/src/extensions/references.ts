@@ -190,7 +190,10 @@ export async function handleFindReferences({
 }): Promise<boolean> {
   const lsPlugin = LSCore.ofOrThrow(view);
 
-  if (!lsPlugin.client.capabilities?.referencesProvider) {
+  if (
+    lsPlugin.client.capabilities &&
+    !referencesOfKindSupported(lsPlugin.client.capabilities, kind)
+  ) {
     showDialog(view, { label: "References not supported by language server" });
     return false;
   }
@@ -389,4 +392,23 @@ function createReferencePanel(
       mount: () => panel.focus(),
     };
   };
+}
+
+/**
+ * Checks if the given reference kind is supported by the language server.
+ */
+export function referencesOfKindSupported(
+  ServerCapabilities: LSP.ServerCapabilities,
+  kind: ReferenceKind,
+): boolean {
+  const capabilityMap: Record<ReferenceKind, keyof LSP.ServerCapabilities> = {
+    "textDocument/definition": "definitionProvider",
+    "textDocument/typeDefinition": "typeDefinitionProvider",
+    "textDocument/implementation": "implementationProvider",
+    "textDocument/references": "referencesProvider",
+  };
+
+  const capability = capabilityMap[kind];
+
+  return capability && ServerCapabilities?.[capability] === true;
 }
