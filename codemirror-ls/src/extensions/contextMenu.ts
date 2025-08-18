@@ -13,14 +13,14 @@
 
 import { Annotation, StateField } from "@codemirror/state";
 import { EditorView, showTooltip, type Tooltip } from "@codemirror/view";
+import { LSCore } from "../LSPlugin.js";
 import {
   handleFindReferences,
-  referencesOfKindSupported,
   type ReferenceExtensionsArgs,
+  referencesOfKindSupported,
 } from "./references.js";
 import { handleRename, renameSupported } from "./renames.js";
 import type { LSExtensionGetter, Renderer } from "./types.js";
-import { LSCore } from "../LSPlugin.js";
 
 export interface ContextMenuArgs {
   render: ContextMenuRenderer;

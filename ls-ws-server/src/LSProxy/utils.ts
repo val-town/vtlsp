@@ -22,7 +22,7 @@ export function replaceFileUris(
     return obj.replace(FILE_URI_PATTERN, convertUri);
   }
   // If the input is not an object or array, return it as is
-  else if (obj === null || typeof obj !== "object") {
+  if (obj === null || typeof obj !== "object") {
     return structuredClone(obj);
   }
 

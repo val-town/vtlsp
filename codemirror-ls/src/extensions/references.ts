@@ -250,16 +250,15 @@ export async function handleFindReferences({
         range: ref.range,
       });
       return false;
-    } else {
-      displayReferences(
-        view,
-        referenceLocations,
-        lsPlugin.documentUri,
-        kind,
-        onExternalReference,
-        render,
-      );
     }
+    displayReferences(
+      view,
+      referenceLocations,
+      lsPlugin.documentUri,
+      kind,
+      onExternalReference,
+      render,
+    );
   } catch (error) {
     showDialog(view, {
       label: `Find references failed: ${error instanceof Error ? error.message : "Unknown error"}`,

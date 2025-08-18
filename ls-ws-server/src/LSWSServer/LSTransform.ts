@@ -23,7 +23,7 @@ type ReceiveState = "content-length" | "jsonrpc";
  */
 export class ToLSTransform extends Transform {
   private _state: ReceiveState;
-  private _curContentLength: number = 0;
+  private _curContentLength = 0;
   private _curChunk: Buffer;
 
   private constructor(options?: TransformOptions) {
@@ -144,12 +144,12 @@ export class ToLSTransform extends Transform {
   private _reencode(chunk: Buffer, chunkEncoding: NodeJS.BufferEncoding) {
     if (this.readableEncoding && this.readableEncoding !== chunkEncoding) {
       return chunk.toString(this.readableEncoding);
-    } else if (this.readableEncoding) {
+    }
+    if (this.readableEncoding) {
       // this should be the most common case, i.e. we're using an encoded source stream
       return chunk.toString(chunkEncoding);
-    } else {
-      return chunk;
     }
+    return chunk;
   }
 
   public static createStream(

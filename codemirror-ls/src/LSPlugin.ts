@@ -30,7 +30,7 @@ class LSCoreBase {
 
   #sendChangesDispatchQueue = new PQueue({ concurrency: 1 });
   #currentSyncController: AbortController | null = null;
-  #lastSentChanges: string = "";
+  #lastSentChanges = "";
 
   #languageId: string;
   #view: EditorView;

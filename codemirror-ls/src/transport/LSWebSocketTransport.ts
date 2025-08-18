@@ -109,11 +109,10 @@ export class LSWebSocketTransport implements LSITransport {
     if (this.#messageConnection) {
       const promise = this.#messageConnection.sendRequest(method, params);
       return timeout ? pTimeout(promise, { milliseconds: timeout }) : promise;
-    } else {
-      return new Promise((resolve, reject) => {
-        this.#requestBuffer.push([method, params, timeout, resolve, reject]);
-      });
     }
+    return new Promise((resolve, reject) => {
+      this.#requestBuffer.push([method, params, timeout, resolve, reject]);
+    });
   }
 
   public onRequest(handler: (method: string, params: unknown) => unknown) {

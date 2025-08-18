@@ -75,16 +75,15 @@ function LSSignatureHelpLine({
         )}
       </div>
     );
-  } else {
-    return (
-      <div className="mx-1">
-        <LowLightCodeBlock
-          language="typescript"
-          code={line.label}
-          className="text-xs"
-        />
-        {line.documentation && <LSContents contents={line.documentation} />}
-      </div>
-    );
   }
+  return (
+    <div className="mx-1">
+      <LowLightCodeBlock
+        language="typescript"
+        code={line.label}
+        className="text-xs"
+      />
+      {line.documentation && <LSContents contents={line.documentation} />}
+    </div>
+  );
 }

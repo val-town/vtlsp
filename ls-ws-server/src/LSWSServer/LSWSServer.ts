@@ -175,13 +175,13 @@ export class LSWSServer {
           await proc.getLogTail(logLineCount);
 
         const crashReport =
-          `=== LSP Exit Report ===\n` +
+          "=== LSP Exit Report ===\n" +
           `Session ID: ${sessionId}\n` +
           `Exit code: ${code}\n` +
           `LSP command: ${lsCommand} ${lsArgs.join(" ")}\n` +
           `Last ${logLineCount} lines of stdout:\n${lastLogsStdout}\n` +
           `Last ${logLineCount} lines of stderr:\n${lastLogsStderr}\n` +
-          `=== End of Exit Report ===\n`;
+          "=== End of Exit Report ===\n";
 
         // biome-ignore lint/suspicious/noConsole: for crash reporting
         console.error(crashReport);
@@ -754,7 +754,7 @@ export class LSWSServer {
         this.shutdownTimeoutId = setTimeout(async () => {
           await this.shutdown(1012, "Server shutting down due to inactivity");
           // biome-ignore lint/suspicious/noConsole: for shutdown logging
-          console.error(`Shutting down after inactivity`);
+          console.error("Shutting down after inactivity");
           process.exit(1);
         }, this.shutdownAfter * 1000);
       }

@@ -16,9 +16,11 @@ export function LSContents({
 }): JSX.Element {
   if (typeof contents === "string") {
     return <MarkdownContent content={contents} />;
-  } else if (isLSPMarkupContent(contents)) {
+  }
+  if (isLSPMarkupContent(contents)) {
     return <MarkdownContent content={contents.value} />;
-  } else if (Array.isArray(contents)) {
+  }
+  if (Array.isArray(contents)) {
     return (
       <div>
         {contents.map((content) => {
@@ -55,15 +57,14 @@ export function LSContents({
         })}
       </div>
     );
-  } else {
-    // Handle MarkedString case - it has value and optional language
-    if ("language" in contents && contents.language) {
-      return (
-        <LowLightCodeBlock code={contents.value} language={contents.language} />
-      );
-    }
-    return <MarkdownContent content={contents.value} />;
   }
+  // Handle MarkedString case - it has value and optional language
+  if ("language" in contents && contents.language) {
+    return (
+      <LowLightCodeBlock code={contents.value} language={contents.language} />
+    );
+  }
+  return <MarkdownContent content={contents.value} />;
 }
 
 function MarkdownContent({

@@ -150,17 +150,16 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
                               });
                             }
                             return;
-                          } else {
-                            const documentChanges =
-                              resolvedAction.edit?.documentChanges || [];
+                          }
+                          const documentChanges =
+                            resolvedAction.edit?.documentChanges || [];
 
-                            const edits = documentChanges
-                              .filter((change) => "edits" in change)
-                              .flatMap((change) => change.edits || []);
+                          const edits = documentChanges
+                            .filter((change) => "edits" in change)
+                            .flatMap((change) => change.edits || []);
 
-                            for (const edit of edits) {
-                              changes.push(edit as LSP.TextEdit);
-                            }
+                          for (const edit of edits) {
+                            changes.push(edit as LSP.TextEdit);
                           }
 
                           if (changes.length === 0) return;

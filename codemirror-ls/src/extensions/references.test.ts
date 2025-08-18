@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import type * as LSP from "vscode-languageserver-protocol";
-import { referencesOfKindSupported, type ReferenceKind } from "./references.js";
+import { type ReferenceKind, referencesOfKindSupported } from "./references.js";
 
 describe("referencesOfKindSupported", () => {
   it("should return true when definitionProvider is true", () => {

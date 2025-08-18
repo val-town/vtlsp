@@ -50,7 +50,7 @@ function createSignaturePlugin(
   return ViewPlugin.fromClass(
     class {
       activeRequest: { pos: number; drop: boolean } | null = null;
-      delayedRequest: number = 0;
+      delayedRequest = 0;
 
       update(update: ViewUpdate) {
         const lsPlugin = LSCore.ofOrThrow(update.view);
@@ -230,9 +230,8 @@ const signatureState = StateField.define<SignatureState | null>({
               render: e.value.render,
             }),
           );
-        } else {
-          return null;
         }
+        return null;
       }
     if (sig && tr.docChanged)
       return new SignatureState(sig.data, sig.active, {
