@@ -89,6 +89,17 @@ export const REFERENCE_KIND_LABELS: Record<ReferenceKind, string> = {
   "textDocument/references": "References",
 } as const;
 
+/** Mapping of reference kinds to reference providers */
+export const REFERENCE_CAPABILITY_MAP: Record<
+  ReferenceKind,
+  keyof LSP.ServerCapabilities
+> = {
+  "textDocument/definition": "definitionProvider",
+  "textDocument/typeDefinition": "typeDefinitionProvider",
+  "textDocument/implementation": "implementationProvider",
+  "textDocument/references": "referencesProvider",
+};
+
 export const getReferencesExtensions: LSExtensionGetter<
   ReferenceExtensionsArgs
 > = ({
@@ -190,10 +201,9 @@ export async function handleFindReferences({
 }): Promise<boolean> {
   const lsPlugin = LSCore.ofOrThrow(view);
 
-  if (
-    lsPlugin.client.capabilities &&
-    !referencesOfKindSupported(lsPlugin.client.capabilities, kind)
-  ) {
+  const capability = REFERENCE_CAPABILITY_MAP[kind];
+
+  if (!lsPlugin.client.capabilities?.[capability]) {
     showDialog(view, { label: "References not supported by language server" });
     return false;
   }
@@ -391,23 +401,4 @@ function createReferencePanel(
       mount: () => panel.focus(),
     };
   };
-}
-
-/**
- * Checks if the given reference kind is supported by the language server.
- */
-export function referencesOfKindSupported(
-  ServerCapabilities: LSP.ServerCapabilities,
-  kind: ReferenceKind,
-): boolean {
-  const capabilityMap: Record<ReferenceKind, keyof LSP.ServerCapabilities> = {
-    "textDocument/definition": "definitionProvider",
-    "textDocument/typeDefinition": "typeDefinitionProvider",
-    "textDocument/implementation": "implementationProvider",
-    "textDocument/references": "referencesProvider",
-  };
-
-  const capability = capabilityMap[kind];
-
-  return capability && ServerCapabilities?.[capability] === true;
 }

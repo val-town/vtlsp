@@ -280,11 +280,3 @@ function signatureTooltip({
     },
   };
 }
-
-export function signatureHelpSupported(
-  capabilities: LSP.ServerCapabilities,
-): boolean {
-  return !!(
-    capabilities?.signatureHelpProvider?.triggerCharacters !== undefined
-  );
-}

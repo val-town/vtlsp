@@ -14,7 +14,6 @@ import * as LSP from "vscode-languageserver-protocol";
 import type { LSExtensionGetter, Renderer } from "./types.js";
 import { LSCore } from "../LSPlugin.js";
 
-
 export interface WindowExtensionArgs {
   render: WindowRenderer;
   /** Minimum message level to render/display */

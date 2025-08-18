@@ -16,10 +16,10 @@ import { EditorView, showTooltip, type Tooltip } from "@codemirror/view";
 import { LSCore } from "../LSPlugin.js";
 import {
   handleFindReferences,
+  REFERENCE_CAPABILITY_MAP,
   type ReferenceExtensionsArgs,
-  referencesOfKindSupported,
 } from "./references.js";
-import { handleRename, renameSupported } from "./renames.js";
+import { handleRename } from "./renames.js";
 import type { LSExtensionGetter, Renderer } from "./types.js";
 
 export interface ContextMenuArgs {
@@ -127,7 +127,7 @@ export function handleContextMenu({
 
   if (
     !disableGoToDefinition &&
-    referencesOfKindSupported(capabilities, "textDocument/definition")
+    capabilities?.[REFERENCE_CAPABILITY_MAP["textDocument/definition"]]
   ) {
     goToDefinitionCallback = () => {
       if (lsPlugin.client.capabilities?.definitionProvider) {
@@ -142,7 +142,7 @@ export function handleContextMenu({
 
   if (
     !disableGoToTypeDefinition &&
-    referencesOfKindSupported(capabilities, "textDocument/typeDefinition")
+    capabilities?.[REFERENCE_CAPABILITY_MAP["textDocument/typeDefinition"]]
   ) {
     goToTypeDefinitionCallback = () => {
       if (lsPlugin.client.capabilities?.typeDefinitionProvider) {
@@ -157,7 +157,7 @@ export function handleContextMenu({
 
   if (
     !disableGoToImplementation &&
-    referencesOfKindSupported(capabilities, "textDocument/implementation")
+    capabilities?.[REFERENCE_CAPABILITY_MAP["textDocument/implementation"]]
   ) {
     goToImplementationCallback = () => {
       if (lsPlugin.client.capabilities?.implementationProvider) {
@@ -172,7 +172,7 @@ export function handleContextMenu({
 
   if (
     !disableFindAllReferences &&
-    referencesOfKindSupported(capabilities, "textDocument/references")
+    capabilities?.[REFERENCE_CAPABILITY_MAP["textDocument/references"]]
   ) {
     findAllReferencesCallback = () => {
       if (lsPlugin.client.capabilities?.referencesProvider) {
@@ -185,7 +185,7 @@ export function handleContextMenu({
     };
   }
 
-  if (!disableRename && renameSupported(capabilities)) {
+  if (!disableRename && capabilities?.renameProvider) {
     renameCallback = () => {
       if (lsPlugin.client.capabilities?.renameProvider) {
         handleRename({

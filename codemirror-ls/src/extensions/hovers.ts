@@ -62,7 +62,7 @@ async function requestHoverTooltip({
 }): Promise<Tooltip | null> {
   const lsClient = LSCore.ofOrThrow(view);
 
-  if (!hoversSupported(lsClient.client.capabilities || {})) {
+  if (!lsClient.client.capabilities?.hoverProvider) {
     return null;
   }
 
@@ -102,8 +102,4 @@ async function requestHoverTooltip({
     create: (_view) => ({ dom }),
     above: true,
   };
-}
-
-export function hoversSupported(capabilities: LSP.ServerCapabilities): boolean {
-  return !!capabilities?.hoverProvider;
 }
