@@ -67,6 +67,9 @@ export class LSProxy {
   #lsLogStderrPath?: string;
   #lsLogStdoutPath?: string;
 
+  /** Logger for the LSP proxy */
+  #logger = defaultLogger;
+
   /** Prefix for the working directory that the LSP runs in. */
   readonly name: string;
 
@@ -138,7 +141,7 @@ export class LSProxy {
 
   // biome-ignore lint/suspicious/noExplicitAny: explicitly unsafe method
   public sendNotificationUnsafe(method: string, params: any): void {
-    defaultLogger.debug({ method, params }, "Sending notification to process");
+    this.#logger.debug({ method, params }, "Sending notification to process");
 
     this.clientConn.sendNotification(method, params);
   }
@@ -161,7 +164,7 @@ export class LSProxy {
     // biome-ignore lint/suspicious/noExplicitAny: explicitly unsafe method
     params: any,
   ): Promise<unknown> {
-    defaultLogger.debug({ method, params }, "Sending request to process");
+    this.#logger.debug({ method, params }, "Sending request to process");
 
     if (!this.procConn) {
       throw new Error("LSP process connection not initialized");
@@ -174,20 +177,20 @@ export class LSProxy {
    * Send a shutdown notification to the LSP process.
    */
   public sendShutdown(): void {
-    defaultLogger.debug("Sending shutdown notification to process");
+    this.#logger.debug("Sending shutdown notification to process");
 
     this.clientConn.sendNotification("shutdown");
   }
 
   private async startProc(): Promise<void> {
     if (this.process) {
-      defaultLogger.debug("LSP process already running");
+      this.#logger.debug("LSP process already running");
       return;
     }
 
     if (this.#execOptions.callbacks?.preSpawn) {
       await this.#execOptions.callbacks.preSpawn();
-      defaultLogger.debug("Pre process spawn callback executed");
+      this.#logger.debug("Pre process spawn callback executed");
     }
 
     this.process = spawn(this.#execOptions.command, this.#execOptions.args, {
@@ -212,11 +215,11 @@ export class LSProxy {
       );
     }
 
-    defaultLogger.debug({ pid: this.process.pid }, "LS process started");
+    this.#logger.debug({ pid: this.process.pid }, "LS process started");
 
     if (this.#execOptions.callbacks?.postSpawn) {
       await this.#execOptions.callbacks.postSpawn();
-      defaultLogger.debug("Post process spawn callback executed");
+      this.#logger.debug("Post process spawn callback executed");
     }
 
     this.procConn = rpc.createMessageConnection(
@@ -225,7 +228,7 @@ export class LSProxy {
     );
 
     this.process.on("exit", (code) => {
-      defaultLogger.debug("LS process exited");
+      this.#logger.debug("LS process exited");
 
       this.#execOptions.callbacks?.onExit?.(code);
       this.process = null;
@@ -233,7 +236,7 @@ export class LSProxy {
     });
 
     this.process.on("error", (error) => {
-      defaultLogger.error({ error }, "Error in LS process");
+      this.#logger.error({ error }, "Error in LS process");
 
       this.#execOptions.callbacks?.onError?.(error);
       this.process = null;
@@ -241,14 +244,14 @@ export class LSProxy {
     });
 
     this.process.on("close", (code) => {
-      defaultLogger.debug({ code }, "LS process closed");
+      this.#logger.debug({ code }, "LS process closed");
 
       this.process = null;
       this.procConn = null;
     });
 
     this.setupProcToClient();
-    defaultLogger.debug("LS process connection setup");
+    this.#logger.debug("LS process connection setup");
 
     this.procConn.listen();
 
@@ -261,7 +264,7 @@ export class LSProxy {
       throw new Error("LSP process connection not initialized");
 
     this.procConn.onNotification(async (method, params) => {
-      defaultLogger.debug(
+      this.#logger.debug(
         { method, params },
         "Received notification from process",
       );
@@ -296,10 +299,7 @@ export class LSProxy {
         this.#procToClientMiddlewares,
         false,
       );
-      defaultLogger.debug(
-        { method, params },
-        "Transformed params from process",
-      );
+      this.#logger.debug({ method, params }, "Transformed params from process");
       if (hasALsProxyCode(params) && params.ls_proxy_code === "cancel_response")
         return;
 
@@ -307,7 +307,7 @@ export class LSProxy {
     });
 
     this.procConn.onRequest(async (method, params) => {
-      defaultLogger.debug({ method, params }, "Received request from process");
+      this.#logger.debug({ method, params }, "Received request from process");
 
       const transformedParams = replaceFileUris(
         params,
@@ -331,10 +331,7 @@ export class LSProxy {
         this.#procToClientMiddlewares,
         true,
       );
-      defaultLogger.debug(
-        { method, params },
-        "Transformed params from process",
-      );
+      this.#logger.debug({ method, params }, "Transformed params from process");
       if (hasALsProxyCode(params) && params.ls_proxy_code === "cancel_response")
         return;
 
@@ -344,7 +341,7 @@ export class LSProxy {
 
   private setupClientToProc() {
     this.clientConn.onNotification(async (method, params) => {
-      defaultLogger.debug(
+      this.#logger.debug(
         { method, params },
         "Received notification from client",
       );
@@ -363,7 +360,7 @@ export class LSProxy {
         this.#clientToProcHandlers,
         false,
       );
-      defaultLogger.debug({ method, params }, "Applied client-to-proc handler");
+      this.#logger.debug({ method, params }, "Applied client-to-proc handler");
 
       if (handlerResult !== null) {
         // If a handler was found and executed, return its result if not a cancel response
@@ -382,7 +379,7 @@ export class LSProxy {
         this.#clientToProcMiddlewares,
         false,
       );
-      defaultLogger.debug(
+      this.#logger.debug(
         { method, params },
         "Applied client-to-proc middleware",
       );
@@ -393,7 +390,7 @@ export class LSProxy {
     });
 
     this.clientConn.onRequest(async (method, params) => {
-      defaultLogger.debug({ method, params }, "Received request from client");
+      this.#logger.debug({ method, params }, "Received request from client");
 
       // First check if there's a handler for this request
       const handlerResult = await this.applyHandler(
@@ -402,7 +399,7 @@ export class LSProxy {
         this.#clientToProcHandlers,
         true,
       );
-      defaultLogger.debug({ method, params }, "Applied client-to-proc handler");
+      this.#logger.debug({ method, params }, "Applied client-to-proc handler");
 
       if (handlerResult !== null) {
         // If a handler was found and executed, return its result if not a cancel response
@@ -423,7 +420,7 @@ export class LSProxy {
         true,
         null, // No result yet, since this is a request
       );
-      defaultLogger.debug(
+      this.#logger.debug(
         { method, params },
         "Applied client-to-proc middleware",
       );
@@ -457,7 +454,7 @@ export class LSProxy {
         method,
         transformedParams,
       )) as LSPRequestMap[keyof LSPRequestMap];
-      defaultLogger.debug({ method, params }, "Got response from process");
+      this.#logger.debug({ method, params }, "Got response from process");
 
       const transformedResp = replaceFileUris(
         resp,
@@ -469,7 +466,7 @@ export class LSProxy {
             JSON.stringify(transformedResp),
         );
       resp = transformedResp as typeof resp; // Resp is "more specific"
-      defaultLogger.debug(
+      this.#logger.debug(
         { method, params },
         "Transformed response from process",
       );
@@ -520,7 +517,7 @@ export class LSProxy {
         modifiedValue = await (exactMatch as ParamsMiddlewareFunction)(
           modifiedValue,
         );
-        defaultLogger.trace(
+        this.#logger.trace(
           { method, params, modifiedValue },
           "Applied exact method middleware",
         );
@@ -532,7 +529,7 @@ export class LSProxy {
           modifiedValue,
           params,
         );
-        defaultLogger.trace(
+        this.#logger.trace(
           { method, params, modifiedValue },
           "Applied exact method middleware",
         );
@@ -545,7 +542,7 @@ export class LSProxy {
     if (isRequest && middlewares["request/*"]) {
       const catchAll = middlewares["request/*"] as CatchAllMiddlewareFunction;
       modifiedValue = await catchAll(method, params, result);
-      defaultLogger.trace(
+      this.#logger.trace(
         { method, params, modifiedValue },
         "Applied request-specific catch-all middleware",
       );
@@ -559,7 +556,7 @@ export class LSProxy {
         "notification/*"
       ] as CatchAllMiddlewareFunction;
       modifiedValue = await catchAll(method, params, result);
-      defaultLogger.trace(
+      this.#logger.trace(
         { method, params, modifiedValue },
         "Applied notification-specific catch-all middleware",
       );
@@ -571,7 +568,7 @@ export class LSProxy {
     if (middlewares["*"]) {
       const catchAll = middlewares["*"] as CatchAllMiddlewareFunction;
       modifiedValue = await catchAll(method, params, result);
-      defaultLogger.trace(
+      this.#logger.trace(
         { method, params, modifiedValue },
         "Applied catch-all middleware",
       );
@@ -596,7 +593,7 @@ export class LSProxy {
       if (exactMatch.length <= 1) {
         // Regular handler function (takes only params)
         handlerResult = await (exactMatch as HandlerFunction)(params);
-        defaultLogger.trace(
+        this.#logger.trace(
           { method, params, handlerResult },
           "Applied exact method handler",
         );
@@ -612,7 +609,7 @@ export class LSProxy {
           method,
           params,
         );
-        defaultLogger.trace(
+        this.#logger.trace(
           { method, params, handlerResult },
           "Applied exact method catch-all handler",
         );
@@ -629,7 +626,7 @@ export class LSProxy {
     if (isRequest && handlers["request/*"]) {
       const catchAll = handlers["request/*"] as CatchAllHandlerFunction;
       handlerResult = await catchAll(method, params);
-      defaultLogger.trace(
+      this.#logger.trace(
         { method, params, handlerResult },
         "Applied request-specific catch-all handler",
       );
@@ -645,7 +642,7 @@ export class LSProxy {
     if (!isRequest && handlers["notification/*"]) {
       const catchAll = handlers["notification/*"] as CatchAllHandlerFunction;
       handlerResult = await catchAll(method, params);
-      defaultLogger.trace(
+      this.#logger.trace(
         { method, params, handlerResult },
         "Applied notification-specific catch-all handler",
       );
@@ -661,7 +658,7 @@ export class LSProxy {
     if (handlers["*"]) {
       const catchAll = handlers["*"] as CatchAllHandlerFunction;
       handlerResult = await catchAll(method, params);
-      defaultLogger.trace(
+      this.#logger.trace(
         { method, params, handlerResult },
         "Applied global catch-all handler",
       );

@@ -22,12 +22,16 @@ export type RenderHover = Renderer<
 
 export interface HoverExtensionArgs {
   render: RenderHover;
+  /** The time in milliseconds to wait before showing the hover tooltip. */
   hoverTime?: number;
+  /** Whether to hide the tooltip on document changes. */
+  hideOnChange?: boolean;
 }
 
 export const getHoversExtensions: LSExtensionGetter<HoverExtensionArgs> = ({
   render,
   hoverTime,
+  hideOnChange = false,
 }) => {
   return [
     hoverTooltip(
@@ -40,7 +44,7 @@ export const getHoversExtensions: LSExtensionGetter<HoverExtensionArgs> = ({
           render,
         });
       },
-      { hoverTime },
+      { hoverTime, hideOnChange },
     ),
   ];
 };
@@ -57,6 +61,10 @@ async function requestHoverTooltip({
   render: RenderHover;
 }): Promise<Tooltip | null> {
   const lsClient = LSCore.ofOrThrow(view);
+
+  if (!hoversSupported(lsClient.client.capabilities || {})) {
+    return null;
+  }
 
   const result = await lsClient.requestWithLock("textDocument/hover", {
     textDocument: { uri: lsClient.documentUri },
@@ -94,4 +102,8 @@ async function requestHoverTooltip({
     create: (_view) => ({ dom }),
     above: true,
   };
+}
+
+export function hoversSupported(capabilities: LSP.ServerCapabilities): boolean {
+  return !!capabilities?.hoverProvider;
 }

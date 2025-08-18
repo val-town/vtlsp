@@ -56,6 +56,8 @@ function createSignaturePlugin(
         const lsPlugin = LSCore.ofOrThrow(update.view);
         const client = lsPlugin.client;
 
+        if (!client.capabilities?.signatureHelpProvider) return;
+
         if (this.activeRequest) {
           if (update.selectionSet) {
             this.activeRequest.drop = true;
@@ -277,4 +279,12 @@ function signatureTooltip({
       return { dom };
     },
   };
+}
+
+export function signatureHelpSupported(
+  capabilities: LSP.ServerCapabilities,
+): boolean {
+  return !!(
+    capabilities?.signatureHelpProvider?.triggerCharacters !== undefined
+  );
 }

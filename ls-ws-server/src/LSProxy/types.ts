@@ -1,5 +1,6 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: specifically broad handlers */
 
+import type { Logger } from "~/logger.js";
 import type { codes } from "./codes.js";
 import type { LSPNotifyMap, LSPRequestMap } from "./types.lsp.js";
 
@@ -158,6 +159,8 @@ export interface LSProxyParams {
    * @default process.stdout
    */
   outputStream?: NodeJS.WritableStream;
+  /** Logger for the LSP proxy */
+  logger?: Logger;
   /**
    * Callbacks that intercept and maybe transform messages sent from the language server consumer client en route to the language server process.
    */

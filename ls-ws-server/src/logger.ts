@@ -1,3 +1,8 @@
+/**
+ * Logger module for the language server.
+ *
+ * Uses stderr since the language server operates via stdout.
+ */
 export const defaultLogger: Logger = {
   // (note the language server operates via stdout so we log to stderr)
   info: (...args: unknown[]) => {
