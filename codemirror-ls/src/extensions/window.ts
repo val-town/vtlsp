@@ -11,13 +11,16 @@
 import type { EditorView } from "@codemirror/view";
 import { ViewPlugin } from "@codemirror/view";
 import * as LSP from "vscode-languageserver-protocol";
-import { LSCore } from "../LSPlugin.js";
 import type { LSExtensionGetter, Renderer } from "./types.js";
+import { LSCore } from "../LSPlugin.js";
+
 
 export interface WindowExtensionArgs {
   render: WindowRenderer;
   /** Minimum message level to render/display */
   minLevel?: LSP.MessageType;
+  /** Predicate for whether a message should be ignored */
+  shouldIgnore?: (message: LSP.ShowMessageParams) => boolean;
 }
 
 export type WindowRenderer = Renderer<
@@ -27,6 +30,7 @@ export type WindowRenderer = Renderer<
 export const getWindowExtensions: LSExtensionGetter<WindowExtensionArgs> = ({
   render,
   minLevel = LSP.MessageType.Warning,
+  shouldIgnore,
 }) => {
   return [
     ViewPlugin.fromClass(
@@ -41,6 +45,7 @@ export const getWindowExtensions: LSExtensionGetter<WindowExtensionArgs> = ({
               if (method === "window/showMessage") {
                 const messageParams = params as LSP.ShowMessageParams;
                 if (messageParams.type < minLevel) return;
+                if (shouldIgnore?.(messageParams)) return;
 
                 this.#showMessage(messageParams);
               }
