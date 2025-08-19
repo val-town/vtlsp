@@ -141,7 +141,9 @@ export function languageServerWithClient(options: LanguageServerOptions) {
       ...contextMenu.getContextMenuExtensions({
         render: features.contextMenu.render,
         referencesArgs: {
-          render: features.references.render,
+          render: !features.references.disabled
+            ? features.references?.render
+            : asyncNoop,
           ...features.contextMenu.referencesArgs,
         },
       }),
@@ -168,7 +170,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
   return extensions;
 }
 
-type FeatureOption<T> = { disabled?: boolean } & T;
+type FeatureOption<T> = ({ disabled?: boolean } & T) | { disabled: true };
 
 export interface LanguageServerFeatures {
   signatureHelp: FeatureOption<signatures.SignatureSuggestionArgs>;
