@@ -32,7 +32,9 @@ export interface ContextMenuArgs {
   disableRename?: boolean;
 }
 
-export type ContextMenuRenderer = Renderer<[callbacks: ContextMenuCallbacks]>;
+export type ContextMenuRenderer = Renderer<
+  [callbacks: ContextMenuCallbacks, dismiss: () => void]
+>;
 
 export type ContextMenuCallbacks = {
   goToDefinition?: () => void;
@@ -222,25 +224,11 @@ function getContextMenuTooltip(
 
         const dom = document.createElement("div");
         dom.className = "cm-lsp-context-menu";
-        render(dom, contextMenuCallbacks);
-
-        const removedAbortController = new AbortController();
-
-        view.dom.addEventListener("click", () => dom.remove(), {
-          signal: removedAbortController.signal,
+        render(dom, contextMenuCallbacks, () => {
+          dom.remove();
         });
 
-        // If they press escape, remove it
-        view.dom.addEventListener(
-          "keydown",
-          (e) => {
-            if (e.key === "Escape") {
-              dom.remove();
-              removedAbortController.abort();
-            }
-          },
-          { signal: removedAbortController.signal },
-        );
+        const removedAbortController = new AbortController();
 
         return {
           dom,
