@@ -7,38 +7,62 @@ export function LSContextMenu({
   goToImplementation,
   findAllReferences,
   rename,
-}: contextMenu.ContextMenuCallbacks) {
-  return (
+  onDismiss,
+}: contextMenu.ContextMenuCallbacks & { onDismiss: () => void }) {
+  const dropdown = (
     <div className="flex flex-col">
-      <LSContextMenuButton
-        onClick={goToDefinition}
-        icon={<MousePointer2 size={14} />}
-      >
-        Go to Definition
-      </LSContextMenuButton>
-      <LSContextMenuButton
-        onClick={goToTypeDefinition}
-        icon={<Type size={14} />}
-      >
-        Go to Type Definition
-      </LSContextMenuButton>
-      <LSContextMenuButton
-        onClick={goToImplementation}
-        icon={<Code2 size={14} />}
-      >
-        Go to Implementation
-      </LSContextMenuButton>
-      <LSContextMenuButton
-        onClick={findAllReferences}
-        icon={<Search size={14} />}
-      >
-        Find All References
-      </LSContextMenuButton>
-      <LSContextMenuButton onClick={rename} icon={<Edit3 size={14} />}>
-        Rename Symbol
-      </LSContextMenuButton>
+      {goToDefinition && (
+        <LSContextMenuButton
+          onClick={goToDefinition}
+          icon={<MousePointer2 size={14} />}
+        >
+          Go to Definition
+        </LSContextMenuButton>
+      )}
+      {goToTypeDefinition && (
+        <LSContextMenuButton
+          onClick={goToTypeDefinition}
+          icon={<Type size={14} />}
+        >
+          Go to Type Definition
+        </LSContextMenuButton>
+      )}
+      {goToImplementation && (
+        <LSContextMenuButton
+          onClick={goToImplementation}
+          icon={<Code2 size={14} />}
+        >
+          Go to Implementation
+        </LSContextMenuButton>
+      )}
+      {findAllReferences && (
+        <LSContextMenuButton
+          onClick={findAllReferences}
+          icon={<Search size={14} />}
+        >
+          Find All References
+        </LSContextMenuButton>
+      )}
+      {rename && (
+        <LSContextMenuButton onClick={rename} icon={<Edit3 size={14} />}>
+          Rename Symbol
+        </LSContextMenuButton>
+      )}
     </div>
   );
+
+  // In reality you should use a component library that handles these for you
+  setTimeout(() => {
+    window.addEventListener("click", onDismiss, { once: true });
+    window.addEventListener("contextmenu", onDismiss, { once: true });
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        onDismiss();
+      }
+    });
+  }, 0);
+
+  return dropdown;
 }
 
 function LSContextMenuButton({

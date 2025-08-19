@@ -101,12 +101,18 @@ export function useLsCodemirror({ path }: { path: string }): {
           render: renderContents,
         },
         contextMenu: {
-          render: async (dom, callbacks) => {
+          render: async (dom, callbacks, onDismiss) => {
             const container = document.createElement("div");
             container.classList.add("ls-context-menu-container");
             const root = ReactDOM.createRoot(container);
-            root.render(<LSContextMenu {...callbacks} />);
+            root.render(<LSContextMenu {...callbacks} onDismiss={onDismiss} />);
             dom.appendChild(container);
+          },
+          referencesArgs: {
+            onExternalReference: (uri) => {
+              // biome-ignore lint/suspicious/noConsole: for demo
+              console.log("Go to external reference from context menu", uri);
+            },
           },
         },
         references: {
@@ -120,6 +126,10 @@ export function useLsCodemirror({ path }: { path: string }): {
                 kind={kind}
               />,
             );
+          },
+          onExternalReference: (uri) => {
+            // biome-ignore lint/suspicious/noConsole: for demo
+            console.log("Go to external reference", uri);
           },
           modClickForDefinition: true,
         },

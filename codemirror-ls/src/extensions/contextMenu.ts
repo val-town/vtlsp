@@ -19,12 +19,13 @@ import {
   REFERENCE_CAPABILITY_MAP,
   type ReferenceExtensionsArgs,
 } from "./references.js";
-import { handleRename } from "./renames.js";
+import { handleRename, type RenameExtensionsArgs } from "./renames.js";
 import type { LSExtensionGetter, Renderer } from "./types.js";
 
 export interface ContextMenuArgs {
   render: ContextMenuRenderer;
   referencesArgs: ReferenceExtensionsArgs;
+  renameArgs?: RenameExtensionsArgs;
   disableGoToDefinition?: boolean;
   disableGoToTypeDefinition?: boolean;
   disableGoToImplementation?: boolean;
@@ -37,11 +38,11 @@ export type ContextMenuRenderer = Renderer<
 >;
 
 export type ContextMenuCallbacks = {
-  goToDefinition?: () => void;
-  goToTypeDefinition?: () => void;
-  goToImplementation?: () => void;
-  findAllReferences?: () => void;
-  rename?: () => void;
+  goToDefinition: (() => void) | null;
+  goToTypeDefinition: (() => void) | null;
+  goToImplementation: (() => void) | null;
+  findAllReferences: (() => void) | null;
+  rename?: (() => void) | null;
 };
 
 export const getContextMenuExtensions: LSExtensionGetter<ContextMenuArgs> = ({
@@ -77,13 +78,18 @@ export const getContextMenuExtensions: LSExtensionGetter<ContextMenuArgs> = ({
         const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
         if (pos === null) return false;
 
+        // Only show a custom context menu if the symbol under the cursor is not empty
+        const symbol = view.state.doc.sliceString(pos, pos + 2);
+        if (/^[\s\n]*$/.test(symbol)) {
+          return false;
+        }
+
         view.dispatch(
           view.state.update({
             annotations: contextMenuActivated.of({ event, pos }),
           }),
         );
 
-        event.preventDefault();
         return true; // Handled the event, don't show normal context menu
       },
     }),
@@ -97,7 +103,9 @@ export const contextMenuActivated = Annotation.define<{
 
 export function handleContextMenu({
   view,
+  pos,
   referencesArgs,
+  renameArgs,
   disableGoToDefinition,
   disableGoToTypeDefinition,
   disableGoToImplementation,
@@ -105,38 +113,42 @@ export function handleContextMenu({
   disableRename,
 }: {
   view: EditorView;
-  referencesArgs: ReferenceExtensionsArgs;
+  pos: number;
   disableGoToDefinition?: boolean;
   disableGoToTypeDefinition?: boolean;
   disableGoToImplementation?: boolean;
   disableFindAllReferences?: boolean;
   disableRename?: boolean;
-}) {
+  referencesArgs: ReferenceExtensionsArgs;
+  renameArgs?: RenameExtensionsArgs;
+}): ContextMenuCallbacks {
   const lsPlugin = LSCore.ofOrThrow(view);
+
+  const callbacks: ContextMenuCallbacks = {
+    goToDefinition: null,
+    goToTypeDefinition: null,
+    goToImplementation: null,
+    findAllReferences: null,
+    rename: null,
+  };
 
   const { capabilities } = lsPlugin.client;
   if (!capabilities) {
-    return {};
+    return callbacks;
   }
-
-  let goToDefinitionCallback: (() => void) | undefined;
-  let goToTypeDefinitionCallback: (() => void) | undefined;
-  let goToImplementationCallback: (() => void) | undefined;
-  let findAllReferencesCallback: (() => void) | undefined;
-  let renameCallback: (() => void) | undefined;
 
   if (
     !disableGoToDefinition &&
     capabilities?.[REFERENCE_CAPABILITY_MAP["textDocument/definition"]]
   ) {
-    goToDefinitionCallback = () => {
-      if (lsPlugin.client.capabilities?.definitionProvider) {
-        handleFindReferences({
-          view,
-          kind: "textDocument/definition",
-          goToIfOneOption: true,
-        });
-      }
+    callbacks.goToDefinition = () => {
+      handleFindReferences({
+        view,
+        kind: "textDocument/definition",
+        goToIfOneOption: true,
+        pos,
+        ...referencesArgs,
+      });
     };
   }
 
@@ -144,14 +156,14 @@ export function handleContextMenu({
     !disableGoToTypeDefinition &&
     capabilities?.[REFERENCE_CAPABILITY_MAP["textDocument/typeDefinition"]]
   ) {
-    goToTypeDefinitionCallback = () => {
-      if (lsPlugin.client.capabilities?.typeDefinitionProvider) {
-        handleFindReferences({
-          view,
-          kind: "textDocument/typeDefinition",
-          goToIfOneOption: true,
-        });
-      }
+    callbacks.goToTypeDefinition = () => {
+      handleFindReferences({
+        view,
+        kind: "textDocument/typeDefinition",
+        goToIfOneOption: true,
+        pos,
+        ...referencesArgs,
+      });
     };
   }
 
@@ -159,14 +171,14 @@ export function handleContextMenu({
     !disableGoToImplementation &&
     capabilities?.[REFERENCE_CAPABILITY_MAP["textDocument/implementation"]]
   ) {
-    goToImplementationCallback = () => {
-      if (lsPlugin.client.capabilities?.implementationProvider) {
-        handleFindReferences({
-          view,
-          kind: "textDocument/implementation",
-          goToIfOneOption: true,
-        });
-      }
+    callbacks.goToImplementation = () => {
+      handleFindReferences({
+        view,
+        kind: "textDocument/implementation",
+        goToIfOneOption: true,
+        pos,
+        ...referencesArgs,
+      });
     };
   }
 
@@ -174,35 +186,29 @@ export function handleContextMenu({
     !disableFindAllReferences &&
     capabilities?.[REFERENCE_CAPABILITY_MAP["textDocument/references"]]
   ) {
-    findAllReferencesCallback = () => {
-      if (lsPlugin.client.capabilities?.referencesProvider) {
-        handleFindReferences({
-          view,
-          kind: "textDocument/references",
-          ...referencesArgs,
-        });
-      }
+    callbacks.findAllReferences = () => {
+      handleFindReferences({
+        view,
+        kind: "textDocument/references",
+        ...referencesArgs,
+        pos,
+        ...referencesArgs,
+      });
     };
   }
 
   if (!disableRename && capabilities?.renameProvider) {
-    renameCallback = () => {
-      if (lsPlugin.client.capabilities?.renameProvider) {
-        handleRename({
-          view,
-          renameEnabled: true,
-        });
-      }
+    callbacks.rename = () => {
+      handleRename({
+        view,
+        renameEnabled: true,
+        pos,
+        ...renameArgs,
+      });
     };
   }
 
-  return {
-    goToDefinition: goToDefinitionCallback,
-    goToTypeDefinition: goToTypeDefinitionCallback,
-    goToImplementation: goToImplementationCallback,
-    findAllReferences: findAllReferencesCallback,
-    rename: renameCallback,
-  };
+  return callbacks;
 }
 
 function getContextMenuTooltip(
@@ -218,6 +224,7 @@ function getContextMenuTooltip(
         const contextMenuCallbacks = handleContextMenu({
           view,
           referencesArgs,
+          pos,
         });
 
         const dom = document.createElement("div");

@@ -67,17 +67,19 @@ export async function handleRename({
   renameEnabled = true,
   onExternalRename,
   onRename,
+  pos,
 }: {
   view: EditorView;
   renameEnabled?: boolean;
   onExternalRename?: OnExternalRenameCallback;
   onRename?: OnRenameCallback;
+  pos?: number;
 }): Promise<boolean> {
   if (!renameEnabled) return false;
 
   const lsPlugin = LSCore.ofOrThrow(view);
 
-  const pos = view.state.selection.main.head;
+  pos ??= view.state.selection.main.head;
   const { line, character } = offsetToPos(view.state.doc, pos);
   await requestRename({
     view,
