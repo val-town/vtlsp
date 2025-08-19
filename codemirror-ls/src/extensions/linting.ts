@@ -42,7 +42,6 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
     ViewPlugin.fromClass(
       class DiagnosticPlugin {
         #disposeHandler: (() => void) | null = null;
-        private diagnosticDispatchQueue = new PQueue({ concurrency: 1 });
 
         constructor(private view: EditorView) {
           const lsPlugin = LSCore.ofOrThrow(view);
@@ -51,7 +50,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
             async (method, params) => {
               if (method !== "textDocument/publishDiagnostics") return;
 
-              this.processDiagnostics({
+              void this.processDiagnostics({
                 params,
                 view: this.view,
                 onExternalFileChange,
@@ -66,7 +65,6 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
             this.#disposeHandler();
             this.#disposeHandler = null;
           }
-          this.diagnosticDispatchQueue.clear();
         }
 
         private async processDiagnostics({
@@ -85,9 +83,6 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
 
           if (params.uri !== lsPlugin.documentUri) return;
 
-          // Clear any pending diagnostic dispatches to ensure latest diagnostics take priority
-          this.diagnosticDispatchQueue.clear();
-
           const severityMap: Record<
             LSP.DiagnosticSeverity,
             Diagnostic["severity"]
@@ -105,104 +100,95 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
             const { actions, resolveAction } =
               await this.requestCodeActions(diagnostic);
 
-            const codemirrorActions = (
-              await Promise.all(
-                (Array.isArray(actions) ? actions : []).map(
-                  async (action): Promise<Action | null> => {
-                    return {
-                      name:
-                        "command" in action &&
-                        typeof action.command === "object"
-                          ? action.command?.title || action.title
-                          : action.title,
-                      apply: async () => {
-                        const resolvedAction = await resolveAction(action);
+            const codemirrorActions = (Array.isArray(actions) ? actions : [])
+              .map((action): Action | null => {
+                return {
+                  name:
+                    "command" in action && typeof action.command === "object"
+                      ? action.command?.title || action.title
+                      : action.title,
+                  apply: async () => {
+                    const resolvedAction = await resolveAction(action);
 
-                        if (
-                          "edit" in resolvedAction &&
-                          (resolvedAction.edit?.changes ||
-                            resolvedAction.edit?.documentChanges)
-                        ) {
-                          const changes: LSP.TextEdit[] = [];
+                    if (
+                      "edit" in resolvedAction &&
+                      (resolvedAction.edit?.changes ||
+                        resolvedAction.edit?.documentChanges)
+                    ) {
+                      const changes: LSP.TextEdit[] = [];
 
-                          if (resolvedAction.edit?.changes) {
-                            for (const change of resolvedAction.edit.changes[
-                              lsPlugin.documentUri
-                            ] || []) {
-                              changes.push(change);
-                            }
-                          }
+                      if (resolvedAction.edit?.changes) {
+                        for (const change of resolvedAction.edit.changes[
+                          lsPlugin.documentUri
+                        ] || []) {
+                          changes.push(change);
+                        }
+                      }
 
-                          const hasExternalFileChanges =
-                            resolvedAction.edit?.documentChanges?.some(
-                              (change) =>
-                                "textDocument" in change &&
-                                change.textDocument.uri !==
-                                  lsPlugin.documentUri,
-                            );
+                      const hasExternalFileChanges =
+                        resolvedAction.edit?.documentChanges?.some(
+                          (change) =>
+                            "textDocument" in change &&
+                            change.textDocument.uri !== lsPlugin.documentUri,
+                        );
 
-                          if (hasExternalFileChanges) {
-                            if (onExternalFileChange) {
-                              onExternalFileChange(resolvedAction.edit);
-                            } else {
-                              showDialog(view, {
-                                label: "External file changes not supported",
-                              });
-                            }
-                            return;
-                          }
-                          const documentChanges =
-                            resolvedAction.edit?.documentChanges || [];
-
-                          const edits = documentChanges
-                            .filter((change) => "edits" in change)
-                            .flatMap((change) => change.edits || []);
-
-                          for (const edit of edits) {
-                            changes.push(edit as LSP.TextEdit);
-                          }
-
-                          if (changes.length === 0) return;
-
-                          // Apply workspace edit
-                          for (const change of changes) {
-                            view.dispatch(
-                              view.state.update({
-                                changes: {
-                                  from: posToOffsetOrZero(
-                                    view.state.doc,
-                                    change.range.start,
-                                  ),
-                                  to: posToOffset(
-                                    view.state.doc,
-                                    change.range.end,
-                                  ),
-                                  insert: change.newText,
-                                },
-                              }),
-                            );
-                          }
-                        } else if (
-                          "command" in resolvedAction &&
-                          resolvedAction.command
-                        ) {
-                          // TODO: Implement command execution
+                      if (hasExternalFileChanges) {
+                        if (onExternalFileChange) {
+                          onExternalFileChange(resolvedAction.edit);
+                        } else {
                           showDialog(view, {
-                            label: "Command execution not implemented yet",
+                            label: "External file changes not supported",
                           });
                         }
-                      },
-                    };
+                        return;
+                      }
+                      const documentChanges =
+                        resolvedAction.edit?.documentChanges || [];
+
+                      const edits = documentChanges
+                        .filter((change) => "edits" in change)
+                        .flatMap((change) => change.edits || []);
+
+                      for (const edit of edits) {
+                        changes.push(edit as LSP.TextEdit);
+                      }
+
+                      if (changes.length === 0) return;
+
+                      // Apply workspace edit
+                      for (const change of changes) {
+                        view.dispatch(
+                          view.state.update({
+                            changes: {
+                              from: posToOffsetOrZero(
+                                view.state.doc,
+                                change.range.start,
+                              ),
+                              to: posToOffset(view.state.doc, change.range.end),
+                              insert: change.newText,
+                            },
+                          }),
+                        );
+                      }
+                    } else if (
+                      "command" in resolvedAction &&
+                      resolvedAction.command
+                    ) {
+                      // TODO: Implement command execution
+                      showDialog(view, {
+                        label: "Command execution not implemented yet",
+                      });
+                    }
                   },
-                ),
-              )
-            ).filter(Boolean) as Action[];
+                };
+              })
+              .filter(Boolean) as Action[];
 
             const processedDiagnostic: Diagnostic = {
               from: posToOffsetOrZero(view.state.doc, range.start),
               to: posToOffsetOrZero(view.state.doc, range.end),
               severity: severityMap[severity ?? LSP.DiagnosticSeverity.Error],
-              message: message,
+              message,
               renderMessage: render
                 ? () => {
                     const dom = document.createElement("div");
@@ -217,18 +203,15 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
             return processedDiagnostic;
           });
 
-          // Enqueue the dispatch to ensure diagnostics are applied in order
-          return this.diagnosticDispatchQueue.add(async () => {
-            const resolvedDiagnostics = await Promise.all(diagnostics);
+          const resolvedDiagnostics = await Promise.all(diagnostics);
 
-            // Check if document version still matches before applying
-            if (versionAtNotification !== lsPlugin.documentVersion) {
-              // Document has changed since the diagnostics were received; discard them
-              return;
-            }
+          // Check if document version still matches before applying
+          if (versionAtNotification !== lsPlugin.documentVersion) {
+            // Document has changed since the diagnostics were received; discard them
+            return;
+          }
 
-            view.dispatch(setDiagnostics(view.state, resolvedDiagnostics));
-          });
+          view.dispatch(setDiagnostics(view.state, resolvedDiagnostics));
         }
 
         private async requestCodeActions(diagnostic: LSP.Diagnostic): Promise<{
