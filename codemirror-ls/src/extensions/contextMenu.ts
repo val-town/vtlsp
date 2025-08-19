@@ -60,8 +60,6 @@ export const getContextMenuExtensions: LSExtensionGetter<ContextMenuArgs> = ({
         return getContextMenuTooltip(clickData.pos, render, referencesArgs);
       }
 
-      // We clear them with event listeners
-
       return tooltips;
     },
 
@@ -228,13 +226,8 @@ function getContextMenuTooltip(
           dom.remove();
         });
 
-        const removedAbortController = new AbortController();
-
         return {
           dom,
-          destroy() {
-            removedAbortController.abort();
-          },
         };
       },
     },
