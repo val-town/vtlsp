@@ -8,6 +8,7 @@ import {
   references,
   renames,
   signatures,
+  inlayHints,
   window,
 } from "./extensions/index.js";
 import type { LSClient } from "./LSClient.js";
@@ -76,6 +77,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
     renames: { shortcuts: [{ key: "F2" }] },
     contextMenu: { render: asyncNoop },
     linting: { render: asyncNoop },
+    inlayHints: { render: asyncNoop },
     window: { render: asyncNoop },
     ...options.features,
   } satisfies LanguageServerFeatures;
@@ -159,6 +161,14 @@ export function languageServerWithClient(options: LanguageServerOptions) {
     );
   }
 
+  if (!features.inlayHints.disabled) {
+    extensions.push(
+      ...inlayHints.getInlayHintExtensions({
+        ...features.inlayHints,
+      }),
+    );
+  }
+
   if (!features.window.disabled) {
     extensions.push(
       ...window.getWindowExtensions({
@@ -184,6 +194,7 @@ export interface LanguageServerFeatures {
     }
   >;
   linting: FeatureOption<linting.DiagnosticArgs>;
+  inlayHints: FeatureOption<inlayHints.InlayHintArgs>;
   window: FeatureOption<window.WindowExtensionArgs>;
 }
 

@@ -13,5 +13,7 @@ export * as linting from "./linting.js";
 export * as references from "./references.js";
 export * as renames from "./renames.js";
 export * as signatures from "./signatures.js";
-export type { Renderer } from "./types.js";
 export * as window from "./window.js";
+export * as inlayHints from "./inlayHints.js";
+
+export type { Renderer } from "./types.js";

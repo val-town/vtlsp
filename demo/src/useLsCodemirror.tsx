@@ -30,6 +30,16 @@ export function useLsCodemirror({ path }: { path: string }): {
       const newClient = new LSClient({
         transport: newTransport,
         workspaceFolders: [{ uri: "file:///demo", name: "Demo" }],
+        initializationOptions: {
+          inlayHints: {
+            parameterNames: { enabled: "all", suppressWhenArgumentMatchesName: true },
+            parameterTypes: { enabled: true },
+            variableTypes: { enabled: true, suppressWhenTypeMatchesName: true },
+            propertyDeclarationTypes: { enabled: true },
+            functionLikeReturnTypes: { enabled: true },
+            enumMemberValues: { enabled: true },
+          },
+        }
       });
 
       setTransport(newTransport);
