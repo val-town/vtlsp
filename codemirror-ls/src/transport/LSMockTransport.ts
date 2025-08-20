@@ -13,8 +13,12 @@ export class LSMockTransport implements LSITransport {
     [];
   public errorHandlers: Array<(error: unknown) => void> = [];
 
-  public sendNotification: MockedFunction<(method: string, params?: unknown) => void>;
-  public sendRequest: MockedFunction<(method: string, params?: unknown) => Promise<unknown>>;
+  public sendNotification: MockedFunction<
+    (method: string, params?: unknown) => void
+  >;
+  public sendRequest: MockedFunction<
+    (method: string, params?: unknown) => Promise<unknown>
+  >;
   public close: MockedFunction<() => void>;
 
   constructor(capabilities: LSP.ServerCapabilities = {}) {

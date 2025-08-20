@@ -16,12 +16,12 @@ import { LSCore } from "../LSPlugin.js";
 import { isEmptyDocumentation, offsetToPos, posToOffset } from "../utils.js";
 import type { LSExtensionGetter, Renderer } from "./types.js";
 
-export type RenderHover = Renderer<
+export type HoversRenderer = Renderer<
   [contents: string | LSP.MarkupContent | LSP.MarkedString | LSP.MarkedString[]]
 >;
 
 export interface HoverExtensionArgs {
-  render: RenderHover;
+  render: HoversRenderer;
   /** The time in milliseconds to wait before showing the hover tooltip. */
   hoverTime?: number;
   /** Whether to hide the tooltip on document changes. */
@@ -58,7 +58,7 @@ async function requestHoverTooltip({
   view: EditorView;
   line: number;
   character: number;
-  render: RenderHover;
+  render: HoversRenderer;
 }): Promise<Tooltip | null> {
   const lsClient = LSCore.ofOrThrow(view);
 

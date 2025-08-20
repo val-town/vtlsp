@@ -52,7 +52,7 @@ export const getContextMenuExtensions: LSExtensionGetter<ContextMenuArgs> = ({
   disableGoToTypeDefinition,
   disableGoToImplementation,
   disableFindAllReferences,
-  disableRename
+  disableRename,
 }) => {
   const contextMenuField = StateField.define<readonly Tooltip[]>({
     create() {
@@ -71,7 +71,7 @@ export const getContextMenuExtensions: LSExtensionGetter<ContextMenuArgs> = ({
           disableGoToTypeDefinition,
           disableGoToImplementation,
           disableFindAllReferences,
-          disableRename
+          disableRename,
         });
       }
 

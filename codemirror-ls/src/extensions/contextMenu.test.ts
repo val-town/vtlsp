@@ -1,11 +1,22 @@
-import { beforeEach, describe, expect, it, vi, type MockedFunction } from 'vitest'
-import { EditorView } from '@codemirror/view';
-import { contextMenuActivated, type ContextMenuRenderer, getContextMenuExtensions } from './contextMenu';
-import { LSPlugin } from '../LSPlugin';
-import { LSClient } from '../LSClient';
-import { LSMockTransport } from '../transport/LSMockTransport.js';
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type MockedFunction,
+} from "vitest";
+import { EditorView } from "@codemirror/view";
+import {
+  contextMenuActivated,
+  type ContextMenuRenderer,
+  getContextMenuExtensions,
+} from "./contextMenu";
+import { LSPlugin } from "../LSPlugin";
+import { LSClient } from "../LSClient";
+import { LSMockTransport } from "../transport/LSMockTransport.js";
 
-describe('contextMenu', () => {
+describe("contextMenu", () => {
   let renderer: MockedFunction<ContextMenuRenderer>;
   let mockTransport: LSMockTransport;
   let view: EditorView;
@@ -15,18 +26,18 @@ describe('contextMenu', () => {
     mockTransport = new LSMockTransport({
       definitionProvider: true,
       referencesProvider: true,
-    })
+    });
 
     view = new EditorView({
-      doc: 'Test document',
+      doc: "Test document",
       extensions: [
         LSPlugin.of({
-          documentUri: 'file:///test.txt',
-          languageId: 'plaintext',
+          documentUri: "file:///test.txt",
+          languageId: "plaintext",
           client: new LSClient({
             transport: mockTransport,
-            workspaceFolders: null
-          })
+            workspaceFolders: null,
+          }),
         }),
         getContextMenuExtensions({
           render: renderer,
@@ -34,14 +45,16 @@ describe('contextMenu', () => {
         }),
       ],
     });
-  })
+  });
 
-  it('renders on annotation event', () => {
+  it("renders on annotation event", () => {
     view.dispatch({
-      annotations: [contextMenuActivated.of({
-        event: new MouseEvent('contextmenu', { clientX: 10, clientY: 10 }),
-        pos: 5,
-      })],
+      annotations: [
+        contextMenuActivated.of({
+          event: new MouseEvent("contextmenu", { clientX: 10, clientY: 10 }),
+          pos: 5,
+        }),
+      ],
     });
 
     expect(renderer).toHaveBeenCalled();
@@ -52,5 +65,5 @@ describe('contextMenu', () => {
     expect(callbacks.goToImplementation).toBeNull();
     expect(callbacks.findAllReferences).toBeNull();
     expect(callbacks.rename).toBeNull();
-  })
-})
+  });
+});

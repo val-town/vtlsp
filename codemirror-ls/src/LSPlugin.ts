@@ -72,6 +72,10 @@ class LSCoreBase {
     }
   }
 
+  public _waitForSync(): Promise<void> {
+    return this.#sendChangesDispatchQueue.onIdle();
+  }
+
   /**
    * Execute a callback with the current document while preventing concurrent modifications.
    * Changes will continue to be queued, but none will be sent to the LSP.
@@ -125,13 +129,14 @@ class LSCoreBase {
     // the most previously successful sync.
     this.#sendChangesDispatchQueue.clear();
     await this.#sendChangesDispatchQueue.onIdle();
+    this.#currentSyncController?.abort();
+    const abortController = new AbortController();
+    this.#currentSyncController = abortController;
     return (
       (await this.#sendChangesDispatchQueue.add(
         async () => {
           if (calledAtVersion !== this.documentVersion) return false;
 
-          this.#currentSyncController?.abort();
-          this.#currentSyncController = new AbortController();
           await this.client.notify("textDocument/didChange", {
             textDocument: {
               uri: this.documentUri,
@@ -143,7 +148,7 @@ class LSCoreBase {
 
           return true;
         },
-        { priority: this.documentVersion }, // more recent = higher priority
+        { priority: this.documentVersion, signal: abortController.signal }, // more recent = higher priority
       )) ?? false
     );
   }
