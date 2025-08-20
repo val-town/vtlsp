@@ -24,7 +24,7 @@ import type { LSExtensionGetter, Renderer } from "./types.js";
 
 export interface ContextMenuArgs {
   render: ContextMenuRenderer;
-  referencesArgs: ReferenceExtensionsArgs;
+  referencesArgs?: ReferenceExtensionsArgs;
   renameArgs?: RenameExtensionsArgs;
   disableGoToDefinition?: boolean;
   disableGoToTypeDefinition?: boolean;
@@ -48,6 +48,11 @@ export type ContextMenuCallbacks = {
 export const getContextMenuExtensions: LSExtensionGetter<ContextMenuArgs> = ({
   render,
   referencesArgs,
+  disableGoToDefinition,
+  disableGoToTypeDefinition,
+  disableGoToImplementation,
+  disableFindAllReferences,
+  disableRename
 }) => {
   const contextMenuField = StateField.define<readonly Tooltip[]>({
     create() {
@@ -58,7 +63,16 @@ export const getContextMenuExtensions: LSExtensionGetter<ContextMenuArgs> = ({
       const clickData = tr.annotation(contextMenuActivated);
 
       if (clickData) {
-        return getContextMenuTooltip(clickData.pos, render, referencesArgs);
+        return getContextMenuTooltip({
+          pos: clickData.pos,
+          render,
+          referencesArgs,
+          disableGoToDefinition,
+          disableGoToTypeDefinition,
+          disableGoToImplementation,
+          disableFindAllReferences,
+          disableRename
+        });
       }
 
       return tooltips;
@@ -119,7 +133,7 @@ export function handleContextMenu({
   disableGoToImplementation?: boolean;
   disableFindAllReferences?: boolean;
   disableRename?: boolean;
-  referencesArgs: ReferenceExtensionsArgs;
+  referencesArgs?: ReferenceExtensionsArgs;
   renameArgs?: RenameExtensionsArgs;
 }): ContextMenuCallbacks {
   const lsPlugin = LSCore.ofOrThrow(view);
@@ -211,11 +225,25 @@ export function handleContextMenu({
   return callbacks;
 }
 
-function getContextMenuTooltip(
-  pos: number,
-  render: ContextMenuRenderer,
-  referencesArgs: ReferenceExtensionsArgs,
-): readonly Tooltip[] {
+function getContextMenuTooltip({
+  pos,
+  render,
+  referencesArgs,
+  disableGoToDefinition,
+  disableGoToTypeDefinition,
+  disableGoToImplementation,
+  disableFindAllReferences,
+  disableRename,
+}: {
+  pos: number;
+  render: ContextMenuRenderer;
+  referencesArgs?: ReferenceExtensionsArgs;
+  disableGoToDefinition?: boolean;
+  disableGoToTypeDefinition?: boolean;
+  disableGoToImplementation?: boolean;
+  disableFindAllReferences?: boolean;
+  disableRename?: boolean;
+}): readonly Tooltip[] {
   return [
     {
       pos,
@@ -225,6 +253,11 @@ function getContextMenuTooltip(
           view,
           referencesArgs,
           pos,
+          disableGoToDefinition,
+          disableGoToTypeDefinition,
+          disableGoToImplementation,
+          disableFindAllReferences,
+          disableRename,
         });
 
         const dom = document.createElement("div");

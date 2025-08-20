@@ -1,4 +1,5 @@
-import { vi } from "vitest";
+import { vi, type MockedFunction } from "vitest";
+import type * as LSP from "vscode-languageserver-protocol";
 import type { LSITransport } from "./LSITransport.js";
 
 /**
@@ -12,9 +13,23 @@ export class LSMockTransport implements LSITransport {
     [];
   public errorHandlers: Array<(error: unknown) => void> = [];
 
-  public sendNotification = vi.fn();
-  public sendRequest = vi.fn<(...args: unknown[]) => Promise<unknown>>();
-  public close = vi.fn();
+  public sendNotification: MockedFunction<(method: string, params?: unknown) => void>;
+  public sendRequest: MockedFunction<(method: string, params?: unknown) => Promise<unknown>>;
+  public close: MockedFunction<() => void>;
+
+  constructor(capabilities: LSP.ServerCapabilities = {}) {
+    this.sendNotification = vi.fn();
+    this.sendRequest = vi.fn();
+    this.close = vi.fn();
+
+    this.sendRequest.mockResolvedValueOnce({
+      capabilities,
+      serverInfo: {
+        name: "language-server",
+        version: "1.0.0",
+      },
+    });
+  }
 
   public reset(): void {
     this.sendNotification.mockClear();
@@ -23,16 +38,6 @@ export class LSMockTransport implements LSITransport {
     this.notificationHandlers = [];
     this.requestHandlers = [];
     this.errorHandlers = [];
-  }
-
-  constructor() {
-    this.sendRequest.mockResolvedValueOnce({
-      capabilities: {},
-      serverInfo: {
-        name: "language-server",
-        version: "1.0.0",
-      },
-    });
   }
 
   onNotification(

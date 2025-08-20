@@ -14,10 +14,10 @@ export interface LanguageServerClientOptions {
    * Can be an object or a function that modifies the default capabilities.
    */
   capabilities?:
-    | LSP.InitializeParams["capabilities"]
-    | ((
-        defaultCapabilities: LSP.InitializeParams["capabilities"],
-      ) => LSP.InitializeParams["capabilities"]);
+  | LSP.InitializeParams["capabilities"]
+  | ((
+    defaultCapabilities: LSP.InitializeParams["capabilities"],
+  ) => LSP.InitializeParams["capabilities"]);
   /** Additional initialization options to send to the language server */
   initializationOptions?: LSP.InitializeParams["initializationOptions"];
   /** JSON-RPC client for communication with the language server */
@@ -229,7 +229,7 @@ export class LSClient {
       await this.initializePromise;
     }
 
-    return this.requestUnsafe(method, params);
+    return await this.requestUnsafe(method, params);
   }
 
   // biome-ignore lint/suspicious/noExplicitAny: explicitly for unsafe requests
