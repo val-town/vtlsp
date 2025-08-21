@@ -8,6 +8,7 @@
  * parameters.
  *
  * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_inlayHint
+ * @todo Fancy editors only request inlay hints for the visible part of the document
  */
 
 
@@ -129,8 +130,6 @@ async function getFullDocumentInlayHints({
 }: {
   view: EditorView;
 }): Promise<LSP.InlayHint[] | null> {
-  // TODO: fancy editors will only request inlay hints for the visible part of the document
-
   const lsCore = LSCore.ofOrThrow(view);
 
   if (lsCore.client.capabilities?.inlayHintProvider === false) {
@@ -148,8 +147,6 @@ async function getFullDocumentInlayHints({
       }
     },
   );
-
-  if (!result) return result;
 
   return result;
 }
