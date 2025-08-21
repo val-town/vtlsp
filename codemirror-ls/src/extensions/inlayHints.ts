@@ -12,6 +12,7 @@
  * @todo Add resolve support
  */
 
+import { Annotation } from "@codemirror/state";
 import {
   Decoration,
   type EditorView,
@@ -23,7 +24,6 @@ import type * as LSP from "vscode-languageserver-protocol";
 import { LSCore } from "../LSPlugin.js";
 import { offsetToPos, posToOffset } from "../utils.js";
 import type { LSExtensionGetter, Renderer } from "./types.js";
-import { Annotation } from "@codemirror/state";
 
 /**
  * Renderer function for inlay hints.
