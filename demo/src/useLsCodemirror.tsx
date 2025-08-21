@@ -6,9 +6,9 @@ import type * as LSP from "vscode-languageserver-protocol";
 import { LSContents } from "./components/LSContents";
 import { LSContextMenu } from "./components/LSContextMenu";
 import { LSGoTo } from "./components/LSGoTo";
+import { LSInlayHint } from "./components/LSInlayHint";
 import { LSSignatureHelp } from "./components/LSSignatureHelp";
 import { LSWindow } from "./components/LSWindow";
-import { LSInlayHint } from "./components/LSInlayHint";
 
 export function useLsCodemirror({ path }: { path: string }): {
   extensions: ReturnType<typeof languageServerWithClient> | null;
