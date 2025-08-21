@@ -13,6 +13,7 @@
 import { type Action, type Diagnostic, setDiagnostics } from "@codemirror/lint";
 import type { Extension } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
+import PQueue from "p-queue";
 import { showDialog, ViewPlugin } from "@codemirror/view";
 import type { PublishDiagnosticsParams } from "vscode-languageserver-protocol";
 import * as LSP from "vscode-languageserver-protocol";
@@ -41,6 +42,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
     ViewPlugin.fromClass(
       class DiagnosticPlugin {
         #disposeHandler: (() => void) | null = null;
+        #dispatchQueue = new PQueue({ concurrency: 1 });
 
         constructor(private view: EditorView) {
           const lsPlugin = LSCore.ofOrThrow(view);
@@ -49,12 +51,14 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
             async (method, params) => {
               if (method !== "textDocument/publishDiagnostics") return;
 
-              void this.processDiagnostics({
-                params,
-                view: this.view,
-                onExternalFileChange,
-                render,
-              });
+              this.#dispatchQueue.add(async () =>
+                await this.processDiagnostics({
+                  params,
+                  view: this.view,
+                  onExternalFileChange,
+                  render,
+                })
+              );
             },
           );
         }
@@ -81,6 +85,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
           const lsPlugin = LSCore.ofOrThrow(view);
 
           if (params.uri !== lsPlugin.documentUri) return;
+          if (params.version !== lsPlugin.documentVersion) return;
 
           const severityMap: Record<
             LSP.DiagnosticSeverity,
@@ -190,10 +195,10 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
               message,
               renderMessage: render
                 ? () => {
-                    const dom = document.createElement("div");
-                    render(dom, message);
-                    return dom;
-                  }
+                  const dom = document.createElement("div");
+                  render(dom, message);
+                  return dom;
+                }
                 : undefined,
               source: diagnostic.source,
               actions: codemirrorActions,
@@ -255,7 +260,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
               "data" in action &&
               lsPlugin.client.capabilities?.codeActionProvider &&
               typeof lsPlugin.client.capabilities.codeActionProvider !==
-                "boolean" &&
+              "boolean" &&
               lsPlugin.client.capabilities.codeActionProvider.resolveProvider
             ) {
               return (await lsPlugin.requestWithLock(

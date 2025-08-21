@@ -64,6 +64,14 @@ import { LSPlugin } from "./LSPlugin.js";
  *       goToDefinitionShortcuts: ["F12"],
  *       modClickForDefinition: true,
  *     },
+ *     inlayHints: {
+ *       render: async (dom, hint) => {
+ *         const root = ReactDOM.createRoot(dom);
+ *         root.render(<LSInlayHint hint={hint} />);
+ *       },
+ *       debounceTime: 150,
+ *       clearOnEdit: true,
+ *     },
  *   },
  * });
  * ```
@@ -164,7 +172,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
   if (!features.inlayHints.disabled) {
     extensions.push(
       ...inlayHints.getInlayHintExtensions({
-        ...features.inlayHints,
+...features.inlayHints
       }),
     );
   }

@@ -8,6 +8,7 @@ import { LSContextMenu } from "./components/LSContextMenu";
 import { LSGoTo } from "./components/LSGoTo";
 import { LSSignatureHelp } from "./components/LSSignatureHelp";
 import { LSWindow } from "./components/LSWindow";
+import { LSInlayHint } from "./components/LSInlayHint";
 
 export function useLsCodemirror({ path }: { path: string }): {
   extensions: ReturnType<typeof languageServerWithClient> | null;
@@ -149,6 +150,13 @@ export function useLsCodemirror({ path }: { path: string }): {
             root.render(<LSWindow message={message} onDismiss={onDismiss} />);
           },
         },
+        inlayHints: {
+          render: async (dom, hints) => {
+            const root = ReactDOM.createRoot(dom);
+            const hint = Array.isArray(hints) ? hints[0] : hints;
+            root.render(<LSInlayHint hint={hint} />);
+          },
+        }
       },
     });
 

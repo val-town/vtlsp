@@ -10,12 +10,13 @@
  * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_hover
  */
 
-import { StateField, Annotation, ChangeSet } from "@codemirror/state";
+
 import { Decoration, type DecorationSet, type EditorView, type ViewUpdate, ViewPlugin, WidgetType } from "@codemirror/view";
 import type * as LSP from "vscode-languageserver-protocol";
 import { LSCore } from "../LSPlugin.js";
 import type { LSExtensionGetter, Renderer } from "./types.js";
 import { offsetToPos, posToOffset } from "../utils.js";
+import { Annotation } from "@codemirror/state";
 
 export type InlayHintsRenderer = Renderer<[hint: LSP.InlayHint]>;
 
@@ -29,37 +30,52 @@ export interface InlayHintArgs {
 
 export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
   render,
-  debounceTime = 100,
+  debounceTime = 1_000,
   clearOnEdit = true,
 }: InlayHintArgs) => {
   return [
-    inlayHintState,
-    createInlayHintProvider(render),
     ViewPlugin.fromClass(class {
-      timeWindowChangeSet: ChangeSet
       #debounceTimeoutId: number | null = null;
       #doingUpdate = false;
+      hints: DecorationSet = Decoration.none;
+      currentInlayHints: LSP.InlayHint[] = [];
 
       constructor(view: EditorView) {
-        this.timeWindowChangeSet = ChangeSet.empty(view.state.doc.length);
-
+        this.#updateDecorations(view);
         void this.#runFullDocumentInlayHints(view);
       }
 
       update(update: ViewUpdate) {
+        // Update the decorations if the document has changed
+        if (update.docChanged) {
+          this.#updateDecorations(update.view);
+        }
+
         if (!update.docChanged) return;
         if (this.#debounceTimeoutId) {
           clearTimeout(this.#debounceTimeoutId);
         }
 
         if (clearOnEdit) {
-          update.view.dispatch({
-            annotations: inlayHintUpdate.of(null),
-          });
+          this.currentInlayHints = [];
+          this.#updateDecorations(update.view);
         }
 
-        this.timeWindowChangeSet = this.timeWindowChangeSet.compose(update.changes);
         this.#scheduleUpdateInlayHints(update.view);
+      }
+
+      #updateDecorations(view: EditorView) {
+        const decorations = this.currentInlayHints.map(hint => {
+          const offset = posToOffset(view.state.doc, hint.position);
+          if (offset === undefined) return null;
+
+          return Decoration.widget({
+            widget: new InlayHintWidget(hint, render),
+            side: -1,
+          }).range(offset);
+        }).filter(widget => widget !== null);
+
+        this.hints = Decoration.set(decorations, true);
       }
 
       async #runFullDocumentInlayHints(view: EditorView) {
@@ -67,7 +83,7 @@ export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
         this.#doingUpdate = true;
 
         try {
-          const inlayHints = await getFullDocumentInlayHints(view);
+          const inlayHints = await getFullDocumentInlayHints({ view });
           if (!inlayHints) return;
           void this.#updateInlayHints(view, inlayHints);
         } finally {
@@ -80,162 +96,78 @@ export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
           clearTimeout(this.#debounceTimeoutId);
         }
 
-        let veryStart = 0;
-        let veryEnd = view.state.doc.length - 1;
-
-        this.timeWindowChangeSet.iterChangedRanges((fromA, toA, fromB, toB) => {
-          veryStart = Math.min(veryStart, Math.min(fromA, fromB));
-          veryEnd = Math.max(veryEnd, Math.max(toA, toB));
-        });
-
         this.#debounceTimeoutId = window.setTimeout(async () => {
-          const inlayHints = await getInlayHints({
-            view,
-            start: offsetToPos(view.state.doc, veryStart),
-            end: offsetToPos(view.state.doc, veryEnd),
-          });
+          const inlayHints = await getFullDocumentInlayHints({ view });
 
           this.#debounceTimeoutId = null;
           if (inlayHints) {
             this.#updateInlayHints(view, inlayHints);
+
+            view.dispatch({
+              annotations: inlayHintsApply.of(inlayHints),
+            });
           }
         }, debounceTime);
       }
 
       async #updateInlayHints(view: EditorView, inlayHints?: LSP.InlayHint[]) {
         if (inlayHints) {
-          view.dispatch({
-            annotations: inlayHintUpdate.of(inlayHints),
-          });
+          this.currentInlayHints = inlayHints;
+          this.#updateDecorations(view);
         }
       }
+    }, {
+      decorations: v => v.hints
     })
   ];
 };
 
-async function getFullDocumentInlayHints(view: EditorView) {
-  const endOfDocPos = view.state.doc.length - 1;
+const inlayHintsApply = Annotation.define<LSP.InlayHint[]>()
 
-  return await getInlayHints({
-    view: view,
-    start: { line: 0, character: 0 },
-    end: offsetToPos(view.state.doc, endOfDocPos),
-  });
-}
-
-const inlayHintUpdate = Annotation.define<LSP.InlayHint[] | null>();
-
-const inlayHintState = StateField.define<LSP.InlayHint[]>({
-  create() {
-    return [];
-  },
-  update(inlayHints, tr) {
-    if (tr.annotation(inlayHintUpdate) == null) return []
-
-    const allInlayHints = [...new Set([...inlayHints, ...(tr.annotation(inlayHintUpdate) ?? [])])];
-    return allInlayHints;
-  },
-});
-
-const createInlayHintProvider = (render: InlayHintsRenderer) => {
-  return ViewPlugin.fromClass(class {
-    hints: DecorationSet = Decoration.none;
-
-    constructor(view: EditorView) {
-      this.updateDecorations(view);
-    }
-
-    update(update: ViewUpdate) {
-      // Update the decorations if the inlay hints have changed or if the document has changed
-      if (update.docChanged || update.state.field(inlayHintState) !== update.startState.field(inlayHintState)) {
-        this.updateDecorations(update.view);
-      }
-    }
-
-    updateDecorations(view: EditorView) {
-      const inlayHints = view.state.field(inlayHintState); // get all the current inlay hints
-      const decorations = inlayHints.map(hint => {
-        const offset = posToOffset(view.state.doc, hint.position);
-        if (offset === undefined) return null;
-
-        return Decoration.widget({
-          widget: new InlayHintWidget(hint, render),
-          side: -1,
-        }).range(offset);
-      }).filter(widget => widget !== null);
-
-      this.hints = Decoration.set(decorations, true);
-    }
-  }, {
-    decorations: v => v.hints
-  });
-};
-
-class InlayHintWidget extends WidgetType {
-  constructor(private hint: LSP.InlayHint, private render: InlayHintsRenderer) {
-    super();
-  }
-
-  override toDOM() {
-    const span = document.createElement("span");
-    span.className = "cm-inlay-hint";
-    
-    // Use the default fallback rendering if the render function fails
-    const defaultContent = Array.isArray(this.hint.label)
-      ? this.hint.label.map(item => typeof item === 'string' ? item : item.value).join('')
-      : this.hint.label;
-    span.textContent = defaultContent;
-
-    // Call the custom renderer
-    void this.render(span, this.hint).catch(() => {
-      // If custom rendering fails, keep the default content
-    });
-
-    return span;
-  }
-}
-
-async function getInlayHints({
-  view,
-  start,
-  end,
+async function getFullDocumentInlayHints({
+  view
 }: {
   view: EditorView;
-  start: { line: number; character: number };
-  end: { line: number; character: number };
 }): Promise<LSP.InlayHint[] | null> {
+  // TODO: fancy editors will only request inlay hints for the visible part of the document
+
   const lsCore = LSCore.ofOrThrow(view);
 
   if (lsCore.client.capabilities?.inlayHintProvider === false) {
     return null;
   }
 
+  const endOfDocPos = view.state.doc.length - 1;
   const result = await lsCore.client.request(
     "textDocument/inlayHint",
     {
       textDocument: { uri: lsCore.documentUri },
       range: {
-        start,
-        end,
+        start: { line: 0, character: 0 },
+        end: offsetToPos(view.state.doc, endOfDocPos),
       }
     },
   );
 
   if (!result) return result;
 
-  return getInlayHintsByUri(result, lsCore.documentUri);
+  return result;
 }
 
-function getInlayHintsByUri(hints: LSP.InlayHint[], targetUri: string): LSP.InlayHint[] {
-  return hints.filter(hint => {
-    // Check if this hint has label items with location information                                                                                                                                                             
-    if (Array.isArray(hint.label)) {
-      // Check if any label item has a matching URI                                                                                                                                                                             
-      return hint.label.some((labelItem: { location?: { uri: string } }) =>
-        labelItem.location &&
-        labelItem.location.uri === targetUri
-      );
-    }
-    return false;
-  });
-}  
+class InlayHintWidget extends WidgetType {
+  constructor(
+    private hint: LSP.InlayHint,
+    private render: InlayHintsRenderer,
+  ) {
+    super();
+  }
+
+  override toDOM() {
+    const span = document.createElement("span");
+    span.className = "cm-inlay-hint";
+
+    void this.render(span, this.hint)
+
+    return span;
+  }
+}
