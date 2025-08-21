@@ -172,7 +172,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
   if (!features.inlayHints.disabled) {
     extensions.push(
       ...inlayHints.getInlayHintExtensions({
-...features.inlayHints
+        ...features.inlayHints,
       }),
     );
   }

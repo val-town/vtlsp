@@ -8,6 +8,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@valtown/codemirror-ls": resolve(__dirname, "../codemirror-ls/src"),
-    }
+    },
   },
 });
