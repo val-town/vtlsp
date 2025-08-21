@@ -7,7 +7,7 @@
  * are the things that show up inline in your code, like the names of function
  * parameters.
  *
- * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_hover
+ * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_inlayHint
  */
 
 
