@@ -17,7 +17,7 @@ export function LSInlayHint({ hint }: LSInlayHintProps) {
   const paddingRight = hint.paddingRight ? "1px" : "0px";
 
   const color =
-    hint.kind === LSP.InlayHintKind.Type ? "text-stone-500" : "text-gray-500";
+    hint.kind === LSP.InlayHintKind.Type ? "text-stone-400" : "text-gray-500";
 
   return (
     <span
