@@ -9,6 +9,7 @@
  *
  * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_inlayHint
  * @todo Fancy editors only request inlay hints for the visible part of the document
+ * @todo Add resolve support
  */
 
 
