@@ -25,7 +25,15 @@ import { offsetToPos, posToOffset } from "../utils.js";
 import type { LSExtensionGetter, Renderer } from "./types.js";
 import { Annotation } from "@codemirror/state";
 
-export type InlayHintsRenderer = Renderer<[hint: LSP.InlayHint]>;
+/**
+ * Renderer function for inlay hints.
+ *
+ * Some inlay hints are "fancy" and can be resolved for additional
+ * information/actions (like special tooltips).
+ */
+export type InlayHintsRenderer = Renderer<
+  [hint: LSP.InlayHint, resolve: () => Promise<LSP.InlayHint | null>]
+>;
 
 export interface InlayHintArgs {
   render: InlayHintsRenderer;
@@ -58,7 +66,7 @@ export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
 
           if (clearOnEdit) {
             // the .decorations() provider is naturally triggered on updates so
-            // no need to dispatch
+            // no need to dispatch.
             this.inlayHints = [];
           }
 
@@ -106,7 +114,7 @@ export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
               if (offset === undefined) return null;
 
               return Decoration.widget({
-                widget: new InlayHintWidget(hint, render),
+                widget: new InlayHintWidget(hint, render, this.#view),
                 side: -1,
               }).range(offset);
             })
@@ -125,25 +133,48 @@ export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
 const inlayHintsUpdate = Annotation.define<LSP.InlayHint[] | null>();
 
 class InlayHintWidget extends WidgetType {
+  #inlayHint: LSP.InlayHint;
+  #render: InlayHintsRenderer;
+  #view: EditorView;
+
   constructor(
-    private hint: LSP.InlayHint,
-    private render: InlayHintsRenderer,
+    inlayHint: LSP.InlayHint,
+    render: InlayHintsRenderer,
+    view: EditorView,
   ) {
     super();
+
+    this.#inlayHint = inlayHint;
+    this.#render = render;
+    this.#view = view;
   }
 
   override toDOM() {
     const span = document.createElement("span");
     span.className = "cm-inlay-hint";
-    void this.render(span, this.hint);
+    void this.#render(span, this.#inlayHint, async () => {
+      const lsCore = LSCore.ofOrThrow(this.#view);
+      const resolvedHint = await lsCore.client.request(
+        "inlayHint/resolve",
+        this.#inlayHint,
+      );
+
+      if (resolvedHint) {
+        this.#inlayHint = resolvedHint;
+        return resolvedHint;
+      }
+
+      return null;
+    });
     return span;
   }
 
   override eq(other: InlayHintWidget) {
     return (
-      this.hint.position.line === other.hint.position.line &&
-      this.hint.position.character === other.hint.position.character &&
-      this.hint.label === other.hint.label
+      this.#inlayHint.position.line === other.#inlayHint.position.line &&
+      this.#inlayHint.position.character ===
+        other.#inlayHint.position.character &&
+      this.#inlayHint.label === other.#inlayHint.label
     );
   }
 }
