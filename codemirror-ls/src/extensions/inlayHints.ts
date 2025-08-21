@@ -174,9 +174,15 @@ class InlayHintWidget extends WidgetType {
   override toDOM() {
     const span = document.createElement("span");
     span.className = "cm-inlay-hint";
-
     void this.render(span, this.hint);
-
     return span;
+  }
+
+  override eq(other: InlayHintWidget) {
+    return (
+      this.hint.position.line === other.hint.position.line &&
+      this.hint.position.character === other.hint.position.character &&
+      this.hint.label === other.hint.label
+    );
   }
 }
