@@ -33,14 +33,17 @@ export function useLsCodemirror({ path }: { path: string }): {
         workspaceFolders: [{ uri: "file:///demo", name: "Demo" }],
         initializationOptions: {
           inlayHints: {
-            parameterNames: { enabled: "all", suppressWhenArgumentMatchesName: true },
+            parameterNames: {
+              enabled: "all",
+              suppressWhenArgumentMatchesName: true,
+            },
             parameterTypes: { enabled: true },
             variableTypes: { enabled: true, suppressWhenTypeMatchesName: true },
             propertyDeclarationTypes: { enabled: true },
             functionLikeReturnTypes: { enabled: true },
             enumMemberValues: { enabled: true },
           },
-        }
+        },
       });
 
       setTransport(newTransport);
@@ -156,7 +159,7 @@ export function useLsCodemirror({ path }: { path: string }): {
             const hint = Array.isArray(hints) ? hints[0] : hints;
             root.render(<LSInlayHint hint={hint} />);
           },
-        }
+        },
       },
     });
 

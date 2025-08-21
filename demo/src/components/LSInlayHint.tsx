@@ -9,13 +9,15 @@ export function LSInlayHint({ hint }: LSInlayHintProps) {
     return null;
   }
 
-  const label = typeof hint.label === 'string' ? hint.label : hint.label.map(part => part.value).join('');
-  const paddingLeft = hint.paddingLeft ? '1px' : '0px';
-  const paddingRight = hint.paddingRight ? '1px' : '0px';
+  const label =
+    typeof hint.label === "string"
+      ? hint.label
+      : hint.label.map((part) => part.value).join("");
+  const paddingLeft = hint.paddingLeft ? "1px" : "0px";
+  const paddingRight = hint.paddingRight ? "1px" : "0px";
 
-  const color = hint.kind === LSP.InlayHintKind.Type
-    ? 'text-stone-500'
-    : 'text-gray-500'
+  const color =
+    hint.kind === LSP.InlayHintKind.Type ? "text-stone-500" : "text-gray-500";
 
   return (
     <span
