@@ -45,7 +45,7 @@ export interface InlayHintArgs {
 
 export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
   render,
-  debounceTime = 1_000,
+  debounceTime = 1_500,
   clearOnEdit = true,
 }: InlayHintArgs) => {
   return [
@@ -115,7 +115,7 @@ export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
 
               return Decoration.widget({
                 widget: new InlayHintWidget(hint, render, this.#view),
-                side: -1,
+                side: 1, // Cursor comes **after**, but it comes before all other widgets
               }).range(offset);
             })
             .filter((widget) => widget !== null);
