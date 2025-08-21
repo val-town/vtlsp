@@ -23,12 +23,6 @@ describe("inlayHints", () => {
       inlayHintProvider: true,
     });
 
-    const dom = document.createElement("div");
-    // Set up dimensions so the editor can render properly
-    dom.style.width = "800px";
-    dom.style.height = "600px";
-    document.body.appendChild(dom);
-
     new EditorView({
       doc: "function test(param: string) { return param; }",
       extensions: [
@@ -46,7 +40,6 @@ describe("inlayHints", () => {
           clearOnEdit: false,
         }),
       ],
-      parent: dom,
     });
   });
 
