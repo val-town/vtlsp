@@ -12,19 +12,19 @@
  * @todo Add resolve support
  */
 
+import { Annotation } from "@codemirror/state";
 import {
   Decoration,
   type DecorationSet,
   type EditorView,
-  type ViewUpdate,
   ViewPlugin,
+  type ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
 import type * as LSP from "vscode-languageserver-protocol";
 import { LSCore } from "../LSPlugin.js";
-import type { LSExtensionGetter, Renderer } from "./types.js";
 import { offsetToPos, posToOffset } from "../utils.js";
-import { Annotation } from "@codemirror/state";
+import type { LSExtensionGetter, Renderer } from "./types.js";
 
 export type InlayHintsRenderer = Renderer<[hint: LSP.InlayHint]>;
 

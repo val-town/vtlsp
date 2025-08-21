@@ -4,11 +4,11 @@ import {
   completions,
   contextMenu,
   hovers,
+  inlayHints,
   linting,
   references,
   renames,
   signatures,
-  inlayHints,
   window,
 } from "./extensions/index.js";
 import type { LSClient } from "./LSClient.js";

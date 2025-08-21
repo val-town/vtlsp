@@ -1,17 +1,17 @@
+import { EditorView } from "@codemirror/view";
 import {
   beforeEach,
   describe,
   expect,
   it,
-  vi,
   type MockedFunction,
+  vi,
 } from "vitest";
-import { getInlayHintExtensions, type InlayHintsRenderer } from "./inlayHints";
-import { EditorView } from "@codemirror/view";
-import { LSMockTransport } from "../transport/LSMockTransport";
-import { LSPlugin } from "../LSPlugin";
-import { LSClient } from "../LSClient";
 import type * as LSP from "vscode-languageserver-protocol";
+import { LSClient } from "../LSClient";
+import { LSPlugin } from "../LSPlugin";
+import { LSMockTransport } from "../transport/LSMockTransport";
+import { getInlayHintExtensions, type InlayHintsRenderer } from "./inlayHints";
 
 describe("inlayHints", () => {
   let renderer: MockedFunction<InlayHintsRenderer>;
