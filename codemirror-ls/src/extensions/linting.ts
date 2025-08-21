@@ -42,6 +42,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
     ViewPlugin.fromClass(
       class DiagnosticPlugin {
         #disposeHandler: (() => void) | null = null;
+        #dispatchQueue = new PQueue({ concurrency: 1 });
 
         constructor(private view: EditorView) {
           const lsPlugin = LSCore.ofOrThrow(view);
@@ -50,12 +51,15 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
             async (method, params) => {
               if (method !== "textDocument/publishDiagnostics") return;
 
-              void this.processDiagnostics({
-                params,
-                view: this.view,
-                onExternalFileChange,
-                render,
-              });
+              this.#dispatchQueue.add(
+                async () =>
+                  await this.processDiagnostics({
+                    params,
+                    view: this.view,
+                    onExternalFileChange,
+                    render,
+                  }),
+              );
             },
           );
         }
@@ -82,6 +86,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
           const lsPlugin = LSCore.ofOrThrow(view);
 
           if (params.uri !== lsPlugin.documentUri) return;
+          if (params.version !== lsPlugin.documentVersion) return;
 
           const severityMap: Record<
             LSP.DiagnosticSeverity,

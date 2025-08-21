@@ -4,6 +4,7 @@ import {
   completions,
   contextMenu,
   hovers,
+  inlayHints,
   linting,
   references,
   renames,
@@ -63,6 +64,14 @@ import { LSPlugin } from "./LSPlugin.js";
  *       goToDefinitionShortcuts: ["F12"],
  *       modClickForDefinition: true,
  *     },
+ *     inlayHints: {
+ *       render: async (dom, hint) => {
+ *         const root = ReactDOM.createRoot(dom);
+ *         root.render(<LSInlayHint hint={hint} />);
+ *       },
+ *       debounceTime: 150,
+ *       clearOnEdit: true,
+ *     },
  *   },
  * });
  * ```
@@ -76,6 +85,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
     renames: { shortcuts: [{ key: "F2" }] },
     contextMenu: { render: asyncNoop },
     linting: { render: asyncNoop },
+    inlayHints: { render: asyncNoop },
     window: { render: asyncNoop },
     ...options.features,
   } satisfies LanguageServerFeatures;
@@ -159,6 +169,14 @@ export function languageServerWithClient(options: LanguageServerOptions) {
     );
   }
 
+  if (!features.inlayHints.disabled) {
+    extensions.push(
+      ...inlayHints.getInlayHintExtensions({
+        ...features.inlayHints,
+      }),
+    );
+  }
+
   if (!features.window.disabled) {
     extensions.push(
       ...window.getWindowExtensions({
@@ -184,6 +202,7 @@ export interface LanguageServerFeatures {
     }
   >;
   linting: FeatureOption<linting.DiagnosticArgs>;
+  inlayHints: FeatureOption<inlayHints.InlayHintArgs>;
   window: FeatureOption<window.WindowExtensionArgs>;
 }
 

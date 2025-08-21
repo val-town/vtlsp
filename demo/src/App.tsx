@@ -6,7 +6,7 @@ import { useLsCodemirror } from "./useLsCodemirror";
 
 const DEFAULT_URL_BASE = () =>
   window.location.hostname === "localhost"
-    ? `ws://${window.location.hostname}:5002/?session=${crypto.randomUUID()}`
+    ? `ws://${window.location.hostname}:5002/ws?session=${crypto.randomUUID()}`
     : `wss://${window.location.hostname}/lsp?session=${crypto.randomUUID()}`;
 
 export default function App() {
@@ -28,7 +28,7 @@ export default function App() {
   useEffect(() => {
     if (editor.current && !view.current && lsExtensions) {
       const state = EditorState.create({
-        doc: "console.log('hello world!');\n\n\n",
+        doc: "export function add(a: number, b: number) {\n return a + b;\n }\n\n add(12, 14)\n\n\n",
         extensions: [
           basicSetup,
           javascript({ jsx: true, typescript: true }),
