@@ -12,10 +12,8 @@
  * @todo Add resolve support
  */
 
-import { Annotation } from "@codemirror/state";
 import {
   Decoration,
-  type DecorationSet,
   type EditorView,
   ViewPlugin,
   type ViewUpdate,
@@ -25,6 +23,7 @@ import type * as LSP from "vscode-languageserver-protocol";
 import { LSCore } from "../LSPlugin.js";
 import { offsetToPos, posToOffset } from "../utils.js";
 import type { LSExtensionGetter, Renderer } from "./types.js";
+import { Annotation } from "@codemirror/state";
 
 export type InlayHintsRenderer = Renderer<[hint: LSP.InlayHint]>;
 
@@ -45,38 +44,65 @@ export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
     ViewPlugin.fromClass(
       class {
         #debounceTimeoutId: number | null = null;
-        #doingUpdate = false;
-        hints: DecorationSet = Decoration.none;
-        currentInlayHints: LSP.InlayHint[] = [];
+        #view: EditorView;
+
+        inlayHints: LSP.InlayHint[] | null = null;
 
         constructor(view: EditorView) {
-          this.#updateDecorations(view);
-          void this.#runFullDocumentInlayHints(view);
+          this.#view = view;
+          void this.#queueRefreshInlayHints();
         }
 
         update(update: ViewUpdate) {
-          // Update the decorations if the document has changed
-          if (update.docChanged) {
-            this.#updateDecorations(update.view);
-          }
-
           if (!update.docChanged) return;
-          if (this.#debounceTimeoutId) {
-            clearTimeout(this.#debounceTimeoutId);
-          }
 
           if (clearOnEdit) {
-            this.currentInlayHints = [];
-            this.#updateDecorations(update.view);
+            // the .decorations() provider is naturally triggered on updates so
+            // no need to dispatch
+            this.inlayHints = [];
           }
 
-          this.#scheduleUpdateInlayHints(update.view);
+          void this.#queueRefreshInlayHints();
         }
 
-        #updateDecorations(view: EditorView) {
-          const decorations = this.currentInlayHints
+        async #queueRefreshInlayHints() {
+          if (this.#debounceTimeoutId) {
+            window.clearInterval(this.#debounceTimeoutId);
+          }
+
+          this.#debounceTimeoutId = window.setTimeout(async () => {
+            const lsCore = LSCore.ofOrThrow(this.#view);
+
+            if (lsCore.client.capabilities?.inlayHintProvider === false) {
+              return null;
+            }
+
+            const endOfDocPos = this.#view.state.doc.length - 1;
+            this.inlayHints = await lsCore.client.request(
+              "textDocument/inlayHint",
+              {
+                textDocument: { uri: lsCore.documentUri },
+                range: {
+                  start: { line: 0, character: 0 },
+                  end: offsetToPos(this.#view.state.doc, endOfDocPos),
+                },
+              },
+            );
+
+            // This is an event "in the middle of nowhere" -- it's based on a
+            // timeout. We need to dispatch to force a requery of decorations.
+            this.#view.dispatch({
+              annotations: [inlayHintsUpdate.of(this.inlayHints)],
+            });
+          }, debounceTime);
+        }
+
+        get decorations() {
+          if (this.inlayHints === null) return Decoration.none;
+
+          const decorations = this.inlayHints
             .map((hint) => {
-              const offset = posToOffset(view.state.doc, hint.position);
+              const offset = posToOffset(this.#view.state.doc, hint.position);
               if (offset === undefined) return null;
 
               return Decoration.widget({
@@ -86,82 +112,17 @@ export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
             })
             .filter((widget) => widget !== null);
 
-          this.hints = Decoration.set(decorations, true);
-        }
-
-        async #runFullDocumentInlayHints(view: EditorView) {
-          if (this.#doingUpdate) return;
-          this.#doingUpdate = true;
-
-          try {
-            const inlayHints = await getFullDocumentInlayHints({ view });
-            if (!inlayHints) return;
-            void this.#updateInlayHints(view, inlayHints);
-          } finally {
-            this.#doingUpdate = false;
-          }
-        }
-
-        #scheduleUpdateInlayHints(view: EditorView) {
-          if (this.#debounceTimeoutId) {
-            clearTimeout(this.#debounceTimeoutId);
-          }
-
-          this.#debounceTimeoutId = window.setTimeout(async () => {
-            const inlayHints = await getFullDocumentInlayHints({ view });
-
-            this.#debounceTimeoutId = null;
-            if (inlayHints) {
-              this.#updateInlayHints(view, inlayHints);
-
-              view.dispatch({
-                annotations: inlayHintsApply.of(inlayHints),
-              });
-            }
-          }, debounceTime);
-        }
-
-        async #updateInlayHints(
-          view: EditorView,
-          inlayHints?: LSP.InlayHint[],
-        ) {
-          if (inlayHints) {
-            this.currentInlayHints = inlayHints;
-            this.#updateDecorations(view);
-          }
+          return Decoration.set(decorations, true);
         }
       },
       {
-        decorations: (v) => v.hints,
+        decorations: (v) => v.decorations,
       },
     ),
   ];
 };
 
-const inlayHintsApply = Annotation.define<LSP.InlayHint[]>();
-
-async function getFullDocumentInlayHints({
-  view,
-}: {
-  view: EditorView;
-}): Promise<LSP.InlayHint[] | null> {
-  const lsCore = LSCore.ofOrThrow(view);
-
-  if (lsCore.client.capabilities?.inlayHintProvider === false) {
-    return null;
-  }
-
-  const endOfDocPos = view.state.doc.length - 1;
-  const result = await lsCore.client.request("textDocument/inlayHint", {
-    textDocument: { uri: lsCore.documentUri },
-    range: {
-      start: { line: 0, character: 0 },
-      end: offsetToPos(view.state.doc, endOfDocPos),
-    },
-  });
-
-  return result;
-}
+const inlayHintsUpdate = Annotation.define<LSP.InlayHint[] | null>();
 
 class InlayHintWidget extends WidgetType {
   constructor(
