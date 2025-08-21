@@ -66,7 +66,7 @@ export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
 
           if (clearOnEdit) {
             // the .decorations() provider is naturally triggered on updates so
-            // no need to dispatch.
+            // no need to dispatch (also, we cannot dispatch DURING an update).
             this.inlayHints = [];
           }
 
