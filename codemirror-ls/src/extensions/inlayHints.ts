@@ -22,7 +22,7 @@ export type InlayHintsRenderer = Renderer<[hint: LSP.InlayHint]>;
 
 export interface InlayHintArgs {
   render: InlayHintsRenderer;
-  /** Inlay hints will be debounced to only start showing up after this long. */
+  /** Inlay hints will be debounced to only start showing up after this long (in ms) */
   debounceTime?: number;
   /** Whether to clear the currently shown inlay hints when the user starts editing. */
   clearOnEdit?: boolean;
