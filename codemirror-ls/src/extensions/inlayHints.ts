@@ -41,12 +41,15 @@ export interface InlayHintArgs {
   debounceTime?: number;
   /** Whether to clear the currently shown inlay hints when the user starts editing. */
   clearOnEdit?: boolean;
+  /** Whether the inlay hints come before or after the cursor. */
+  sideOfCursor?: "after" | "before";
 }
 
 export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
   render,
   debounceTime = 1_500,
   clearOnEdit = true,
+  sideOfCursor = "after",
 }: InlayHintArgs) => {
   return [
     ViewPlugin.fromClass(
@@ -115,7 +118,9 @@ export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
 
               return Decoration.widget({
                 widget: new InlayHintWidget(hint, render, this.#view),
-                side: 1, // Cursor comes **after**, but it comes before all other widgets
+                // Side is a number -1000 to 1000, which orders the widgets. >0
+                // means after the cursor, <0 means before the cursor.
+                side: sideOfCursor === "after" ? 1 : -1,
               }).range(offset);
             })
             .filter((widget) => widget !== null);
