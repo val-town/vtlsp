@@ -130,7 +130,7 @@ export const getRenameExtensions: LSExtensionGetter<RenameExtensionsArgs> = ({
             };
 
             const div = document.createElement("div");
-            render(div, rename.placeholder, onDismiss, onComplete);
+            void render(div, rename.placeholder, onDismiss, onComplete);
 
             return {
               dom: div,
