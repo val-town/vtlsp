@@ -92,18 +92,16 @@ export const getRenameExtensions: LSExtensionGetter<RenameExtensionsArgs> = ({
                       );
                     }
 
-                    if (changes) {
-                      view.dispatch({
-                        changes: changes.map((change) => ({
-                          from: posToOffset(
-                            view.state.doc,
-                            change.range.start,
-                          )!,
-                          to: posToOffset(view.state.doc, change.range.end)!,
-                          insert: change.newText,
-                        })),
-                      });
-                    }
+                    view.dispatch({
+                      changes: (changes ?? []).map((change) => ({
+                        from: posToOffset(
+                          view.state.doc,
+                          change.range.start,
+                        )!,
+                        to: posToOffset(view.state.doc, change.range.end)!,
+                        insert: change.newText,
+                      })),
+                    });
                   }
 
                   if (LSP.TextDocumentEdit.is(edit)) {
