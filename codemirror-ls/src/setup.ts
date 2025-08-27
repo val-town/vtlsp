@@ -12,6 +12,7 @@ import {
 } from "./extensions/index.js";
 import type { LSClient } from "./LSClient.js";
 import { LSPlugin } from "./LSPlugin.js";
+import type * as LSP from "vscode-languageserver-protocol";
 
 /**
  * Utility function to set up a CodeMirror extension array that includes
@@ -89,6 +90,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
     languageId: options.languageId,
     sendDidOpen: options.sendDidOpen ?? true,
     sendCloseOnDestroy: options.sendCloseOnDestroy ?? true,
+    onWorkspaceEdit: options.onWorkspaceEdit,
   });
   extensions.push(Prec.highest(lsPlugin));
 
@@ -202,4 +204,6 @@ export interface LanguageServerOptions {
   sendDidOpen?: boolean;
   /** Whether to send the didClose notification when the editor is destroyed */
   sendCloseOnDestroy?: boolean;
+  /** Called when a workspace edit is received, for events that may have edited some or many files. */
+  onWorkspaceEdit?: (edit: LSP.WorkspaceEdit) => void | Promise<void>;
 }
