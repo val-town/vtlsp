@@ -9,7 +9,12 @@
  * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_rename
  */
 
-import { Annotation, type Extension, StateField } from "@codemirror/state";
+import {
+  Annotation,
+  EditorSelection,
+  type Extension,
+  StateField,
+} from "@codemirror/state";
 import type { EditorView, KeyBinding, Tooltip } from "@codemirror/view";
 import { keymap, showTooltip } from "@codemirror/view";
 import * as LSP from "vscode-languageserver-protocol";
@@ -248,6 +253,12 @@ export async function handleRename({
   }
 
   view.dispatch({
+    selection: EditorSelection.create([
+      EditorSelection.range(
+        posToOffset(view.state.doc, range.start)!,
+        posToOffset(view.state.doc, range.end)!,
+      ),
+    ]),
     annotations: renameActivated.of({
       placeholder,
       pos: posToOffset(view.state.doc, range.start)!,
