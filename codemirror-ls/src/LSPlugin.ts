@@ -201,46 +201,49 @@ export class LSCore extends LSCoreBase implements PluginValue {
     }
   }
 
+  /**
+   * Apply a WorkspaceEdit. Updates the current document with all applicable
+   * changes and hits the global callback with the WorkspaceEdit.
+   *
+   * @param edit The workspace edit to apply.
+   * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspaceEdit
+   */
   public async applyWorkspaceEdit(edit: LSP.WorkspaceEdit) {
+    let editsForThisDocument: LSP.TextEdit[] = [];
+
     if (edit.documentChanges) {
       const changesForThisDocument = edit.documentChanges.filter(
         (change): change is LSP.TextDocumentEdit =>
-          'textDocument' in change && change.textDocument.uri === this.documentUri
+          "textDocument" in change &&
+          change.textDocument.uri === this.documentUri,
       );
-
-      if (changesForThisDocument.length > 0) {
-        const allEdits = changesForThisDocument.flatMap(change => change.edits);
-
-        if (allEdits.length > 0) {
-          const transaction = this.#view.state.update({
-            changes: allEdits.map(edit => ({
-              from: posToOffset(this.#view.state.doc, edit.range.start)!,
-              to: posToOffset(this.#view.state.doc, edit.range.end)!,
-              insert: edit.newText
-            }))
-          });
-
-          this.#view.dispatch(transaction);
-        }
-      }
+      editsForThisDocument = changesForThisDocument.flatMap(
+        (change) => change.edits,
+      );
     } else if (edit.changes) {
-      const changesForThisDocument = edit.changes[this.documentUri];
-      if (changesForThisDocument) {
-        const transaction = this.#view.state.update({
-          changes: changesForThisDocument.map(edit => ({
-            from: posToOffset(this.#view.state.doc, edit.range.start)!,
-            to: posToOffset(this.#view.state.doc, edit.range.end)!,
-            insert: edit.newText
-          }))
-        });
+      editsForThisDocument = edit.changes[this.documentUri] ?? [];
+    }
 
-        this.#view.dispatch(transaction);
-      }
+    if (editsForThisDocument.length > 0) {
+      const sortedEdits = editsForThisDocument.sort((a, b) => {
+        const posA = posToOffset(this.#view.state.doc, a.range.start);
+        const posB = posToOffset(this.#view.state.doc, b.range.start);
+        return (posB ?? 0) - (posA ?? 0);
+      });
+
+      const transaction = this.#view.state.update({
+        changes: sortedEdits.map((edit) => ({
+          from: posToOffset(this.#view.state.doc, edit.range.start)!,
+          to: posToOffset(this.#view.state.doc, edit.range.end)!,
+          insert: edit.newText,
+        })),
+      });
+
+      this.#view.dispatch(transaction);
     }
 
     await this.#args.onWorkspaceEdit?.(edit);
   }
-
 }
 
 export const LSPlugin = ViewPlugin.fromClass(LSCore);
