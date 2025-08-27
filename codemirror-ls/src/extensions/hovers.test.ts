@@ -1,9 +1,16 @@
-import { beforeEach, describe, expect, it, MockedFunction, vi } from "vitest";
-import { HoversRenderer, getHoversExtensions } from "./hovers";
 import { EditorView } from "@codemirror/view";
-import { LSMockTransport } from "../transport/LSMockTransport";
-import { LSPlugin } from "../LSPlugin";
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type MockedFunction,
+  vi,
+} from "vitest";
 import { LSClient } from "../LSClient";
+import { LSPlugin } from "../LSPlugin";
+import { LSMockTransport } from "../transport/LSMockTransport";
+import { getHoversExtensions, type HoversRenderer } from "./hovers";
 
 describe("hovers", () => {
   let renderer: MockedFunction<HoversRenderer>;

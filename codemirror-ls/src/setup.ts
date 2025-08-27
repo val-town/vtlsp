@@ -73,7 +73,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
     hovers: { render: asyncNoop },
     references: { render: asyncNoop },
     completion: { render: asyncNoop },
-    renames: { shortcuts: [{ key: "F2" }] },
+    renames: { shortcuts: [{ key: "F2" }], render: asyncNoop },
     contextMenu: { render: asyncNoop },
     linting: { render: asyncNoop },
     window: { render: asyncNoop },

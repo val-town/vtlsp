@@ -6,6 +6,7 @@ import type * as LSP from "vscode-languageserver-protocol";
 import { LSContents } from "./components/LSContents";
 import { LSContextMenu } from "./components/LSContextMenu";
 import { LSGoTo } from "./components/LSGoTo";
+import { LSRename } from "./components/LSRename";
 import { LSSignatureHelp } from "./components/LSSignatureHelp";
 import { LSWindow } from "./components/LSWindow";
 
@@ -89,7 +90,21 @@ export function useLsCodemirror({ path }: { path: string }): {
         hovers: {
           render: renderContents,
         },
-        renames: {},
+        renames: {
+          render: async (dom, placeholder, onClose, onComplete) => {
+            const root = ReactDOM.createRoot(dom);
+            root.render(
+              <LSRename
+                placeholder={placeholder}
+                onDismiss={onClose}
+                onComplete={(newName) => {
+                  onComplete(newName);
+                  onClose();
+                }}
+              />,
+            );
+          },
+        },
         linting: {
           render: async (dom, message) => {
             const root = ReactDOM.createRoot(dom);

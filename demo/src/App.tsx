@@ -6,7 +6,7 @@ import { useLsCodemirror } from "./useLsCodemirror";
 
 const DEFAULT_URL_BASE = () =>
   window.location.hostname === "localhost"
-    ? `ws://${window.location.hostname}:5002/?session=${crypto.randomUUID()}`
+    ? `ws://${window.location.hostname}:5002/ws?session=${crypto.randomUUID()}`
     : `wss://${window.location.hostname}/lsp?session=${crypto.randomUUID()}`;
 
 export default function App() {

@@ -1,4 +1,4 @@
-import { vi, type MockedFunction } from "vitest";
+import { type MockedFunction, vi } from "vitest";
 import type * as LSP from "vscode-languageserver-protocol";
 import type { LSITransport } from "./LSITransport.js";
 
