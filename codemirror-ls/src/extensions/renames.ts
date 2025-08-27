@@ -31,6 +31,10 @@ export interface RenameExtensionsArgs {
   onRename?: OnRenameCallback;
   /** Renderer for the rename UI. */
   render: RenameRenderer;
+  /** Select the symbol that is to be renamed before renaming it. */
+  selectSymbol?: boolean;
+  /** Unselect the symbol that was renamed if renaming is canceled or succeeds. */
+  resetSymbolSelection?: boolean;
 }
 
 export type RenameRenderer = Renderer<
@@ -55,6 +59,8 @@ export const getRenameExtensions: LSExtensionGetter<RenameExtensionsArgs> = ({
   onExternalRename,
   onRename,
   render,
+  selectSymbol = true,
+  resetSymbolSelection = true,
 }: RenameExtensionsArgs): Extension[] => {
   const renameDialogField = StateField.define<Tooltip | null>({
     create() {
@@ -98,6 +104,9 @@ export const getRenameExtensions: LSExtensionGetter<RenameExtensionsArgs> = ({
                         to: posToOffset(view.state.doc, change.range.end)!,
                         insert: change.newText,
                       })),
+                      selection: resetSymbolSelection
+                        ? { anchor: view.state.selection.main.head }
+                        : undefined,
                     });
                   }
 
@@ -120,7 +129,9 @@ export const getRenameExtensions: LSExtensionGetter<RenameExtensionsArgs> = ({
 
             const onDismiss = () => {
               view.dispatch({
-                selection: { anchor: view.state.selection.main.head },
+                selection: resetSymbolSelection
+                  ? { anchor: view.state.selection.main.head }
+                  : view.state.selection,
                 annotations: [symbolRename.of(null)],
               });
             };
@@ -150,7 +161,11 @@ export const getRenameExtensions: LSExtensionGetter<RenameExtensionsArgs> = ({
       (shortcuts || []).map((shortcut) => ({
         ...shortcut,
         run: (view: EditorView) => {
-          void handleRename({ view, pos: view.state.selection.main.head });
+          void handleRename({
+            view,
+            pos: view.state.selection.main.head,
+            selectSymbol,
+          });
           return true;
         },
       })),
@@ -168,9 +183,11 @@ const symbolRename = Annotation.define<{
 export async function handleRename({
   view,
   pos,
+  selectSymbol = true,
 }: {
   view: EditorView;
   pos: number;
+  selectSymbol?: boolean;
 }) {
   const lsPlugin = LSCore.ofOrThrow(view);
 
@@ -242,12 +259,14 @@ export async function handleRename({
   }
 
   view.dispatch({
-    selection: EditorSelection.create([
-      EditorSelection.range(
-        posToOffset(view.state.doc, range.start)!,
-        posToOffset(view.state.doc, range.end)!,
-      ),
-    ]),
+    selection: selectSymbol
+      ? EditorSelection.create([
+          EditorSelection.range(
+            posToOffset(view.state.doc, range.start)!,
+            posToOffset(view.state.doc, range.end)!,
+          ),
+        ])
+      : view.state.selection,
     annotations: symbolRename.of({
       placeholder,
       pos: posToOffset(view.state.doc, range.start)!,

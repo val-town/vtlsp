@@ -69,13 +69,39 @@ import { LSPlugin } from "./LSPlugin.js";
  */
 export function languageServerWithClient(options: LanguageServerOptions) {
   const features = {
-    signatureHelp: { disabled: false, render: asyncNoop, ...options.features.signatureHelp },
+    signatureHelp: {
+      disabled: false,
+      render: asyncNoop,
+      ...options.features.signatureHelp,
+    },
     hovers: { disabled: false, render: asyncNoop, ...options.features.hovers },
-    references: { disabled: false, render: asyncNoop, ...options.features.references },
-    completion: { disabled: false, render: asyncNoop, ...options.features.completion },
-    renames: { disabled: false, shortcuts: [{ key: "F2" }], render: asyncNoop, ...options.features.renames },
-    contextMenu: { disabled: false, referencesArgs: {}, render: asyncNoop, ...options.features.contextMenu },
-    linting: { disabled: false, render: asyncNoop, ...options.features.linting },
+    references: {
+      disabled: false,
+      render: asyncNoop,
+      ...options.features.references,
+    },
+    completion: {
+      disabled: false,
+      render: asyncNoop,
+      ...options.features.completion,
+    },
+    renames: {
+      disabled: false,
+      shortcuts: [{ key: "F2" }],
+      render: asyncNoop,
+      ...options.features.renames,
+    },
+    contextMenu: {
+      disabled: false,
+      referencesArgs: {},
+      render: asyncNoop,
+      ...options.features.contextMenu,
+    },
+    linting: {
+      disabled: false,
+      render: asyncNoop,
+      ...options.features.linting,
+    },
     window: { disabled: false, render: asyncNoop, ...options.features.window },
   } satisfies LanguageServerFeatures;
   const extensions: Extension[] = [];
@@ -98,27 +124,19 @@ export function languageServerWithClient(options: LanguageServerOptions) {
   }
 
   if (!features.hovers.disabled) {
-    extensions.push(
-      hovers.getHoversExtensions(features.hovers),
-    );
+    extensions.push(hovers.getHoversExtensions(features.hovers));
   }
 
   if (!features.completion?.disabled) {
-    extensions.push(
-      completions.getCompletionsExtensions(features.completion),
-    );
+    extensions.push(completions.getCompletionsExtensions(features.completion));
   }
 
   if (!features.references.disabled) {
-    extensions.push(
-      ...references.getReferencesExtensions(features.references),
-    );
+    extensions.push(...references.getReferencesExtensions(features.references));
   }
 
   if (!features.renames.disabled) {
-    extensions.push(
-      ...renames.getRenameExtensions(features.renames),
-    );
+    extensions.push(...renames.getRenameExtensions(features.renames));
   }
 
   if (!features.contextMenu.disabled) {
@@ -136,15 +154,11 @@ export function languageServerWithClient(options: LanguageServerOptions) {
   }
 
   if (!features.linting.disabled) {
-    extensions.push(
-      ...linting.getLintingExtensions(features.linting),
-    );
+    extensions.push(...linting.getLintingExtensions(features.linting));
   }
 
   if (!features.window.disabled) {
-    extensions.push(
-      ...window.getWindowExtensions(features.window),
-    );
+    extensions.push(...window.getWindowExtensions(features.window));
   }
 
   return extensions;
