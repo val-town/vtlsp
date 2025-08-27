@@ -153,7 +153,6 @@ export function languageServerWithClient(options: LanguageServerOptions) {
   if (!features.linting.disabled) {
     extensions.push(
       ...linting.getLintingExtensions({
-        onExternalFileChange: features.linting.onExternalFileChange,
         render: features.linting.render,
       }),
     );

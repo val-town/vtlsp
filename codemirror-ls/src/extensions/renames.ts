@@ -20,10 +20,6 @@ import type { LSExtensionGetter } from "./types.js";
 export interface RenameExtensionsArgs {
   /** Keybindings to trigger the rename action. */
   shortcuts?: KeyBinding[];
-  /** Callback for when a rename is received that affects other (non active) files. */
-  onExternalRename?: OnExternalRenameCallback;
-  /** Callback for when a rename is received. */
-  onRename?: OnRenameCallback;
 }
 
 export type OnRenameCallback = (
@@ -37,8 +33,6 @@ export type OnExternalRenameCallback = OnRenameCallback;
 
 export const getRenameExtensions: LSExtensionGetter<RenameExtensionsArgs> = ({
   shortcuts = [],
-  onExternalRename,
-  onRename,
 }: RenameExtensionsArgs): Extension[] => {
   return [
     keymap.of(
@@ -49,8 +43,6 @@ export const getRenameExtensions: LSExtensionGetter<RenameExtensionsArgs> = ({
             // unfortunately we can't take async, so we always eat the keybind
             view,
             renameEnabled: true,
-            onExternalRename,
-            onRename,
           });
           return true;
         },
@@ -65,14 +57,10 @@ export const getRenameExtensions: LSExtensionGetter<RenameExtensionsArgs> = ({
 export async function handleRename({
   view,
   renameEnabled = true,
-  onExternalRename,
-  onRename,
   pos,
 }: {
   view: EditorView;
   renameEnabled?: boolean;
-  onExternalRename?: OnExternalRenameCallback;
-  onRename?: OnRenameCallback;
   pos?: number;
 }): Promise<boolean> {
   if (!renameEnabled) return false;
@@ -86,8 +74,6 @@ export async function handleRename({
     line,
     character,
     documentUri: lsPlugin.documentUri,
-    onExternalRename,
-    onRename,
   });
   return true;
 }
@@ -100,8 +86,6 @@ async function requestRename({
   line,
   character,
   documentUri,
-  onExternalRename,
-  onRename,
 }: {
   view: EditorView;
   line: number;
@@ -202,13 +186,9 @@ async function requestRename({
                 },
               );
 
-              await applyRenameEdit(
-                view,
-                edit,
-                documentUri,
-                onExternalRename,
-                onRename,
-              );
+              if (edit) {
+                void lsPlugin.applyWorkspaceEdit(edit);
+              }
             } catch (error) {
               showDialog(view, {
                 label: `Rename failed: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -267,124 +247,4 @@ function prepareRenameFallback({
     },
     placeholder: lineText.slice(start, end),
   };
-}
-
-/**
- * Annotation to mark transactions that apply rename edits.
- */
-const wasRenameApplication = Annotation.define<boolean>();
-
-/**
- * Handles the renaming of a symbol in the editor.
- */
-export async function applyRenameEdit(
-  view: EditorView,
-  edit: LSP.WorkspaceEdit | null,
-  documentUri: string,
-  onExternalRename?: OnExternalRenameCallback,
-  onRename?: OnRenameCallback,
-): Promise<boolean> {
-  if (!edit) {
-    showDialog(view, { label: "No edit returned from language server" });
-    return false;
-  }
-
-  const changesMap = edit.changes ?? {};
-  const documentChanges = edit.documentChanges ?? [];
-
-  if (Object.keys(changesMap).length === 0 && documentChanges.length === 0) {
-    showDialog(view, { label: "No changes to apply" });
-    return false;
-  }
-
-  // Handle documentChanges (preferred) if available
-  if (documentChanges.length > 0) {
-    for (const docChange of documentChanges) {
-      if ("textDocument" in docChange) {
-        // This is a TextDocumentEdit
-        const uri = docChange.textDocument.uri;
-
-        if (uri !== documentUri) {
-          onExternalRename?.(docChange);
-          continue;
-        }
-
-        onRename?.(docChange);
-
-        // Sort edits in reverse order to avoid position shifts
-        const sortedEdits = docChange.edits.sort((a, b) => {
-          const posA = posToOffset(view.state.doc, a.range.start);
-          const posB = posToOffset(view.state.doc, b.range.start);
-          return (posB ?? 0) - (posA ?? 0);
-        });
-
-        // Create a single transaction with all changes
-        const changes = sortedEdits.map((edit) => ({
-          from: posToOffset(view.state.doc, edit.range.start) ?? 0,
-          to: posToOffset(view.state.doc, edit.range.end) ?? 0,
-          insert: edit.newText,
-        }));
-
-        view.dispatch(
-          view.state.update({
-            changes,
-            annotations: wasRenameApplication.of(true),
-          }),
-        );
-        return true;
-      }
-
-      // This is a CreateFile, RenameFile, or DeleteFile operation
-      onExternalRename?.(docChange);
-      showDialog(view, {
-        label:
-          "File creation, deletion, or renaming operations not supported yet",
-      });
-      return false;
-    }
-  } // Fall back to changes if documentChanges is not available
-  else if (Object.keys(changesMap).length > 0) {
-    // Apply all changes
-    for (const [uri, changes] of Object.entries(changesMap)) {
-      if (uri !== documentUri) {
-        // Create a TextDocumentEdit for external files
-        const textDocumentEdit: LSP.TextDocumentEdit = {
-          textDocument: { uri, version: null },
-          edits: changes,
-        };
-        onExternalRename?.(textDocumentEdit);
-        continue;
-      }
-
-      // Create a TextDocumentEdit for current file
-      const textDocumentEdit: LSP.TextDocumentEdit = {
-        textDocument: { uri, version: null },
-        edits: changes,
-      };
-      onRename?.(textDocumentEdit);
-
-      // Sort changes in reverse order to avoid position shifts
-      const sortedChanges = changes.sort((a, b) => {
-        const posA = posToOffset(view.state.doc, a.range.start);
-        const posB = posToOffset(view.state.doc, b.range.start);
-        return (posB ?? 0) - (posA ?? 0);
-      });
-
-      // Create a single transaction with all changes
-      const changeSpecs = sortedChanges.map((change) => ({
-        from: posToOffset(view.state.doc, change.range.start) ?? 0,
-        to: posToOffset(view.state.doc, change.range.end) ?? 0,
-        insert: change.newText,
-      }));
-
-      view.dispatch(
-        view.state.update({
-          changes: changeSpecs,
-          annotations: wasRenameApplication.of(true),
-        }),
-      );
-    }
-    return true;
-  }
-  return false;
 }
