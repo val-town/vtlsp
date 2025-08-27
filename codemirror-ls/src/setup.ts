@@ -69,15 +69,14 @@ import { LSPlugin } from "./LSPlugin.js";
  */
 export function languageServerWithClient(options: LanguageServerOptions) {
   const features = {
-    signatureHelp: { render: asyncNoop },
-    hovers: { render: asyncNoop },
-    references: { render: asyncNoop },
-    completion: { render: asyncNoop },
-    renames: { shortcuts: [{ key: "F2" }], render: asyncNoop },
-    contextMenu: { render: asyncNoop },
-    linting: { render: asyncNoop },
-    window: { render: asyncNoop },
-    ...options.features,
+    signatureHelp: { disabled: false, render: asyncNoop, ...options.features.signatureHelp },
+    hovers: { disabled: false, render: asyncNoop, ...options.features.hovers },
+    references: { disabled: false, render: asyncNoop, ...options.features.references },
+    completion: { disabled: false, render: asyncNoop, ...options.features.completion },
+    renames: { disabled: false, shortcuts: [{ key: "F2" }], render: asyncNoop, ...options.features.renames },
+    contextMenu: { disabled: false, referencesArgs: {}, render: asyncNoop, ...options.features.contextMenu },
+    linting: { disabled: false, render: asyncNoop, ...options.features.linting },
+    window: { disabled: false, render: asyncNoop, ...options.features.window },
   } satisfies LanguageServerFeatures;
   const extensions: Extension[] = [];
 
@@ -94,45 +93,31 @@ export function languageServerWithClient(options: LanguageServerOptions) {
 
   if (!features.signatureHelp.disabled) {
     extensions.push(
-      ...signatures.getSignatureExtensions({
-        render: features.signatureHelp.render,
-      }),
+      ...signatures.getSignatureExtensions(features.signatureHelp),
     );
   }
 
   if (!features.hovers.disabled) {
     extensions.push(
-      hovers.getHoversExtensions({
-        render: features.hovers.render,
-        hoverTime: features.hovers.hoverTime,
-      }),
+      hovers.getHoversExtensions(features.hovers),
     );
   }
 
   if (!features.completion?.disabled) {
     extensions.push(
-      completions.getCompletionsExtensions({
-        render: features.completion.render,
-        completionMatchBefore: features.completion?.completionMatchBefore,
-      }),
+      completions.getCompletionsExtensions(features.completion),
     );
   }
 
   if (!features.references.disabled) {
     extensions.push(
-      ...references.getReferencesExtensions({
-        ...features.references,
-        render: features.references.render,
-      }),
+      ...references.getReferencesExtensions(features.references),
     );
   }
 
   if (!features.renames.disabled) {
     extensions.push(
-      ...renames.getRenameExtensions({
-        shortcuts: features.renames.shortcuts,
-        ...features.renames,
-      }),
+      ...renames.getRenameExtensions(features.renames),
     );
   }
 
@@ -152,18 +137,13 @@ export function languageServerWithClient(options: LanguageServerOptions) {
 
   if (!features.linting.disabled) {
     extensions.push(
-      ...linting.getLintingExtensions({
-        onExternalFileChange: features.linting.onExternalFileChange,
-        render: features.linting.render,
-      }),
+      ...linting.getLintingExtensions(features.linting),
     );
   }
 
   if (!features.window.disabled) {
     extensions.push(
-      ...window.getWindowExtensions({
-        render: features.window.render,
-      }),
+      ...window.getWindowExtensions(features.window),
     );
   }
 

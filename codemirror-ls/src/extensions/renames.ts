@@ -61,7 +61,7 @@ export const getRenameExtensions: LSExtensionGetter<RenameExtensionsArgs> = ({
       return null;
     },
     update(tooltip, tr) {
-      const rename = tr.annotation(renameActivated);
+      const rename = tr.annotation(symbolRename);
 
       if (rename === null) return null;
 
@@ -94,10 +94,7 @@ export const getRenameExtensions: LSExtensionGetter<RenameExtensionsArgs> = ({
 
                     view.dispatch({
                       changes: (changes ?? []).map((change) => ({
-                        from: posToOffset(
-                          view.state.doc,
-                          change.range.start,
-                        )!,
+                        from: posToOffset(view.state.doc, change.range.start)!,
                         to: posToOffset(view.state.doc, change.range.end)!,
                         insert: change.newText,
                       })),
@@ -123,7 +120,8 @@ export const getRenameExtensions: LSExtensionGetter<RenameExtensionsArgs> = ({
 
             const onDismiss = () => {
               view.dispatch({
-                annotations: [renameActivated.of(null)],
+                selection: { anchor: view.state.selection.main.head },
+                annotations: [symbolRename.of(null)],
               });
             };
 
@@ -148,31 +146,24 @@ export const getRenameExtensions: LSExtensionGetter<RenameExtensionsArgs> = ({
   });
 
   return [
-    renameDialogField,
     keymap.of(
       (shortcuts || []).map((shortcut) => ({
         ...shortcut,
         run: (view: EditorView) => {
-          view.dispatch({
-            annotations: renameAttempted.of(
-              view.state.wordAt(view.state.selection.main.head)?.from || 0,
-            ),
-          });
+          void handleRename({ view, pos: view.state.selection.main.head });
           return true;
         },
       })),
     ),
+    renameDialogField,
   ];
 };
 
 /** When the language server responds with information so that the user can rename a symbol */
-const renameActivated = Annotation.define<{
+const symbolRename = Annotation.define<{
   pos: number;
   placeholder: string;
 } | null>();
-
-/** When a user attempts to rename a symbol, but before specifying what to */
-const renameAttempted = Annotation.define<number>();
 
 export async function handleRename({
   view,
@@ -257,7 +248,7 @@ export async function handleRename({
         posToOffset(view.state.doc, range.end)!,
       ),
     ]),
-    annotations: renameActivated.of({
+    annotations: symbolRename.of({
       placeholder,
       pos: posToOffset(view.state.doc, range.start)!,
     }),
