@@ -1,6 +1,5 @@
 import { Emitter } from "vscode-jsonrpc";
 import type * as LSP from "vscode-languageserver-protocol";
-import type { LSCore } from "./LSPlugin.js";
 import type { LSITransport } from "./transport/LSITransport.js";
 import type { LSPNotifyMap, LSPRequestMap } from "./types.lsp.js";
 
@@ -22,12 +21,15 @@ export interface LanguageServerClientOptions {
   initializationOptions?: LSP.InitializeParams["initializationOptions"];
   /** JSON-RPC client for communication with the language server */
   transport: LSITransport;
+  /** Callback when the server is initialized */
+  onInitialized?: () => void | Promise<void>;
 }
 
 export class LSClient {
   public ready: boolean;
   public capabilities: LSP.ServerCapabilities | null;
 
+  public onInitialized?: () => void | Promise<void>;
   public initializePromise: Promise<void>;
   public resolveInitialize?: () => void;
 
@@ -37,8 +39,6 @@ export class LSClient {
   public clientCapabilities: LanguageServerClientOptions["capabilities"];
 
   private transport: LSITransport;
-
-  public plugins: LSCore[];
 
   // biome-ignore lint/suspicious/noExplicitAny: for all handlers
   #requestEmitter = new Emitter<{ method: string; params: any }>();
@@ -52,14 +52,15 @@ export class LSClient {
     initializationOptions,
     capabilities,
     transport,
+    onInitialized,
   }: LanguageServerClientOptions) {
     this.workspaceFolders = workspaceFolders;
     this.initializationOptions = initializationOptions;
     this.clientCapabilities = capabilities;
+    this.onInitialized = onInitialized;
     this.transport = transport;
     this.ready = false;
     this.capabilities = null;
-    this.plugins = [];
 
     this.initializePromise = new Promise<void>((resolve) => {
       this.resolveInitialize = resolve;
@@ -67,12 +68,16 @@ export class LSClient {
 
     this.#registerHandlers();
 
-    void this.initialize(true);
+    void this.initialize();
   }
 
   /**
    * Change the underlying transport used for communication with the language server. Updates
    * the transport and re-registers all handlers.
+   *
+   * After you change the transport, if you are connected to the same lsp
+   * process as before, you should be all set. If not, you'll need to
+   * initialize.
    *
    * @param newTransport The new LSITransport to use.
    */
@@ -88,6 +93,7 @@ export class LSClient {
     });
 
     this.transport.onNotification((method, params) => {
+      console.log(method, params);
       this.#notificationEmitter.fire({ method, params });
     });
 
@@ -193,25 +199,23 @@ export class LSClient {
     return defaultOptions;
   }
 
-  public async initialize(andPlugins = false) {
+  public async initialize() {
     const response = await this.request(
       "initialize",
       this.getInitializationOptions(),
     );
 
-    if (response === null || response === undefined) {
-      throw new Error("Initialization response is null or undefined");
+    if (response === null) {
+      throw new Error("Initialization response is null");
     }
 
     this.capabilities = response.capabilities;
     await this.notify("initialized", {});
+
     this.ready = true;
 
+    this.onInitialized?.();
     this.resolveInitialize?.();
-
-    if (andPlugins) {
-      await Promise.all(this.plugins.map((plugin) => plugin.initialize()));
-    }
   }
 
   public close() {

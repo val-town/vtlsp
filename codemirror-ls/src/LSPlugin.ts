@@ -20,6 +20,7 @@ interface LSPluginArgs {
    * @default true
    */
   sendCloseOnDestroy?: boolean;
+  /** Whether to send a didOpen on language server initialization */
   sendDidOpen?: boolean;
 }
 
@@ -50,6 +51,14 @@ class LSCoreBase {
     this.#view = view;
     this.#sendDidOpen = sendDidOpen;
 
+    if (this.#sendDidOpen) {
+      this.client.onInitialized = async () => {
+        // We'll need to re-send every time we initialize so that the language
+        // server has an up to date doc.
+        await this.sendDidOpen();
+      };
+    }
+
     void this.initialize({ documentText: this.#view.state.doc.toString() });
   }
 
@@ -61,14 +70,7 @@ class LSCoreBase {
     }
 
     if (this.#sendDidOpen) {
-      await this.client.notify("textDocument/didOpen", {
-        textDocument: {
-          uri: this.documentUri,
-          languageId: this.#languageId,
-          text: documentText,
-          version: this.documentVersion,
-        },
-      });
+      void this.sendDidOpen();
     }
   }
 

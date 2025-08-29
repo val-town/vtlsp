@@ -19,7 +19,6 @@ export default function App() {
   const {
     extensions: lsExtensions,
     connect,
-    disconnect,
     isConnected,
   } = useLsCodemirror({
     path: "/demo.ts",
@@ -51,12 +50,6 @@ export default function App() {
   }, [lsExtensions]);
 
   const handleConnect = async () => {
-    if (isConnected) {
-      disconnect();
-      setError(null);
-      return;
-    }
-
     setIsConnecting(true);
     setError(null);
     try {
@@ -87,7 +80,7 @@ export default function App() {
           disabled={isConnecting}
           className="px-3 py-1 border rounded text-sm"
         >
-          {isConnecting ? "..." : isConnected ? "Disconnect" : "Connect"}
+          {isConnecting ? "..." : isConnected ? "Reconnect" : "Connect"}
         </button>
         {error && <span className="text-red-600 text-sm">{error}</span>}
       </div>

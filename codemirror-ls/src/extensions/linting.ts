@@ -14,7 +14,6 @@ import { type Action, type Diagnostic, setDiagnostics } from "@codemirror/lint";
 import type { Extension } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import { showDialog, ViewPlugin } from "@codemirror/view";
-import PQueue from "p-queue";
 import type { PublishDiagnosticsParams } from "vscode-languageserver-protocol";
 import * as LSP from "vscode-languageserver-protocol";
 import { LSCore } from "../LSPlugin.js";
@@ -41,30 +40,19 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
   return [
     ViewPlugin.fromClass(
       class DiagnosticPlugin {
-        #disposeHandler: (() => void) | null = null;
-
         constructor(private view: EditorView) {
           const lsPlugin = LSCore.ofOrThrow(view);
 
-          this.#disposeHandler = lsPlugin.client.onNotification(
-            async (method, params) => {
-              if (method !== "textDocument/publishDiagnostics") return;
+          void lsPlugin.client.onNotification(async (method, params) => {
+            if (method !== "textDocument/publishDiagnostics") return;
 
-              void this.processDiagnostics({
-                params,
-                view: this.view,
-                onExternalFileChange,
-                render,
-              });
-            },
-          );
-        }
-
-        destroy() {
-          if (this.#disposeHandler) {
-            this.#disposeHandler();
-            this.#disposeHandler = null;
-          }
+            void this.processDiagnostics({
+              params,
+              view: this.view,
+              onExternalFileChange,
+              render,
+            });
+          });
         }
 
         private async processDiagnostics({
