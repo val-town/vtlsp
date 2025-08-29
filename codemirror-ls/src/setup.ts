@@ -1,5 +1,6 @@
 import { type Extension, Prec } from "@codemirror/state";
 import { asyncNoop } from "es-toolkit";
+import type * as LSP from "vscode-languageserver-protocol";
 import {
   completions,
   contextMenu,
@@ -12,7 +13,6 @@ import {
 } from "./extensions/index.js";
 import type { LSClient } from "./LSClient.js";
 import { LSPlugin } from "./LSPlugin.js";
-import type * as LSP from "vscode-languageserver-protocol";
 
 /**
  * Utility function to set up a CodeMirror extension array that includes
