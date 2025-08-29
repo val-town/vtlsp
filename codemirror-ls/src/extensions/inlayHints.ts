@@ -102,9 +102,7 @@ export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
 
             // This is an event "in the middle of nowhere" -- it's based on a
             // timeout. We need to dispatch to force a requery of decorations.
-            this.#view.dispatch({
-              annotations: [inlayHintsUpdate.of(this.inlayHints)],
-            });
+            this.#view.dispatch();
           }, debounceTime);
         }
 
@@ -134,8 +132,6 @@ export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
     ),
   ];
 };
-
-const inlayHintsUpdate = Annotation.define<LSP.InlayHint[] | null>();
 
 class InlayHintWidget extends WidgetType {
   #inlayHint: LSP.InlayHint;
