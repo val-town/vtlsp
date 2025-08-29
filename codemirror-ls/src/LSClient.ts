@@ -93,7 +93,6 @@ export class LSClient {
     });
 
     this.transport.onNotification((method, params) => {
-      console.log(method, params);
       this.#notificationEmitter.fire({ method, params });
     });
 
