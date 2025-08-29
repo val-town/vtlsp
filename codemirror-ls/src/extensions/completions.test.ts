@@ -8,6 +8,33 @@ import {
 } from "./completions.js";
 
 describe("convertCompletionItem", () => {
+  it("should handle undefined labelDetails.detail", () => {
+    const lspItem: LSP.CompletionItem = {
+      label: "test",
+      kind: CompletionItemKind.Text,
+      labelDetails: {
+        detail: undefined,
+        description: "A test description",
+      },
+    };
+
+    const completion = toCodemirrorCompletion(lspItem, {
+      hasResolveProvider: false,
+      resolveItem: vi.fn(),
+      render: vi.fn(),
+    });
+
+    expect(completion).toEqual({
+      label: "test",
+      detail: "A test description",
+      type: "text",
+      apply: expect.any(Function),
+    });
+
+    // The detail string should contain the description even if detail is undefined
+    expect(completion.detail).toContain("A test description");
+  });
+
   it("should convert a basic completion item", () => {
     const lspItem: LSP.CompletionItem = {
       label: "test",
