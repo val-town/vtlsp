@@ -171,11 +171,11 @@ export class LSWSServer {
           `LSP process for session ${sessionId} exited with code ${code}`,
         );
 
-        const [lastLogsStdout, lastLogsStderr] = await proc.getLogTail(
-          logLineCount,
-        );
+        const [lastLogsStdout, lastLogsStderr] =
+          await proc.getLogTail(logLineCount);
 
-        const crashReport = "=== LSP Exit Report ===\n" +
+        const crashReport =
+          "=== LSP Exit Report ===\n" +
           `Session ID: ${sessionId}\n` +
           `Exit code: ${code}\n` +
           `LSP command: ${lsCommand} ${lsArgs.join(" ")}\n` +
