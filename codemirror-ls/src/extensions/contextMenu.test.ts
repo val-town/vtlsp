@@ -1,20 +1,20 @@
+import { EditorView } from "@codemirror/view";
 import {
   beforeEach,
   describe,
   expect,
   it,
-  vi,
   type MockedFunction,
+  vi,
 } from "vitest";
-import { EditorView } from "@codemirror/view";
+import { LSClient } from "../LSClient";
+import { LSPlugin } from "../LSPlugin";
+import { LSMockTransport } from "../transport/LSMockTransport.js";
 import {
-  contextMenuActivated,
   type ContextMenuRenderer,
+  contextMenuActivated,
   getContextMenuExtensions,
 } from "./contextMenu";
-import { LSPlugin } from "../LSPlugin";
-import { LSClient } from "../LSClient";
-import { LSMockTransport } from "../transport/LSMockTransport.js";
 
 describe("contextMenu", () => {
   let renderer: MockedFunction<ContextMenuRenderer>;
