@@ -63,7 +63,7 @@ export interface LSWSServerOptions {
    * Shutdown after this many seconds of inactivity.
    *
    * If not provided, the server will not automatically shut down.
-   **/
+   */
   shutdownAfter?: number;
   /** Callback for when an LSP process encounters an error.  */
   onProcError?: (sessionId: string, error: Error) => void;
@@ -171,11 +171,11 @@ export class LSWSServer {
           `LSP process for session ${sessionId} exited with code ${code}`,
         );
 
-        const [lastLogsStdout, lastLogsStderr] =
-          await proc.getLogTail(logLineCount);
+        const [lastLogsStdout, lastLogsStderr] = await proc.getLogTail(
+          logLineCount,
+        );
 
-        const crashReport =
-          "=== LSP Exit Report ===\n" +
+        const crashReport = "=== LSP Exit Report ===\n" +
           `Session ID: ${sessionId}\n` +
           `Exit code: ${code}\n` +
           `LSP command: ${lsCommand} ${lsArgs.join(" ")}\n` +
@@ -189,7 +189,8 @@ export class LSWSServer {
         if (
           process.env.EXIT_ON_LS_BAD_EXIT === "1" &&
           this.sessionMap.has(sessionId) &&
-          code !== null
+          code !== null &&
+          code !== 0
         ) {
           // If the session map doesn't have the proc that means we manually killed it
           process.exit(code);

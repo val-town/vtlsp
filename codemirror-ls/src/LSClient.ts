@@ -21,15 +21,12 @@ export interface LanguageServerClientOptions {
   initializationOptions?: LSP.InitializeParams["initializationOptions"];
   /** JSON-RPC client for communication with the language server */
   transport: LSITransport;
-  /** Callback when the server is initialized */
-  onInitialized?: () => void | Promise<void>;
 }
 
 export class LSClient {
   public ready: boolean;
   public capabilities: LSP.ServerCapabilities | null;
 
-  public onInitialized?: () => void | Promise<void>;
   public initializePromise: Promise<void>;
   public resolveInitialize?: () => void;
 
@@ -46,18 +43,17 @@ export class LSClient {
   #notificationEmitter = new Emitter<{ method: string; params: any }>();
   // biome-ignore lint/suspicious/noExplicitAny: for all handlers
   #errorEmitter = new Emitter<any>();
+  #onInitializedEmitter = new Emitter<void>();
 
   constructor({
     workspaceFolders,
     initializationOptions,
     capabilities,
     transport,
-    onInitialized,
   }: LanguageServerClientOptions) {
     this.workspaceFolders = workspaceFolders;
     this.initializationOptions = initializationOptions;
     this.clientCapabilities = capabilities;
-    this.onInitialized = onInitialized;
     this.transport = transport;
     this.ready = false;
     this.capabilities = null;
@@ -213,7 +209,7 @@ export class LSClient {
 
     this.ready = true;
 
-    this.onInitialized?.();
+    this.#onInitializedEmitter.fire();
     this.resolveInitialize?.();
   }
 
@@ -278,5 +274,9 @@ export class LSClient {
   // biome-ignore lint/suspicious/noExplicitAny: for all handlers
   public onError(handler: (error: any) => void): () => void {
     return this.#errorEmitter.event(handler).dispose;
+  }
+
+  public onInitialize(handler: () => void | Promise<void>): () => void {
+    return this.#onInitializedEmitter.event(handler).dispose;
   }
 }

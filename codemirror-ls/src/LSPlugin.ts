@@ -52,11 +52,11 @@ class LSCoreBase {
     this.#sendDidOpen = sendDidOpen;
 
     if (this.#sendDidOpen) {
-      this.client.onInitialized = async () => {
+      this.client.onInitialize(async () => {
         // We'll need to re-send every time we initialize so that the language
         // server has an up to date doc.
         await this.sendDidOpen();
-      };
+      });
     }
 
     void this.initialize({ documentText: this.#view.state.doc.toString() });
