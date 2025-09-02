@@ -215,7 +215,6 @@ export function handleContextMenu({
     callbacks.rename = () => {
       handleRename({
         view,
-        renameEnabled: true,
         pos,
         ...renameArgs,
       });
