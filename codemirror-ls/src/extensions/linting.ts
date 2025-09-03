@@ -14,10 +14,10 @@ import { type Action, type Diagnostic, setDiagnostics } from "@codemirror/lint";
 import type { Extension } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import { showDialog, ViewPlugin } from "@codemirror/view";
+import pQueue from "p-queue";
 import type { PublishDiagnosticsParams } from "vscode-languageserver-protocol";
 import * as LSP from "vscode-languageserver-protocol";
 import { LSCore } from "../LSPlugin.js";
-import pQueue from "p-queue";
 import {
   isInCurrentDocumentBounds,
   posToOffset,
