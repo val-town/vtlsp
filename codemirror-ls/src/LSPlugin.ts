@@ -2,8 +2,10 @@ import type { Text } from "@codemirror/state";
 import type { PluginValue, ViewUpdate } from "@codemirror/view";
 import { type EditorView, ViewPlugin } from "@codemirror/view";
 import PQueue from "p-queue";
+import type * as LSP from "vscode-languageserver-protocol";
 import type { LSClient } from "./LSClient.js";
 import type { LSPRequestMap } from "./types.lsp.js";
+import { posToOffset } from "./utils.js";
 
 interface LSPluginArgs {
   client: LSClient;
@@ -22,6 +24,8 @@ interface LSPluginArgs {
   sendCloseOnDestroy?: boolean;
   /** Whether to send a didOpen on language server initialization */
   sendDidOpen?: boolean;
+  /** Called when a workspace edit is received, for events that may have edited some or many files. */
+  onWorkspaceEdit?: (edit: LSP.WorkspaceEdit) => void | Promise<void>;
 }
 
 class LSCoreBase {
@@ -169,10 +173,12 @@ class LSCoreBase {
 
 export class LSCore extends LSCoreBase implements PluginValue {
   #args: LSPluginArgs;
+  #view: EditorView;
 
   constructor(view: EditorView, args: Omit<LSPluginArgs, "view">) {
     super({ ...args, view });
     this.#args = { ...args, view };
+    this.#view = view;
   }
 
   public static ofOrThrow(view: EditorView): LSCore {
@@ -195,6 +201,50 @@ export class LSCore extends LSCoreBase implements PluginValue {
         },
       });
     }
+  }
+
+  /**
+   * Apply a WorkspaceEdit. Updates the current document with all applicable
+   * changes and hits the global callback with the WorkspaceEdit.
+   *
+   * @param edit The workspace edit to apply.
+   * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspaceEdit
+   */
+  public async applyWorkspaceEdit(edit: LSP.WorkspaceEdit) {
+    let editsForThisDocument: LSP.TextEdit[] = [];
+
+    if (edit.documentChanges) {
+      const changesForThisDocument = edit.documentChanges.filter(
+        (change): change is LSP.TextDocumentEdit =>
+          "textDocument" in change &&
+          change.textDocument.uri === this.documentUri,
+      );
+      editsForThisDocument = changesForThisDocument.flatMap(
+        (change) => change.edits,
+      );
+    } else if (edit.changes) {
+      editsForThisDocument = edit.changes[this.documentUri] ?? [];
+    }
+
+    if (editsForThisDocument.length > 0) {
+      const sortedEdits = editsForThisDocument.sort((a, b) => {
+        const posA = posToOffset(this.#view.state.doc, a.range.start);
+        const posB = posToOffset(this.#view.state.doc, b.range.start);
+        return (posB ?? 0) - (posA ?? 0);
+      });
+
+      const transaction = this.#view.state.update({
+        changes: sortedEdits.map((edit) => ({
+          from: posToOffset(this.#view.state.doc, edit.range.start)!,
+          to: posToOffset(this.#view.state.doc, edit.range.end)!,
+          insert: edit.newText,
+        })),
+      });
+
+      this.#view.dispatch(transaction);
+    }
+
+    await this.#args.onWorkspaceEdit?.(edit);
   }
 }
 

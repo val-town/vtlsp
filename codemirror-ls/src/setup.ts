@@ -1,5 +1,6 @@
 import { type Extension, Prec } from "@codemirror/state";
 import { asyncNoop } from "es-toolkit";
+import type * as LSP from "vscode-languageserver-protocol";
 import {
   completions,
   contextMenu,
@@ -114,6 +115,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
     languageId: options.languageId,
     sendDidOpen: options.sendDidOpen ?? true,
     sendCloseOnDestroy: options.sendCloseOnDestroy ?? true,
+    onWorkspaceEdit: options.onWorkspaceEdit,
   });
   extensions.push(Prec.highest(lsPlugin));
 
@@ -197,4 +199,6 @@ export interface LanguageServerOptions {
   sendDidOpen?: boolean;
   /** Whether to send the didClose notification when the editor is destroyed */
   sendCloseOnDestroy?: boolean;
+  /** Called when a workspace edit is received, for events that may have edited some or many files. */
+  onWorkspaceEdit?: (edit: LSP.WorkspaceEdit) => void | Promise<void>;
 }
