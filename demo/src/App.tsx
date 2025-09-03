@@ -6,7 +6,7 @@ import { useLsCodemirror } from "./useLsCodemirror";
 
 const DEFAULT_URL_BASE = () =>
   window.location.hostname === "localhost"
-    ? `ws://${window.location.hostname}:5002/?session=${crypto.randomUUID()}`
+    ? `ws://${window.location.hostname}:5002/ws?session=${crypto.randomUUID()}`
     : `wss://${window.location.hostname}/lsp?session=${crypto.randomUUID()}`;
 
 export default function App() {
@@ -19,7 +19,6 @@ export default function App() {
   const {
     extensions: lsExtensions,
     connect,
-    disconnect,
     isConnected,
   } = useLsCodemirror({
     path: "/demo.ts",
@@ -51,12 +50,6 @@ export default function App() {
   }, [lsExtensions]);
 
   const handleConnect = async () => {
-    if (isConnected) {
-      disconnect();
-      setError(null);
-      return;
-    }
-
     setIsConnecting(true);
     setError(null);
     try {
@@ -87,7 +80,7 @@ export default function App() {
           disabled={isConnecting}
           className="px-3 py-1 border rounded text-sm"
         >
-          {isConnecting ? "..." : isConnected ? "Disconnect" : "Connect"}
+          {isConnecting ? "..." : isConnected ? "Reconnect" : "Connect"}
         </button>
         {error && <span className="text-red-600 text-sm">{error}</span>}
       </div>

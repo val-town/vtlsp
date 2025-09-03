@@ -6,13 +6,13 @@ import type * as LSP from "vscode-languageserver-protocol";
 import { LSContents } from "./components/LSContents";
 import { LSContextMenu } from "./components/LSContextMenu";
 import { LSGoTo } from "./components/LSGoTo";
+import { LSRename } from "./components/LSRename";
 import { LSSignatureHelp } from "./components/LSSignatureHelp";
 import { LSWindow } from "./components/LSWindow";
 
 export function useLsCodemirror({ path }: { path: string }): {
   extensions: ReturnType<typeof languageServerWithClient> | null;
   connect: (url: string) => Promise<void>;
-  disconnect: () => void;
   isConnected: boolean;
 } {
   const [lsClient, setLsClient] = useState<LSClient | null>(null);
@@ -20,6 +20,8 @@ export function useLsCodemirror({ path }: { path: string }): {
 
   const connect = useCallback(
     async (url: string) => {
+      const hadTransport = !!transport;
+
       if (transport) {
         transport.dispose();
         setTransport(null);
@@ -27,24 +29,24 @@ export function useLsCodemirror({ path }: { path: string }): {
       }
 
       const newTransport = new LSWebSocketTransport(url, {});
-      const newClient = new LSClient({
-        transport: newTransport,
-        workspaceFolders: [{ uri: "file:///demo", name: "Demo" }],
-      });
+      const newClient = lsClient
+        ? lsClient
+        : new LSClient({
+            transport: newTransport,
+            workspaceFolders: [{ uri: "file:///demo", name: "Demo" }],
+          });
 
       setTransport(newTransport);
       setLsClient(newClient);
 
       await newTransport.connect();
+      if (hadTransport) {
+        newClient.changeTransport(newTransport);
+        newClient.initialize();
+      }
     },
-    [transport],
+    [transport, lsClient],
   );
-
-  const disconnect = useCallback(() => {
-    transport?.dispose();
-    setTransport(null);
-    setLsClient(null);
-  }, [transport]);
 
   const extensions = useMemo(() => {
     if (!lsClient) return null;
@@ -89,7 +91,21 @@ export function useLsCodemirror({ path }: { path: string }): {
         hovers: {
           render: renderContents,
         },
-        renames: {},
+        renames: {
+          render: async (dom, placeholder, onClose, onComplete) => {
+            const root = ReactDOM.createRoot(dom);
+            root.render(
+              <LSRename
+                placeholder={placeholder}
+                onDismiss={onClose}
+                onComplete={(newName) => {
+                  onComplete(newName);
+                  onClose();
+                }}
+              />,
+            );
+          },
+        },
         linting: {
           render: async (dom, message) => {
             const root = ReactDOM.createRoot(dom);
@@ -148,7 +164,6 @@ export function useLsCodemirror({ path }: { path: string }): {
   return {
     extensions,
     connect,
-    disconnect,
     isConnected: !!lsClient,
   };
 }

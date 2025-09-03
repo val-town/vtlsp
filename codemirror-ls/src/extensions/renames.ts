@@ -9,200 +9,234 @@
  * @see https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_rename
  */
 
-import { Annotation, type Extension } from "@codemirror/state";
-import type { EditorView, KeyBinding } from "@codemirror/view";
-import { getDialog, keymap, showDialog } from "@codemirror/view";
-import type * as LSP from "vscode-languageserver-protocol";
+import {
+  Annotation,
+  EditorSelection,
+  type Extension,
+  StateField,
+} from "@codemirror/state";
+import type { EditorView, KeyBinding, Tooltip } from "@codemirror/view";
+import { keymap, showTooltip } from "@codemirror/view";
+import * as LSP from "vscode-languageserver-protocol";
 import { LSCore } from "../LSPlugin.js";
 import { offsetToPos, posToOffset } from "../utils.js";
-import type { LSExtensionGetter } from "./types.js";
+import type { LSExtensionGetter, Renderer } from "./types.js";
 
 export interface RenameExtensionsArgs {
   /** Keybindings to trigger the rename action. */
   shortcuts?: KeyBinding[];
+  /** Function to render the rename dialog. */
+  render: RenameRenderer;
+  /**
+   * Whether to select the symbol at the cursor when initiating a rename.
+   * Defaults to `true`.
+   */
+  selectSymbol?: boolean;
+  /**
+   * Whether to reset the symbol selection after completing or dismissing
+   * the rename action. Defaults to `true`.
+   */
+  resetSymbolSelection?: boolean;
 }
 
+export type RenameRenderer = Renderer<
+  [
+    placeholder: string,
+    onDismiss: () => void,
+    onComplete: (newName: string) => void,
+  ]
+>;
+
 export type OnRenameCallback = (
-  rename:
-    | LSP.TextDocumentEdit
-    | LSP.CreateFile
-    | LSP.RenameFile
-    | LSP.DeleteFile,
+  uri: string,
+  rename: LSP.TextDocumentEdit,
 ) => void;
 export type OnExternalRenameCallback = OnRenameCallback;
 
+/**
+ * Creates and returns extensions for handling renaming functionality
+ */
 export const getRenameExtensions: LSExtensionGetter<RenameExtensionsArgs> = ({
-  shortcuts = [],
+  shortcuts,
+  render,
+  selectSymbol = true,
+  resetSymbolSelection = true,
 }: RenameExtensionsArgs): Extension[] => {
+  const renameDialogField = StateField.define<Tooltip | null>({
+    create() {
+      return null;
+    },
+    update(tooltip, tr) {
+      const rename = tr.annotation(symbolRename);
+
+      if (rename === null) return null;
+
+      if (rename) {
+        return {
+          create: (view) => {
+            const onComplete = async (newName: string) => {
+              const lsPlugin = LSCore.ofOrThrow(view);
+              const pos = offsetToPos(view.state.doc, rename.pos);
+
+              const edit = await lsPlugin.client.request(
+                "textDocument/rename",
+                {
+                  textDocument: { uri: lsPlugin.documentUri },
+                  position: { line: pos.line, character: pos.character },
+                  newName,
+                },
+              );
+
+              if (!edit) return;
+
+              void lsPlugin.applyWorkspaceEdit(edit);
+            };
+
+            const onDismiss = () => {
+              view.dispatch({
+                selection: resetSymbolSelection
+                  ? { anchor: view.state.selection.main.head }
+                  : view.state.selection,
+                annotations: [symbolRename.of(null)],
+              });
+            };
+
+            const div = document.createElement("div");
+            void render(div, rename.placeholder, onDismiss, onComplete);
+
+            return {
+              dom: div,
+              above: false,
+              strictSide: true,
+            };
+          },
+          pos: rename.pos,
+        };
+      }
+
+      return tooltip;
+    },
+    provide: (field) => {
+      return showTooltip.compute([field], (state) => state.field(field));
+    },
+  });
+
   return [
     keymap.of(
-      shortcuts.map((shortcut) => ({
+      (shortcuts || []).map((shortcut) => ({
         ...shortcut,
         run: (view: EditorView) => {
           void handleRename({
-            // unfortunately we can't take async, so we always eat the keybind
             view,
-            renameEnabled: true,
+            pos: view.state.selection.main.head,
+            selectSymbol,
           });
           return true;
         },
       })),
     ),
+    renameDialogField,
   ];
 };
 
-/**
- * Handles the renaming of a symbol in the editor.
- */
+/** When the language server responds with information so that the user can rename a symbol */
+const symbolRename = Annotation.define<{
+  pos: number;
+  placeholder: string;
+} | null>();
+
 export async function handleRename({
   view,
-  renameEnabled = true,
   pos,
+  selectSymbol = true,
 }: {
   view: EditorView;
-  renameEnabled?: boolean;
-  pos?: number;
-}): Promise<boolean> {
-  if (!renameEnabled) return false;
-
-  const lsPlugin = LSCore.ofOrThrow(view);
-
-  pos ??= view.state.selection.main.head;
-  const { line, character } = offsetToPos(view.state.doc, pos);
-  await requestRename({
-    view,
-    line,
-    character,
-    documentUri: lsPlugin.documentUri,
-  });
-  return true;
-}
-
-/**
- * Requests a rename operation from the language server.
- */
-async function requestRename({
-  view,
-  line,
-  character,
-  documentUri,
-}: {
-  view: EditorView;
-  line: number;
-  character: number;
-  documentUri: string;
-  onExternalRename?: OnExternalRenameCallback;
-  onRename?: OnRenameCallback;
+  pos: number;
+  selectSymbol?: boolean;
 }) {
   const lsPlugin = LSCore.ofOrThrow(view);
 
-  if (!lsPlugin.client.capabilities?.renameProvider) {
-    showDialog(view, { label: "Rename not supported by language server" });
-    return;
-  }
+  // Gather information about the rename location and maybe the placeholder to
+  // show in the dialog
+  // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_prepareRename
 
+  const word = view.state.wordAt(pos);
+  if (!word) return;
+
+  let prepareResult: LSP.PrepareRenameResult | null = null;
+
+  // Attempt to use textDocument/prepareRename, which may not be a thing
   try {
-    await lsPlugin.doWithLock(async (doc) => {
-      // First check if rename is possible at this position
-      const prepareResult = await lsPlugin.client
-        .request("textDocument/prepareRename", {
-          textDocument: { uri: documentUri },
-          position: { line, character },
-        })
-        .catch(() => {
-          // In case prepareRename is not supported,
-          // we fallback to the default implementation
-          return prepareRenameFallback({
-            view,
-            line,
-            character,
-          });
-        });
-
-      if (!prepareResult || "defaultBehavior" in prepareResult) {
-        showDialog(view, { label: "Cannot rename this symbol" });
-        return;
-      }
-
-      // Get current word as default value
-      const range =
-        "range" in prepareResult ? prepareResult.range : prepareResult;
-      const from = posToOffset(doc, range.start);
-      if (from == null) {
-        return;
-      }
-      const to = posToOffset(doc, range.end);
-      const currentWord = doc.sliceString(from, to);
-
-      // Check if dialog is already open
-      const panel = getDialog(view, "cm-lsp-rename-panel");
-      if (panel) {
-        const input = panel.dom.querySelector(
-          "[name=name]",
-        ) as HTMLInputElement;
-        input.classList.add("cm-lsp-rename-input");
-        input.value = currentWord;
-        input.select();
-      } else {
-        // Select the current word and show rename dialog
-        view.dispatch({
-          selection: {
-            anchor: from,
-            head: to,
-          },
-          scrollIntoView: true,
-        });
-
-        const { close, result } = showDialog(view, {
-          label: "New name",
-          input: { name: "name", value: currentWord },
-          focus: true,
-          submitLabel: "Rename",
-        });
-
-        result.then(async (form) => {
-          view.dispatch({ effects: close });
-          if (form) {
-            const newName = (
-              form.elements.namedItem("name") as HTMLInputElement
-            ).value.trim();
-            if (!newName) {
-              showDialog(view, { label: "New name cannot be empty" });
-              return;
-            }
-
-            if (newName === currentWord) {
-              // No change -> do nothing
-              return;
-            }
-
-            try {
-              const edit = await lsPlugin.requestWithLock(
-                "textDocument/rename",
-                {
-                  textDocument: { uri: documentUri },
-                  position: { line, character },
-                  newName,
-                },
-              );
-
-              if (edit) {
-                void lsPlugin.applyWorkspaceEdit(edit);
-              }
-            } catch (error) {
-              showDialog(view, {
-                label: `Rename failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-              });
-            }
-          }
-        });
-      }
+    const realPrepareResult = await lsPlugin.client.request(
+      "textDocument/prepareRename",
+      {
+        textDocument: { uri: lsPlugin.documentUri },
+        position: offsetToPos(view.state.doc, pos)!,
+      },
+    );
+    if (realPrepareResult) {
+      prepareResult = realPrepareResult;
+    }
+  } catch {
+    const positionData = offsetToPos(view.state.doc, pos);
+    const fallbackResult = prepareRenameFallback({
+      view,
+      character: positionData.character,
+      line: positionData.line,
     });
-  } catch (error) {
-    showDialog(view, {
-      label: `Rename failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-    });
+    prepareResult = fallbackResult;
   }
+
+  if (!prepareResult) return;
+
+  // Handle different types of PrepareRenameResult
+  let placeholder: string;
+  let range: LSP.Range;
+
+  if (LSP.Range.is(prepareResult)) {
+    // If it's just a Range, use the word text as placeholder
+    range = prepareResult;
+    const start = posToOffset(view.state.doc, range.start)!;
+    const end = posToOffset(view.state.doc, range.end)!;
+    placeholder = view.state.doc.sliceString(start, end);
+  } else if ("range" in prepareResult && "placeholder" in prepareResult) {
+    // It's a PrepareRename with placeholder and range
+    placeholder = prepareResult.placeholder;
+    range = prepareResult.range;
+  } else if ("defaultBehavior" in prepareResult) {
+    // Server indicated to use default behavior, use the word range
+    const wordRange = view.state.wordAt(pos);
+    if (!wordRange) return;
+    const posData = offsetToPos(view.state.doc, pos);
+    range = {
+      start: {
+        line: posData.line,
+        character: posData.character - (pos - wordRange.from),
+      },
+      end: {
+        line: posData.line,
+        character: posData.character + (wordRange.to - pos),
+      },
+    };
+    placeholder = view.state.doc.sliceString(wordRange.from, wordRange.to);
+  } else {
+    return; // Unknown format
+  }
+
+  view.dispatch({
+    selection: selectSymbol
+      ? EditorSelection.create([
+          EditorSelection.range(
+            posToOffset(view.state.doc, range.start)!,
+            posToOffset(view.state.doc, range.end)!,
+          ),
+        ])
+      : view.state.selection,
+    annotations: symbolRename.of({
+      placeholder,
+      pos: posToOffset(view.state.doc, range.start)!,
+    }),
+  });
 }
 
 function prepareRenameFallback({
