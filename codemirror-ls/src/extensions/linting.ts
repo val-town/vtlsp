@@ -17,6 +17,7 @@ import { showDialog, ViewPlugin } from "@codemirror/view";
 import type { PublishDiagnosticsParams } from "vscode-languageserver-protocol";
 import * as LSP from "vscode-languageserver-protocol";
 import { LSCore } from "../LSPlugin.js";
+import pQueue from "p-queue";
 import {
   isInCurrentDocumentBounds,
   posToOffset,
@@ -40,6 +41,10 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
   return [
     ViewPlugin.fromClass(
       class DiagnosticPlugin {
+        processQueue = new pQueue({
+          concurrency: 1, // (to prevent race conditions for applying diagnostics)
+        });
+
         constructor(private view: EditorView) {
           const lsPlugin = LSCore.ofOrThrow(view);
 
@@ -199,7 +204,9 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
             return;
           }
 
-          view.dispatch(setDiagnostics(view.state, resolvedDiagnostics));
+          return await this.processQueue.add(() => {
+            view.dispatch(setDiagnostics(view.state, resolvedDiagnostics));
+          });
         }
 
         private async requestCodeActions(diagnostic: LSP.Diagnostic): Promise<{
