@@ -51,7 +51,6 @@
   "type": "module",
   "main": "./dist/index.js",
   "dependencies": {
-    "es-toolkit": "^1.39.8",
     "p-queue": "^8.1.0",
     "vscode-jsonrpc": "^8.2.1",
     "vscode-languageserver-protocol": "^3.17.5"
