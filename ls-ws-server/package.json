@@ -12,6 +12,7 @@
     "format": "biome format --write .",
     "test": "vitest",
     "build": "tsc --build && tsc-alias",
+    "prepublishOnly": "npm run build",
     "bump": "npm version patch"
   },
   "files": [
