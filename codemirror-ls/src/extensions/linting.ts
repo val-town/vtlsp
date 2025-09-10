@@ -128,8 +128,8 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
           if (versionAtNotification !== lsPlugin.documentVersion) return;
 
           // If **none** of the diagnostics changed, don't dispatch again.
-          const allSame = diagnosticsWithActions.every(
-            (diag, i) => diag === diagnosticsWithoutActions[i],
+          const allSame = diagnosticsWithActions.every((diag, i) =>
+            Object.is(diag, diagnosticsWithoutActions[i]),
           );
           if (allSame) return;
 
@@ -140,11 +140,13 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
          * Convert an LSP Diagnostic to a CodeMirror Diagnostic, with lazy-loaded actions.
          *
          * This function immediately returns a CodeMirror Diagnostic with basic
-         * information (range, message, severity), and a Promise that resolves to
-         * a full Diagnostic including actions once code actions have been fetched.
+         * information (range, message, severity), and a Promise that resolves
+         * to a full Diagnostic including actions once code actions have been
+         * fetched.
          *
-         * If there are no actions, the immediate diagnostic is returned as the
-         * same object identity as the original one (so you can avoid duplicate dispatches).
+         * If there are no actions, the lazy diagnostic is returned as the same
+         * object identity as the original one (so you can avoid duplicate
+         * dispatches by checking for equality).
          */
         private lazyLoadCodemirrorDiagnostic(
           diagnostic: LSP.Diagnostic,
