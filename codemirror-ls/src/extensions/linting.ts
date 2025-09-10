@@ -52,8 +52,6 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
   return [
     ViewPlugin.fromClass(
       class DiagnosticPlugin {
-        #disposeHandler: (() => void) | null = null;
-
         /**
          * Queue for processing diagnostics sequentially.
          *
@@ -83,13 +81,6 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
                 }),
             );
           });
-        }
-
-        destroy() {
-          if (this.#disposeHandler) {
-            this.#disposeHandler();
-            this.#disposeHandler = null;
-          }
         }
 
         private async processDiagnostics({
