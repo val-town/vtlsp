@@ -97,7 +97,6 @@ export function languageServerWithClient(options: LanguageServerOptions) {
       referencesArgs: {},
       render: asyncNoop,
       ...options.features.contextMenu,
-      disableRename: options.features.renames?.disabled ?? false,
     },
     linting: {
       disabled: false,
@@ -151,6 +150,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
             : asyncNoop,
           ...features.contextMenu.referencesArgs,
         },
+        disableRename: features.renames.disabled,
       }),
     );
   }
