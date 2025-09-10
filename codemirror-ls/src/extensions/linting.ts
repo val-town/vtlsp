@@ -25,7 +25,7 @@ export interface DiagnosticArgs {
   render?: LintingRenderer;
   /**
    * Mapping from LSP DiagnosticSeverity to CodeMirror Diagnostic severity.
-   * 
+   *
    * Generally you shouldn't need to change this.
    */
   severityMap?: typeof SEVERITY_MAP;
@@ -111,14 +111,14 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
             this.lazyLoadCodemirrorDiagnostic(diagnostic),
           );
 
-          const immediateDiagnostics = diagnosticResults.map(
+          const diagnosticsWithoutActions = diagnosticResults.map(
             ([immediate]) => immediate,
           );
 
           if (versionAtNotification !== lsPlugin.documentVersion) return;
-          view.dispatch(setDiagnostics(view.state, immediateDiagnostics));
+          view.dispatch(setDiagnostics(view.state, diagnosticsWithoutActions));
 
-          const resolvedDiagnostics = await Promise.all(
+          const diagnosticsWithActions = await Promise.all(
             diagnosticResults.map(([, promise]) => promise),
           );
 
@@ -128,12 +128,12 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
           if (versionAtNotification !== lsPlugin.documentVersion) return;
 
           // If **none** of the diagnostics changed, don't dispatch again.
-          const allSame = resolvedDiagnostics.every(
-            (diag, i) => diag === immediateDiagnostics[i],
+          const allSame = diagnosticsWithActions.every(
+            (diag, i) => diag === diagnosticsWithoutActions[i],
           );
           if (allSame) return;
 
-          view.dispatch(setDiagnostics(view.state, resolvedDiagnostics));
+          view.dispatch(setDiagnostics(view.state, diagnosticsWithActions));
         }
 
         /**
@@ -215,6 +215,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
 
             if (codemirrorActions.length === 0) return currentDiagnostic;
 
+            // (see doc): make sure this is a **new** object instance for comparison purposes
             return {
               ...currentDiagnostic,
               actions: codemirrorActions,
