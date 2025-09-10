@@ -1,5 +1,5 @@
 import { type Extension, Prec } from "@codemirror/state";
-import { asyncNoop } from "es-toolkit";
+import type * as LSP from "vscode-languageserver-protocol";
 import {
   completions,
   contextMenu,
@@ -13,6 +13,8 @@ import {
 } from "./extensions/index.js";
 import type { LSClient } from "./LSClient.js";
 import { LSPlugin } from "./LSPlugin.js";
+
+async function asyncNoop(): Promise<void> {}
 
 /**
  * Utility function to set up a CodeMirror extension array that includes
@@ -78,16 +80,45 @@ import { LSPlugin } from "./LSPlugin.js";
  */
 export function languageServerWithClient(options: LanguageServerOptions) {
   const features = {
-    signatureHelp: { render: asyncNoop },
-    hovers: { render: asyncNoop },
-    references: { render: asyncNoop },
-    completion: { render: asyncNoop },
-    renames: { shortcuts: [{ key: "F2" }] },
-    contextMenu: { render: asyncNoop },
-    linting: { render: asyncNoop },
-    inlayHints: { render: asyncNoop },
-    window: { render: asyncNoop },
-    ...options.features,
+    inlayHints: {
+      disabled: false,
+      render: asyncNoop,
+      ...options.features.inlayHints,
+    },
+    signatureHelp: {
+      disabled: false,
+      render: asyncNoop,
+      ...options.features.signatureHelp,
+    },
+    hovers: { disabled: false, render: asyncNoop, ...options.features.hovers },
+    references: {
+      disabled: false,
+      render: asyncNoop,
+      ...options.features.references,
+    },
+    completion: {
+      disabled: false,
+      render: asyncNoop,
+      ...options.features.completion,
+    },
+    renames: {
+      disabled: false,
+      shortcuts: [{ key: "F2" }],
+      render: asyncNoop,
+      ...options.features.renames,
+    },
+    contextMenu: {
+      disabled: false,
+      referencesArgs: {},
+      render: asyncNoop,
+      ...options.features.contextMenu,
+    },
+    linting: {
+      disabled: false,
+      render: asyncNoop,
+      ...options.features.linting,
+    },
+    window: { disabled: false, render: asyncNoop, ...options.features.window },
   } satisfies LanguageServerFeatures;
   const extensions: Extension[] = [];
 
@@ -99,51 +130,30 @@ export function languageServerWithClient(options: LanguageServerOptions) {
     languageId: options.languageId,
     sendDidOpen: options.sendDidOpen ?? true,
     sendCloseOnDestroy: options.sendCloseOnDestroy ?? true,
+    onWorkspaceEdit: options.onWorkspaceEdit,
   });
   extensions.push(Prec.highest(lsPlugin));
 
   if (!features.signatureHelp.disabled) {
     extensions.push(
-      ...signatures.getSignatureExtensions({
-        render: features.signatureHelp.render,
-      }),
+      ...signatures.getSignatureExtensions(features.signatureHelp),
     );
   }
 
   if (!features.hovers.disabled) {
-    extensions.push(
-      hovers.getHoversExtensions({
-        render: features.hovers.render,
-        hoverTime: features.hovers.hoverTime,
-      }),
-    );
+    extensions.push(hovers.getHoversExtensions(features.hovers));
   }
 
   if (!features.completion?.disabled) {
-    extensions.push(
-      completions.getCompletionsExtensions({
-        render: features.completion.render,
-        completionMatchBefore: features.completion?.completionMatchBefore,
-      }),
-    );
+    extensions.push(completions.getCompletionsExtensions(features.completion));
   }
 
   if (!features.references.disabled) {
-    extensions.push(
-      ...references.getReferencesExtensions({
-        ...features.references,
-        render: features.references.render,
-      }),
-    );
+    extensions.push(...references.getReferencesExtensions(features.references));
   }
 
   if (!features.renames.disabled) {
-    extensions.push(
-      ...renames.getRenameExtensions({
-        shortcuts: features.renames.shortcuts,
-        ...features.renames,
-      }),
-    );
+    extensions.push(...renames.getRenameExtensions(features.renames));
   }
 
   if (!features.contextMenu.disabled) {
@@ -156,33 +166,23 @@ export function languageServerWithClient(options: LanguageServerOptions) {
             : asyncNoop,
           ...features.contextMenu.referencesArgs,
         },
+        disableRename: features.renames.disabled,
       }),
     );
   }
 
   if (!features.linting.disabled) {
-    extensions.push(
-      ...linting.getLintingExtensions({
-        onExternalFileChange: features.linting.onExternalFileChange,
-        render: features.linting.render,
-      }),
-    );
+    extensions.push(...linting.getLintingExtensions(features.linting));
   }
 
   if (!features.inlayHints.disabled) {
     extensions.push(
-      ...inlayHints.getInlayHintExtensions({
-        ...features.inlayHints,
-      }),
+      ...inlayHints.getInlayHintExtensions({ ...features.inlayHints }),
     );
   }
 
   if (!features.window.disabled) {
-    extensions.push(
-      ...window.getWindowExtensions({
-        render: features.window.render,
-      }),
-    );
+    extensions.push(...window.getWindowExtensions(features.window));
   }
 
   return extensions;
@@ -222,4 +222,6 @@ export interface LanguageServerOptions {
   sendDidOpen?: boolean;
   /** Whether to send the didClose notification when the editor is destroyed */
   sendCloseOnDestroy?: boolean;
+  /** Called when a workspace edit is received, for events that may have edited some or many files. */
+  onWorkspaceEdit?: (edit: LSP.WorkspaceEdit) => void | Promise<void>;
 }

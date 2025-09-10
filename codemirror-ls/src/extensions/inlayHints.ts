@@ -12,7 +12,6 @@
  * @todo Add resolve support
  */
 
-import { Annotation } from "@codemirror/state";
 import {
   Decoration,
   type EditorView,
@@ -20,6 +19,7 @@ import {
   type ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
+import PQueue from "p-queue";
 import type * as LSP from "vscode-languageserver-protocol";
 import { LSCore } from "../LSPlugin.js";
 import { offsetToPos, posToOffset } from "../utils.js";
@@ -54,6 +54,15 @@ export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
   return [
     ViewPlugin.fromClass(
       class {
+        /**
+         * Pending textDocument/inlayHint requests queue.
+         *
+         * If we aren't debounced "enough" and request many at close to the same
+         * time, we want to make sure we apply them in the order we sent them,
+         * not the order they return.
+         **/
+        #requestQueue = new PQueue({ concurrency: 1 });
+
         #debounceTimeoutId: number | null = null;
         #view: EditorView;
 
@@ -89,16 +98,17 @@ export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
             }
 
             const endOfDocPos = this.#view.state.doc.length - 1;
-            this.inlayHints = await lsCore.client.request(
-              "textDocument/inlayHint",
-              {
-                textDocument: { uri: lsCore.documentUri },
-                range: {
-                  start: { line: 0, character: 0 },
-                  end: offsetToPos(this.#view.state.doc, endOfDocPos),
-                },
-              },
+            const newInlayHints = this.#requestQueue.add(
+              async () =>
+                await lsCore.client.request("textDocument/inlayHint", {
+                  textDocument: { uri: lsCore.documentUri },
+                  range: {
+                    start: { line: 0, character: 0 },
+                    end: offsetToPos(this.#view.state.doc, endOfDocPos),
+                  },
+                }),
             );
+            this.inlayHints = (await newInlayHints) ?? [];
 
             // This is an event "in the middle of nowhere" -- it's based on a
             // timeout. We need to dispatch to force a requery of decorations.
@@ -155,17 +165,16 @@ class InlayHintWidget extends WidgetType {
     span.className = "cm-inlay-hint";
     void this.#render(span, this.#inlayHint, async () => {
       const lsCore = LSCore.ofOrThrow(this.#view);
-      const resolvedHint = await lsCore.client.request(
-        "inlayHint/resolve",
-        this.#inlayHint,
-      );
 
-      if (resolvedHint) {
-        this.#inlayHint = resolvedHint;
-        return resolvedHint;
+      // Some inlay hints have "fancy" extras that we should only render when
+      // they come into view (this is the case when there is a "data" field)
+      if ("data" in this.#inlayHint) {
+        this.#inlayHint =
+          (await lsCore.client.request("inlayHint/resolve", this.#inlayHint)) ??
+          this.#inlayHint;
       }
 
-      return null;
+      return this.#inlayHint;
     });
     return span;
   }

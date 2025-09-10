@@ -34,7 +34,7 @@ export interface CompletionExtensionsArgs {
    *
    * When the character before the cursor fail to match this pattern,
    * completions will not be triggered.
-   **/
+   */
   completionMatchBefore?: RegExp;
   /** Additional completion options for codemirror completions */
   additionalCompletionConfig?: Partial<Parameters<typeof autocompletion>[0]>;
@@ -204,12 +204,12 @@ export function toCodemirrorCompletion(
   let detailStr: undefined | string;
   if (labelDetails) {
     if (labelDetails.detail) {
-      detailStr += labelDetails.detail;
+      detailStr ??= labelDetails.detail;
     }
     if (labelDetails.description) {
-      detailStr += labelDetails.description;
+      detailStr ??= labelDetails.description;
     }
-  } else if (detail) {
+  } else {
     detailStr = detail;
   }
 
