@@ -15,7 +15,7 @@ export function LSContents({
   className?: string;
 }): JSX.Element {
   if (typeof contents === "string") {
-    return <MarkdownContent content={contents} allowHtml={false}/>;
+    return <MarkdownContent content={contents} allowHtml={false} />;
   }
   if (isLSPMarkupContent(contents)) {
     return <MarkdownContent content={contents.value} />;
