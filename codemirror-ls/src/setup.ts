@@ -152,6 +152,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
             : asyncNoop,
           ...features.contextMenu.referencesArgs,
         },
+        disableRename: features.renames.disabled,
       }),
     );
   }
