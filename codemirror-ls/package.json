@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "@valtown/codemirror-ls",
-  "version": "0.0.22",
+  "version": "0.0.26",
   "description": "Val Town editor Codemirror LSP client",
   "repository": {
     "type": "git",
@@ -12,6 +12,7 @@
     "format": "biome format --write .",
     "test": "vitest",
     "build": "tsc --build",
+    "prepublishOnly": "npm run build",
     "bump": "npm version patch"
   },
   "files": [
@@ -50,7 +51,6 @@
   "type": "module",
   "main": "./dist/index.js",
   "dependencies": {
-    "es-toolkit": "^1.39.8",
     "p-queue": "^8.1.0",
     "vscode-jsonrpc": "^8.2.1",
     "vscode-languageserver-protocol": "^3.17.5"
