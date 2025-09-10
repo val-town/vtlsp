@@ -17,15 +17,10 @@ import { showDialog, ViewPlugin } from "@codemirror/view";
 import type { PublishDiagnosticsParams } from "vscode-languageserver-protocol";
 import * as LSP from "vscode-languageserver-protocol";
 import { LSCore } from "../LSPlugin.js";
-import {
-  isInCurrentDocumentBounds,
-  posToOffset,
-  posToOffsetOrZero,
-} from "../utils.js";
+import { isInCurrentDocumentBounds, posToOffsetOrZero } from "../utils.js";
 import type { LSExtensionGetter, Renderer } from "./types.js";
 
 export interface DiagnosticArgs {
-  onExternalFileChange?: (changes: LSP.WorkspaceEdit) => void;
   render?: LintingRenderer;
 }
 
@@ -34,7 +29,6 @@ export type LintingRenderer = Renderer<
 >;
 
 export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
-  onExternalFileChange,
   render,
 }: DiagnosticArgs): Extension[] => {
   return [
@@ -49,7 +43,6 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
             void this.processDiagnostics({
               params,
               view: this.view,
-              onExternalFileChange,
               render,
             });
           });
@@ -58,12 +51,10 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
         private async processDiagnostics({
           params,
           view,
-          onExternalFileChange,
           render,
         }: {
           params: PublishDiagnosticsParams;
           view: EditorView;
-          onExternalFileChange?: (changes: LSP.WorkspaceEdit) => void;
           render?: LintingRenderer;
         }) {
           const versionAtNotification = params.version;
@@ -113,51 +104,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
                         }
                       }
 
-                      const hasExternalFileChanges =
-                        resolvedAction.edit?.documentChanges?.some(
-                          (change) =>
-                            "textDocument" in change &&
-                            change.textDocument.uri !== lsPlugin.documentUri,
-                        );
-
-                      if (hasExternalFileChanges) {
-                        if (onExternalFileChange) {
-                          onExternalFileChange(resolvedAction.edit);
-                        } else {
-                          showDialog(view, {
-                            label: "External file changes not supported",
-                          });
-                        }
-                        return;
-                      }
-                      const documentChanges =
-                        resolvedAction.edit?.documentChanges || [];
-
-                      const edits = documentChanges
-                        .filter((change) => "edits" in change)
-                        .flatMap((change) => change.edits || []);
-
-                      for (const edit of edits) {
-                        changes.push(edit as LSP.TextEdit);
-                      }
-
-                      if (changes.length === 0) return;
-
-                      // Apply workspace edit
-                      for (const change of changes) {
-                        view.dispatch(
-                          view.state.update({
-                            changes: {
-                              from: posToOffsetOrZero(
-                                view.state.doc,
-                                change.range.start,
-                              ),
-                              to: posToOffset(view.state.doc, change.range.end),
-                              insert: change.newText,
-                            },
-                          }),
-                        );
-                      }
+                      void lsPlugin.applyWorkspaceEdit(resolvedAction.edit);
                     } else if (
                       "command" in resolvedAction &&
                       resolvedAction.command

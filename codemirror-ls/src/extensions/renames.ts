@@ -25,15 +25,17 @@ import type { LSExtensionGetter, Renderer } from "./types.js";
 export interface RenameExtensionsArgs {
   /** Keybindings to trigger the rename action. */
   shortcuts?: KeyBinding[];
-  /** Callback for when a rename is received that affects other (non active) files. */
-  onExternalRename?: OnExternalRenameCallback;
-  /** Callback for when a rename is received. */
-  onRename?: OnRenameCallback;
-  /** Renderer for the rename UI. */
+  /** Function to render the rename dialog. */
   render: RenameRenderer;
-  /** Select the symbol that is to be renamed before renaming it. */
+  /**
+   * Whether to select the symbol at the cursor when initiating a rename.
+   * Defaults to `true`.
+   */
   selectSymbol?: boolean;
-  /** Unselect the symbol that was renamed if renaming is canceled or succeeds. */
+  /**
+   * Whether to reset the symbol selection after completing or dismissing
+   * the rename action. Defaults to `true`.
+   */
   resetSymbolSelection?: boolean;
 }
 
@@ -56,8 +58,6 @@ export type OnExternalRenameCallback = OnRenameCallback;
  */
 export const getRenameExtensions: LSExtensionGetter<RenameExtensionsArgs> = ({
   shortcuts,
-  onExternalRename,
-  onRename,
   render,
   selectSymbol = true,
   resetSymbolSelection = true,
@@ -74,57 +74,22 @@ export const getRenameExtensions: LSExtensionGetter<RenameExtensionsArgs> = ({
       if (rename) {
         return {
           create: (view) => {
-            const onComplete = (newName: string) => {
+            const onComplete = async (newName: string) => {
               const lsPlugin = LSCore.ofOrThrow(view);
               const pos = offsetToPos(view.state.doc, rename.pos);
 
-              lsPlugin.client
-                .request("textDocument/rename", {
+              const edit = await lsPlugin.client.request(
+                "textDocument/rename",
+                {
                   textDocument: { uri: lsPlugin.documentUri },
                   position: { line: pos.line, character: pos.character },
                   newName,
-                })
-                .then((edit) => {
-                  if (!edit) return;
+                },
+              );
 
-                  // If the rename is in this document, apply it directly
-                  if (LSP.WorkspaceEdit.is(edit)) {
-                    let changes: LSP.TextEdit[] | undefined;
-                    if ("changes" in edit) {
-                      changes = edit.changes?.[lsPlugin.documentUri];
-                    } else if ("documentChanges" in edit) {
-                      changes = edit.documentChanges!.flatMap((change) =>
-                        LSP.TextDocumentEdit.is(change) ? change.edits : [],
-                      );
-                    }
+              if (!edit) return;
 
-                    view.dispatch({
-                      changes: (changes ?? []).map((change) => ({
-                        from: posToOffset(view.state.doc, change.range.start)!,
-                        to: posToOffset(view.state.doc, change.range.end)!,
-                        insert: change.newText,
-                      })),
-                      selection: resetSymbolSelection
-                        ? { anchor: view.state.selection.main.head }
-                        : undefined,
-                    });
-                  }
-
-                  if (LSP.TextDocumentEdit.is(edit)) {
-                    onRename?.(lsPlugin.documentUri, edit);
-                    if (edit.textDocument.uri !== lsPlugin.documentUri) {
-                      onExternalRename?.(lsPlugin.documentUri, edit);
-                    }
-                  } else if (LSP.WorkspaceEdit.is(edit)) {
-                    if (edit.documentChanges) {
-                      for (const change of edit.documentChanges) {
-                        if (LSP.TextDocumentEdit.is(change)) {
-                          onRename?.(lsPlugin.documentUri, change);
-                        }
-                      }
-                    }
-                  }
-                });
+              void lsPlugin.applyWorkspaceEdit(edit);
             };
 
             const onDismiss = () => {
