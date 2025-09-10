@@ -97,6 +97,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
       referencesArgs: {},
       render: asyncNoop,
       ...options.features.contextMenu,
+      disableRename: options.features.renames?.disabled ?? false,
     },
     linting: {
       disabled: false,
