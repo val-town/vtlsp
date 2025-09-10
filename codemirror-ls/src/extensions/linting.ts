@@ -23,6 +23,11 @@ import type { LSExtensionGetter, Renderer } from "./types.js";
 
 export interface DiagnosticArgs {
   render?: LintingRenderer;
+  /**
+   * Mapping from LSP DiagnosticSeverity to CodeMirror Diagnostic severity.
+   * 
+   * Generally you shouldn't need to change this.
+   */
   severityMap?: typeof SEVERITY_MAP;
 }
 
