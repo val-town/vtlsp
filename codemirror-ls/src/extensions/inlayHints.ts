@@ -47,8 +47,8 @@ export interface InlayHintArgs {
 
 export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
   render,
-  debounceTime = 1_000,
-  clearOnEdit = true,
+  debounceTime = 100,
+  clearOnEdit = false,
   sideOfCursor = "after",
 }: InlayHintArgs) => {
   return [
