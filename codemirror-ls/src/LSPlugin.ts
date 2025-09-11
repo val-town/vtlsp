@@ -43,7 +43,7 @@ class LSCoreBase {
   #languageId: string;
   #view: EditorView;
   #sendDidOpen: boolean;
-  #onError?: (error: LSError) => void | Promise<void>;
+  #onError?: (error: LSError, view: EditorView) => void | Promise<void>;
 
   constructor({
     client,
@@ -81,7 +81,7 @@ class LSCoreBase {
     if (typeof error === "string") {
       error = new LSError(error);
     }
-    void this.#onError?.(error);
+    void this.#onError?.(error, this.#view);
     throw error;
   }
 
