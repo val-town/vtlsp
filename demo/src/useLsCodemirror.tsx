@@ -6,6 +6,7 @@ import type * as LSP from "vscode-languageserver-protocol";
 import { LSContents } from "./components/LSContents";
 import { LSContextMenu } from "./components/LSContextMenu";
 import { LSGoTo } from "./components/LSGoTo";
+import { LSInlayHint } from "./components/LSInlayHint";
 import { LSRename } from "./components/LSRename";
 import { LSSignatureHelp } from "./components/LSSignatureHelp";
 import { LSWindow } from "./components/LSWindow";
@@ -29,12 +30,24 @@ export function useLsCodemirror({ path }: { path: string }): {
       }
 
       const newTransport = new LSWebSocketTransport(url, {});
-      const newClient = lsClient
-        ? lsClient
-        : new LSClient({
-            transport: newTransport,
-            workspaceFolders: [{ uri: "file:///demo", name: "Demo" }],
-          });
+      const newClient = new LSClient({
+        transport: newTransport,
+        workspaceFolders: [{ uri: "file:///demo", name: "Demo" }],
+        initializationOptions: {
+          // Deno needs this to enable inlay hints
+          inlayHints: {
+            parameterNames: {
+              enabled: "all",
+              suppressWhenArgumentMatchesName: true,
+            },
+            parameterTypes: { enabled: true },
+            variableTypes: { enabled: true, suppressWhenTypeMatchesName: true },
+            propertyDeclarationTypes: { enabled: true },
+            functionLikeReturnTypes: { enabled: true },
+            enumMemberValues: { enabled: true },
+          },
+        },
+      });
 
       setTransport(newTransport);
       setLsClient(newClient);
@@ -45,7 +58,7 @@ export function useLsCodemirror({ path }: { path: string }): {
         newClient.initialize();
       }
     },
-    [transport, lsClient],
+    [transport],
   );
 
   const extensions = useMemo(() => {
@@ -153,6 +166,13 @@ export function useLsCodemirror({ path }: { path: string }): {
           render: async (dom, message: LSP.ShowMessageParams, onDismiss) => {
             const root = ReactDOM.createRoot(dom);
             root.render(<LSWindow message={message} onDismiss={onDismiss} />);
+          },
+        },
+        inlayHints: {
+          render: async (dom, hints) => {
+            const root = ReactDOM.createRoot(dom);
+            const hint = Array.isArray(hints) ? hints[0] : hints;
+            root.render(<LSInlayHint hint={hint} />);
           },
         },
       },

@@ -172,6 +172,9 @@ export class LSClient {
           dynamicRegistration: true,
           prepareSupport: true,
         },
+        inlayHint: {
+          dynamicRegistration: true,
+        },
       },
       workspace: {
         didChangeConfiguration: {
