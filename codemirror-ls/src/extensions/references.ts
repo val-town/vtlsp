@@ -270,9 +270,9 @@ export async function handleFindReferences({
       render,
     );
   } catch (error) {
-    showDialog(view, {
-      label: `Find references failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-    });
+    lsPlugin._reportError(
+      `Find references failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 
   return true;

@@ -3,6 +3,7 @@ import type { PluginValue, ViewUpdate } from "@codemirror/view";
 import { type EditorView, ViewPlugin } from "@codemirror/view";
 import PQueue from "p-queue";
 import type * as LSP from "vscode-languageserver-protocol";
+import { LSError, LSLockTimeoutError } from "./errors.js";
 import type { LSClient } from "./LSClient.js";
 import type { LSPRequestMap } from "./types.lsp.js";
 import { posToOffset } from "./utils.js";
@@ -26,6 +27,8 @@ interface LSPluginArgs {
   sendDidOpen?: boolean;
   /** Called when a workspace edit is received, for events that may have edited some or many files. */
   onWorkspaceEdit?: (edit: LSP.WorkspaceEdit) => void | Promise<void>;
+  /** Called on errors */
+  onError?: (error: LSError) => void | Promise<void>;
 }
 
 class LSCoreBase {
@@ -40,6 +43,7 @@ class LSCoreBase {
   #languageId: string;
   #view: EditorView;
   #sendDidOpen: boolean;
+  #onError?: (error: LSError) => void | Promise<void>;
 
   constructor({
     client,
@@ -54,6 +58,7 @@ class LSCoreBase {
     this.#languageId = languageId;
     this.#view = view;
     this.#sendDidOpen = sendDidOpen;
+    this.#onError = undefined;
 
     if (this.#sendDidOpen) {
       this.client.onInitialize(async () => {
@@ -64,6 +69,13 @@ class LSCoreBase {
     }
 
     void this.initialize({ documentText: this.#view.state.doc.toString() });
+  }
+
+  public _reportError(error: LSError | string) {
+    if (typeof error === "string") {
+      error = new LSError(error);
+    }
+    void this.#onError?.(error);
   }
 
   public async initialize({ documentText }: { documentText?: string } = {}) {
@@ -103,10 +115,15 @@ class LSCoreBase {
           window.setTimeout(() => {
             this.#sendChangesDispatchQueue.start();
             void this.syncChanges();
-            rej(new Error("Lock timed out"));
+            rej(new LSLockTimeoutError("Lock timed out"));
           }, timeout);
         }),
       ]);
+    } catch (e) {
+      if (e instanceof LSError) {
+        void this.#onError?.(e as LSError);
+      }
+      throw e;
     } finally {
       this.#sendChangesDispatchQueue.start();
       await this.syncChanges();

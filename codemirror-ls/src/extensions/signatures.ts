@@ -188,7 +188,9 @@ function createSignaturePlugin(
           }
         } catch (err) {
           if (context.triggerKind === 1 /* Invoked */) {
-            throw new Error(err instanceof Error ? err.message : String(err));
+            lsPlugin._reportError(
+              err instanceof Error ? err.message : String(err),
+            );
           }
         }
       }
