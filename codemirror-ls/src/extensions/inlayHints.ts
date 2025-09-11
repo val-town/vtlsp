@@ -12,6 +12,7 @@
  * @todo Add resolve support
  */
 
+import { Annotation } from "@codemirror/state";
 import {
   Decoration,
   type EditorView,
@@ -41,6 +42,8 @@ export interface InlayHintArgs {
   debounceTime?: number;
   /** Whether to clear the currently shown inlay hints when the user starts editing. */
   clearOnEdit?: boolean;
+  /** Whether to clear the currently shown inlay hints when the user touches the editor (selection or focus change). */
+  clearOnTouch?: boolean;
   /** Whether the inlay hints come before or after the cursor. */
   sideOfCursor?: "after" | "before";
 }
@@ -49,6 +52,7 @@ export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
   render,
   debounceTime = 100,
   clearOnEdit = false,
+  clearOnTouch = false,
   sideOfCursor = "after",
 }: InlayHintArgs) => {
   return [
@@ -74,13 +78,17 @@ export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
         }
 
         update(update: ViewUpdate) {
-          if (!update.docChanged) return;
-
-          if (clearOnEdit) {
+          if (
+            (update.docChanged && clearOnEdit) ||
+            (clearOnTouch && (update.selectionSet || update.focusChanged)) ||
+            update.transactions.some((tr) => tr.annotation(ClearInlayHints))
+          ) {
             // the .decorations() provider is naturally triggered on updates so
             // no need to dispatch (also, we cannot dispatch DURING an update).
             this.inlayHints = [];
           }
+
+          if (!update.docChanged) return;
 
           void this.#queueRefreshInlayHints();
         }
@@ -142,6 +150,11 @@ export const getInlayHintExtensions: LSExtensionGetter<InlayHintArgs> = ({
     ),
   ];
 };
+
+/**
+ * Annotation to trigger clearing shown inlay hints.
+ */
+export const ClearInlayHints = Annotation.define<void>();
 
 class InlayHintWidget extends WidgetType {
   #inlayHint: LSP.InlayHint;
