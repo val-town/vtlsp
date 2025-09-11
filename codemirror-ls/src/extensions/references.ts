@@ -30,10 +30,10 @@ import {
   type KeyBinding,
   keymap,
   type PanelConstructor,
-  showDialog,
   showPanel,
 } from "@codemirror/view";
 import type * as LSP from "vscode-languageserver-protocol";
+import { LSNotSupportedError } from "../errors.js";
 import { LSCore } from "../LSPlugin.js";
 import { offsetToPos, posToOffset, posToOffsetOrZero } from "../utils.js";
 import type { LSExtensionGetter, Renderer } from "./types.js";
@@ -204,7 +204,9 @@ export async function handleFindReferences({
   const capability = REFERENCE_CAPABILITY_MAP[kind];
 
   if (!lsPlugin.client.capabilities?.[capability]) {
-    showDialog(view, { label: "References not supported by language server" });
+    void lsPlugin._reportError(
+      new LSNotSupportedError("References not supported"),
+    );
     return false;
   }
 
@@ -221,7 +223,7 @@ export async function handleFindReferences({
     });
 
     const onNoneFound = () =>
-      showDialog(view, { label: `No ${REFERENCE_KIND_LABELS[kind]} found` });
+      void lsPlugin._reportError(new NoReferencesError(kind));
 
     if (response === null) {
       onNoneFound();
@@ -245,9 +247,7 @@ export async function handleFindReferences({
     if (referenceLocations.length === 1 && goToIfOneOption) {
       const ref = referenceLocations[0];
       if (!ref) {
-        showDialog(view, {
-          label: `No ${REFERENCE_KIND_LABELS[kind]} found`,
-        });
+        void lsPlugin._reportError(new NoReferencesError(kind));
         return false;
       }
 
@@ -401,4 +401,12 @@ function createReferencePanel(
       mount: () => panel.focus(),
     };
   };
+}
+
+export class NoReferencesError extends Error {
+  constructor(message: ReferenceKind) {
+    super(message);
+    this.name = "NoReferencesError";
+    this.message = `No ${REFERENCE_KIND_LABELS[message]} found`;
+  }
 }
