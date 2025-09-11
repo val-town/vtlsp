@@ -128,7 +128,7 @@ class LSCoreBase {
       ]);
     } catch (e) {
       if (e instanceof LSError) {
-        void this.#onError?.(e as LSError);
+        void this._reportError(e);
       }
       throw e;
     } finally {
