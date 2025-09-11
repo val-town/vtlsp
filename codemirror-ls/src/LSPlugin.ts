@@ -27,7 +27,16 @@ interface LSPluginArgs {
   sendDidOpen?: boolean;
   /** Called when a workspace edit is received, for events that may have edited some or many files. */
   onWorkspaceEdit?: (edit: LSP.WorkspaceEdit) => void | Promise<void>;
-  /** Called on errors */
+  /**
+   * Called on language server error events.
+   *
+   * For example, if the server doesn't respond in time during a request that
+   * "locks" editor textDocument/didChange updates.
+   *
+   * Passes the EditorView as a second argument so you can display UI via a
+   * dispatched transaction. You may find it useful to display the error to the
+   * user using something like https://codemirror.net/docs/ref/#view.showDialog
+   **/
   onError?: (error: LSError) => void | Promise<void>;
 }
 
