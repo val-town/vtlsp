@@ -29,6 +29,10 @@ export interface DiagnosticArgs {
    * Generally you shouldn't need to change this.
    */
   severityMap?: typeof SEVERITY_MAP;
+  /**
+   * If false, disables requesting and attaching code actions to diagnostics.
+   */
+  enableCodeActions?: boolean;
 }
 
 export type LintingRenderer = Renderer<
@@ -48,23 +52,13 @@ export const SEVERITY_MAP: Record<
 export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
   render,
   severityMap = SEVERITY_MAP,
+  enableCodeActions = true,
 }: DiagnosticArgs): Extension[] => {
   return [
     ViewPlugin.fromClass(
       class DiagnosticPlugin {
-        /**
-         * Queue for processing diagnostics sequentially.
-         *
-         * We want to ensure that diagnostics are processed in the order they
-         * are received, including post-processing associated code actions.
-         *
-         * If we receive many diagnostics at once in short succession, we
-         * request code actions for each, and may receive responses in
-         * non-deterministic order. This ensures that we process them in the
-         * order they were originally received.
-         */
-        #dispatchQueue = new PQueue({ concurrency: 1 });
         #view: EditorView;
+        #codeActionQueryAbortController = new AbortController();
 
         constructor(private view: EditorView) {
           this.#view = view;
@@ -73,13 +67,10 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
           void lsPlugin.client.onNotification(async (method, params) => {
             if (method !== "textDocument/publishDiagnostics") return;
 
-            this.#dispatchQueue.add(
-              async () =>
-                await this.processDiagnostics({
-                  params,
-                  view: this.view,
-                }),
-            );
+            await this.processDiagnostics({
+              params,
+              view: this.view,
+            });
           });
         }
 
@@ -90,7 +81,18 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
           params: PublishDiagnosticsParams;
           view: EditorView;
         }) {
-          // TODO: This is very fancy logic. We really should find a way to test this!
+          // Every time this method is called (when the LSP sends us new diagnostics) we:
+          // - abort any in-progress code action queries since they will no longer be relevant
+          // - create a new abort controller for our new code action queries
+          // - update the editor diagnostics right away
+          // - if we receive the code action response and the document version is still the same,
+          //   and the abort controller hasn't been aborted, update the diagnostics again
+          //
+          // Note that the language server may send many diagnostics for the
+          // same document version and it is critical that we respect the **LAST** one.
+          this.#codeActionQueryAbortController.abort();
+          const newCodeActionQueryAbortController = new AbortController();
+          this.#codeActionQueryAbortController = newCodeActionQueryAbortController;
 
           const versionAtNotification = params.version;
           const lsPlugin = LSCore.ofOrThrow(view);
@@ -109,20 +111,19 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
           if (versionAtNotification !== lsPlugin.documentVersion) return;
           view.dispatch(setDiagnostics(view.state, diagnosticsWithoutActions));
 
+          // Queue code actions resolution for each diagnostic
           const diagnosticsWithActions = await Promise.all(
-            diagnosticResults.map(([, promise]) => promise),
+            diagnosticResults.map(([, promise]) => promise)
           );
-
-          // It takes time for actions to process. Make sure doc is still same
-          // version to avoid showing old diagnostics.
 
           if (versionAtNotification !== lsPlugin.documentVersion) return;
 
-          // If **none** of the diagnostics changed, don't dispatch again.
           const allSame = diagnosticsWithActions.every((diag, i) =>
             Object.is(diag, diagnosticsWithoutActions[i]),
           );
           if (allSame) return;
+
+          if (newCodeActionQueryAbortController.signal.aborted) return;
 
           view.dispatch(setDiagnostics(view.state, diagnosticsWithActions));
         }
@@ -153,14 +154,19 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
             message,
             renderMessage: render
               ? () => {
-                  const dom = document.createElement("div");
-                  render(dom, message);
-                  return dom;
-                }
+                const dom = document.createElement("div");
+                render(dom, message);
+                return dom;
+              }
               : undefined,
             source: diagnostic.source,
             actions: [], // for now
           };
+
+          // If code actions are disabled, just return the diagnostic as-is.
+          if (!enableCodeActions) {
+            return [currentDiagnostic, Promise.resolve(currentDiagnostic)];
+          }
 
           const diagnosticWithActions: Promise<Diagnostic> = (async () => {
             const { actions, resolveAction } =
@@ -260,7 +266,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
               "data" in action &&
               lsPlugin.client.capabilities?.codeActionProvider &&
               typeof lsPlugin.client.capabilities.codeActionProvider !==
-                "boolean" &&
+              "boolean" &&
               lsPlugin.client.capabilities.codeActionProvider.resolveProvider
             ) {
               return (await lsPlugin.requestWithLock(
