@@ -152,10 +152,10 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
             message,
             renderMessage: render
               ? () => {
-                const dom = document.createElement("div");
-                render(dom, message);
-                return dom;
-              }
+                  const dom = document.createElement("div");
+                  render(dom, message);
+                  return dom;
+                }
               : undefined,
             source: diagnostic.source,
             actions: [],
@@ -182,7 +182,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
                     return {
                       name:
                         "command" in action &&
-                          typeof action.command === "object"
+                        typeof action.command === "object"
                           ? action.command?.title || action.title
                           : action.title,
                       apply: async () => {
@@ -264,7 +264,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
               "data" in action &&
               lsPlugin.client.capabilities?.codeActionProvider &&
               typeof lsPlugin.client.capabilities.codeActionProvider !==
-              "boolean" &&
+                "boolean" &&
               lsPlugin.client.capabilities.codeActionProvider.resolveProvider
             ) {
               return (await lsPlugin.requestWithLock(
