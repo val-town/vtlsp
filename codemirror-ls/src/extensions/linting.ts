@@ -14,7 +14,6 @@ import { type Action, type Diagnostic, setDiagnostics } from "@codemirror/lint";
 import type { Extension } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import { showDialog, ViewPlugin } from "@codemirror/view";
-import PQueue from "p-queue";
 import type { PublishDiagnosticsParams } from "vscode-languageserver-protocol";
 import * as LSP from "vscode-languageserver-protocol";
 import { LSCore } from "../LSPlugin.js";
@@ -23,16 +22,12 @@ import type { LSExtensionGetter, Renderer } from "./types.js";
 
 export interface DiagnosticArgs {
   render?: LintingRenderer;
-  /**
-   * Mapping from LSP DiagnosticSeverity to CodeMirror Diagnostic severity.
-   *
-   * Generally you shouldn't need to change this.
-   */
   severityMap?: typeof SEVERITY_MAP;
-  /**
-   * If false, disables requesting and attaching code actions to diagnostics.
-   */
   enableCodeActions?: boolean;
+  /**
+   * Debounce time (ms) for code action requests. Default: 200ms.
+   */
+  codeActionDebounceMs?: number;
 }
 
 export type LintingRenderer = Renderer<
@@ -53,12 +48,14 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
   render,
   severityMap = SEVERITY_MAP,
   enableCodeActions = true,
+  codeActionDebounceMs = 200,
 }: DiagnosticArgs): Extension[] => {
   return [
     ViewPlugin.fromClass(
       class DiagnosticPlugin {
         #view: EditorView;
         #codeActionQueryAbortController = new AbortController();
+        #codeActionDebounceTimeout: number | null = null;
 
         constructor(private view: EditorView) {
           this.#view = view;
@@ -92,7 +89,8 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
           // same document version and it is critical that we respect the **LAST** one.
           this.#codeActionQueryAbortController.abort();
           const newCodeActionQueryAbortController = new AbortController();
-          this.#codeActionQueryAbortController = newCodeActionQueryAbortController;
+          this.#codeActionQueryAbortController =
+            newCodeActionQueryAbortController;
 
           const versionAtNotification = params.version;
           const lsPlugin = LSCore.ofOrThrow(view);
@@ -113,7 +111,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
 
           // Queue code actions resolution for each diagnostic
           const diagnosticsWithActions = await Promise.all(
-            diagnosticResults.map(([, promise]) => promise)
+            diagnosticResults.map(([, promise]) => promise),
           );
 
           if (versionAtNotification !== lsPlugin.documentVersion) return;
@@ -154,72 +152,72 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
             message,
             renderMessage: render
               ? () => {
-                const dom = document.createElement("div");
-                render(dom, message);
-                return dom;
-              }
+                  const dom = document.createElement("div");
+                  render(dom, message);
+                  return dom;
+                }
               : undefined,
             source: diagnostic.source,
-            actions: [], // for now
+            actions: [],
           };
 
-          // If code actions are disabled, just return the diagnostic as-is.
           if (!enableCodeActions) {
             return [currentDiagnostic, Promise.resolve(currentDiagnostic)];
           }
 
-          const diagnosticWithActions: Promise<Diagnostic> = (async () => {
-            const { actions, resolveAction } =
-              await this.requestCodeActions(diagnostic);
+          // Debounced code action request
+          const diagnosticWithActions: Promise<Diagnostic> = new Promise(
+            (resolve) => {
+              if (this.#codeActionDebounceTimeout) {
+                clearTimeout(this.#codeActionDebounceTimeout);
+              }
+              this.#codeActionDebounceTimeout = setTimeout(async () => {
+                const { actions, resolveAction } =
+                  await this.requestCodeActions(diagnostic);
 
-            const codemirrorActions = (Array.isArray(actions) ? actions : [])
-              .map((action): Action | null => {
-                return {
-                  name:
-                    "command" in action && typeof action.command === "object"
-                      ? action.command?.title || action.title
-                      : action.title,
-                  apply: async () => {
-                    const resolvedAction = await resolveAction(action);
+                const codemirrorActions = (
+                  Array.isArray(actions) ? actions : []
+                )
+                  .map((action): Action | null => {
+                    return {
+                      name:
+                        "command" in action &&
+                        typeof action.command === "object"
+                          ? action.command?.title || action.title
+                          : action.title,
+                      apply: async () => {
+                        const resolvedAction = await resolveAction(action);
 
-                    if (
-                      "edit" in resolvedAction &&
-                      (resolvedAction.edit?.changes ||
-                        resolvedAction.edit?.documentChanges)
-                    ) {
-                      const changes: LSP.TextEdit[] = [];
-
-                      if (resolvedAction.edit?.changes) {
-                        for (const change of resolvedAction.edit.changes[
-                          lsPlugin.documentUri
-                        ] || []) {
-                          changes.push(change);
+                        if (
+                          "edit" in resolvedAction &&
+                          (resolvedAction.edit?.changes ||
+                            resolvedAction.edit?.documentChanges)
+                        ) {
+                          void lsPlugin.applyWorkspaceEdit(resolvedAction.edit);
+                        } else if (
+                          "command" in resolvedAction &&
+                          resolvedAction.command
+                        ) {
+                          showDialog(this.#view, {
+                            label: "Command execution not implemented yet",
+                          });
                         }
-                      }
+                      },
+                    };
+                  })
+                  .filter(Boolean) as Action[];
 
-                      void lsPlugin.applyWorkspaceEdit(resolvedAction.edit);
-                    } else if (
-                      "command" in resolvedAction &&
-                      resolvedAction.command
-                    ) {
-                      // TODO: Implement command execution
-                      showDialog(this.#view, {
-                        label: "Command execution not implemented yet",
-                      });
-                    }
-                  },
-                };
-              })
-              .filter(Boolean) as Action[];
-
-            if (codemirrorActions.length === 0) return currentDiagnostic;
-
-            // (see doc): make sure this is a **new** object instance for comparison purposes
-            return {
-              ...currentDiagnostic,
-              actions: codemirrorActions,
-            };
-          })();
+                if (codemirrorActions.length === 0) {
+                  resolve(currentDiagnostic);
+                } else {
+                  resolve({
+                    ...currentDiagnostic,
+                    actions: codemirrorActions,
+                  });
+                }
+              }, codeActionDebounceMs);
+            },
+          );
 
           return [currentDiagnostic, diagnosticWithActions];
         }
@@ -266,7 +264,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
               "data" in action &&
               lsPlugin.client.capabilities?.codeActionProvider &&
               typeof lsPlugin.client.capabilities.codeActionProvider !==
-              "boolean" &&
+                "boolean" &&
               lsPlugin.client.capabilities.codeActionProvider.resolveProvider
             ) {
               return (await lsPlugin.requestWithLock(
