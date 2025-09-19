@@ -76,8 +76,6 @@
     "isows": "^1.0.7",
     "json-rpc-2.0": "^1.7.1",
     "p-queue": "^8.1.0",
-    "pino": "^9.8.0",
-    "pino-pretty": "^13.1.1",
     "vscode-jsonrpc": "^8.2.1",
     "vscode-languageserver-protocol": "^3.17.5",
     "vscode-uri": "^3.1.0"
