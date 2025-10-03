@@ -3,7 +3,7 @@ import type { PluginValue, ViewUpdate } from "@codemirror/view";
 import { type EditorView, ViewPlugin } from "@codemirror/view";
 import PQueue from "p-queue";
 import type * as LSP from "vscode-languageserver-protocol";
-import { LSError } from "./errors.js";
+import { LSError, LSLockTimeoutError } from "./errors.js";
 import type { LSClient } from "./LSClient.js";
 import type { LSPRequestMap } from "./types.lsp.js";
 import { posToOffset } from "./utils.js";
@@ -82,7 +82,9 @@ class LSCoreBase {
       });
     }
 
-    void this.initialize({ documentText: this.#view.state.doc.toString() });
+    void this.initialize({
+      documentText: this.#view.state.doc.toString(),
+    }).catch((e) => void this._reportError(e));
   }
 
   /**
@@ -287,13 +289,3 @@ export class LSCore extends LSCoreBase implements PluginValue {
 }
 
 export const LSPlugin = ViewPlugin.fromClass(LSCore);
-
-/**
- * Error thrown when a lock could not be acquired within a certain timeout.
- */
-export class LSLockTimeoutError extends LSError {
-  constructor(message: string) {
-    super(message);
-    this.name = "LSLockTimeoutError";
-  }
-}
