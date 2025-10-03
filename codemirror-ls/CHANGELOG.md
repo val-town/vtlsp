@@ -1,5 +1,11 @@
 # @valtown/codemirror-ls
 
+## 0.2.2
+
+### Patch Changes
+
+- d9fa1c3: Add a global error handler callback (generally for showing error UIs)
+
 ## 0.2.1
 
 ### Patch Changes
