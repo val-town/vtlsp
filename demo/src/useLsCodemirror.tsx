@@ -1,3 +1,4 @@
+import { showDialog } from "@codemirror/view";
 import { LSClient, languageServerWithClient } from "@valtown/codemirror-ls";
 import { LSWebSocketTransport } from "@valtown/codemirror-ls/transport";
 import { useCallback, useMemo, useState } from "react";
@@ -10,7 +11,6 @@ import { LSInlayHint } from "./components/LSInlayHint";
 import { LSRename } from "./components/LSRename";
 import { LSSignatureHelp } from "./components/LSSignatureHelp";
 import { LSWindow } from "./components/LSWindow";
-import { showDialog } from "@codemirror/view";
 
 export function useLsCodemirror({ path }: { path: string }): {
   extensions: ReturnType<typeof languageServerWithClient> | null;
@@ -81,7 +81,7 @@ export function useLsCodemirror({ path }: { path: string }): {
       client: lsClient,
       onError: (error, view) => {
         // Codemirror's native "dock" area for dialogs
-        showDialog(view, { label: error.message })
+        showDialog(view, { label: error.message });
       },
       documentUri: `file://${path}`,
       languageId: "typescript",
