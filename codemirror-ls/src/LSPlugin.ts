@@ -8,7 +8,12 @@ import type { LSClient } from "./LSClient.js";
 import type { LSPRequestMap } from "./types.lsp.js";
 import { posToOffset } from "./utils.js";
 
-interface LSPluginArgs {
+export type ErrorHandler = (
+  error: LSError,
+  view: EditorView,
+) => void | Promise<void>;
+
+export interface LSPluginArgs {
   client: LSClient;
   documentUri: string;
   languageId: string;
@@ -37,7 +42,7 @@ interface LSPluginArgs {
    * dispatched transaction. You may find it useful to display the error to the
    * user using something like https://codemirror.net/docs/ref/#view.showDialog
    **/
-  onError?: (error: LSError) => void | Promise<void>;
+  onError?: (error: LSError, view: EditorView) => void | Promise<void>;
 }
 
 class LSCoreBase {
