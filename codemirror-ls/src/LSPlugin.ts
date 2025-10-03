@@ -3,11 +3,17 @@ import type { PluginValue, ViewUpdate } from "@codemirror/view";
 import { type EditorView, ViewPlugin } from "@codemirror/view";
 import PQueue from "p-queue";
 import type * as LSP from "vscode-languageserver-protocol";
+import { LSError, LSLockTimeoutError } from "./errors.js";
 import type { LSClient } from "./LSClient.js";
 import type { LSPRequestMap } from "./types.lsp.js";
 import { posToOffset } from "./utils.js";
 
-interface LSPluginArgs {
+export type ErrorHandler = (
+  error: LSError,
+  view: EditorView,
+) => void | Promise<void>;
+
+export interface LSPluginArgs {
   client: LSClient;
   documentUri: string;
   languageId: string;
@@ -26,6 +32,17 @@ interface LSPluginArgs {
   sendDidOpen?: boolean;
   /** Called when a workspace edit is received, for events that may have edited some or many files. */
   onWorkspaceEdit?: (edit: LSP.WorkspaceEdit) => void | Promise<void>;
+  /**
+   * Called on language server error events.
+   *
+   * For example, if the server doesn't respond in time during a request that
+   * "locks" editor textDocument/didChange updates.
+   *
+   * Passes the EditorView as a second argument so you can display UI via a
+   * dispatched transaction. You may find it useful to display the error to the
+   * user using something like https://codemirror.net/docs/ref/#view.showDialog
+   **/
+  onError?: (error: LSError, view: EditorView) => void | Promise<void>;
 }
 
 class LSCoreBase {
@@ -40,6 +57,7 @@ class LSCoreBase {
   #languageId: string;
   #view: EditorView;
   #sendDidOpen: boolean;
+  #onError?: (error: LSError, view: EditorView) => void | Promise<void>;
 
   constructor({
     client,
@@ -54,6 +72,7 @@ class LSCoreBase {
     this.#languageId = languageId;
     this.#view = view;
     this.#sendDidOpen = sendDidOpen;
+    this.#onError = undefined;
 
     if (this.#sendDidOpen) {
       this.client.onInitialize(async () => {
@@ -63,7 +82,22 @@ class LSCoreBase {
       });
     }
 
-    void this.initialize({ documentText: this.#view.state.doc.toString() });
+    void this.initialize({
+      documentText: this.#view.state.doc.toString(),
+    }).catch((e) => void this._reportError(e));
+  }
+
+  /**
+   * Report an error to the global error handler, if any, and then throw it.
+   * Meant for internal use with codemirror language server plugins in this library.
+   *
+   * @param error A LS error.
+   */
+  public _reportError(error: LSError | string) {
+    if (typeof error === "string") {
+      error = new LSError(error);
+    }
+    void this.#onError?.(error, this.#view);
   }
 
   public async initialize({ documentText }: { documentText?: string } = {}) {
@@ -103,10 +137,15 @@ class LSCoreBase {
           window.setTimeout(() => {
             this.#sendChangesDispatchQueue.start();
             void this.syncChanges();
-            rej(new Error("Lock timed out"));
+            rej(new LSLockTimeoutError("Lock timed out"));
           }, timeout);
         }),
       ]);
+    } catch (e) {
+      if (e instanceof LSError) {
+        void this._reportError(e);
+      }
+      throw e;
     } finally {
       this.#sendChangesDispatchQueue.start();
       await this.syncChanges();

@@ -13,7 +13,7 @@
 import { type Action, type Diagnostic, setDiagnostics } from "@codemirror/lint";
 import type { Extension } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
-import { showDialog, ViewPlugin } from "@codemirror/view";
+import { ViewPlugin } from "@codemirror/view";
 import PQueue from "p-queue";
 import type { PublishDiagnosticsParams } from "vscode-languageserver-protocol";
 import * as LSP from "vscode-languageserver-protocol";
@@ -197,9 +197,9 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
                       resolvedAction.command
                     ) {
                       // TODO: Implement command execution
-                      showDialog(this.#view, {
-                        label: "Command execution not implemented yet",
-                      });
+                      lsPlugin._reportError(
+                        "Command execution not implemented yet for LSP action commands.",
+                      );
                     }
                   },
                 };

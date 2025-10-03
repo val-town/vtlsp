@@ -12,7 +12,7 @@ import {
   window,
 } from "./extensions/index.js";
 import type { LSClient } from "./LSClient.js";
-import { LSPlugin } from "./LSPlugin.js";
+import { type ErrorHandler, LSPlugin } from "./LSPlugin.js";
 
 async function asyncNoop(): Promise<void> {}
 
@@ -131,6 +131,7 @@ export function languageServerWithClient(options: LanguageServerOptions) {
     sendDidOpen: options.sendDidOpen ?? true,
     sendCloseOnDestroy: options.sendCloseOnDestroy ?? true,
     onWorkspaceEdit: options.onWorkspaceEdit,
+    onError: options.onError,
   });
   extensions.push(Prec.highest(lsPlugin));
 
@@ -224,4 +225,6 @@ export interface LanguageServerOptions {
   sendCloseOnDestroy?: boolean;
   /** Called when a workspace edit is received, for events that may have edited some or many files. */
   onWorkspaceEdit?: (edit: LSP.WorkspaceEdit) => void | Promise<void>;
+  /** Called when codemirror-ls extensions encounters an error. */
+  onError?: ErrorHandler;
 }
