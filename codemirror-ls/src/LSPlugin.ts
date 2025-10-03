@@ -98,7 +98,6 @@ class LSCoreBase {
       error = new LSError(error);
     }
     void this.#onError?.(error, this.#view);
-    throw error;
   }
 
   public async initialize({ documentText }: { documentText?: string } = {}) {
