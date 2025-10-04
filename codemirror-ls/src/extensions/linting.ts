@@ -107,6 +107,8 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
           if (params.version !== lsPlugin.documentVersion) return;
 
           const diagnosticResults = params.diagnostics.map((diagnostic) =>
+            // We hand it the signal since we are debouncing requesting actions, and we can
+            // not end up requesting actions for old diagnostics this way.
             this.lazyLoadCodemirrorDiagnostic(diagnostic, newCodeActionQueryAbortController.signal),
           );
 
@@ -146,6 +148,11 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
          * If there are no actions, the lazy diagnostic is returned as the same
          * object identity as the original one (so you can avoid duplicate
          * dispatches by checking for equality).
+         * 
+         * @param diagnostic The LSP Diagnostic to convert.
+         * @param signal An AbortSignal that can be used to cancel the code
+         * action request. It will cause the returned Promise to instantly
+         * resolve to the basic diagnostic (i.e. "we don't care about actions anymore").
          */
         private lazyLoadCodemirrorDiagnostic(
           diagnostic: LSP.Diagnostic,
