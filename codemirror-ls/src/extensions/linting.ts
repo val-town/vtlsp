@@ -25,14 +25,14 @@ export interface DiagnosticArgs {
   severityMap?: typeof SEVERITY_MAP;
   /**
    * Enable code actions for diagnostics.
-   * 
+   *
    * @default true
    */
   enableCodeActions?: boolean;
   /**
    * After a diagnostic comes in, if no new diagnostics arrive for this period,
    * we enhance the current diagnostics with code actions.
-   * 
+   *
    * @default 200ms
    */
   codeActionDebounceMs?: number;
@@ -160,10 +160,10 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
             message,
             renderMessage: render
               ? () => {
-                const dom = document.createElement("div");
-                render(dom, message);
-                return dom;
-              }
+                  const dom = document.createElement("div");
+                  render(dom, message);
+                  return dom;
+                }
               : undefined,
             source: diagnostic.source,
             actions: [],
@@ -190,7 +190,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
                     return {
                       name:
                         "command" in action &&
-                          typeof action.command === "object"
+                        typeof action.command === "object"
                           ? action.command?.title || action.title
                           : action.title,
                       apply: async () => {
@@ -272,7 +272,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
               "data" in action &&
               lsPlugin.client.capabilities?.codeActionProvider &&
               typeof lsPlugin.client.capabilities.codeActionProvider !==
-              "boolean" &&
+                "boolean" &&
               lsPlugin.client.capabilities.codeActionProvider.resolveProvider
             ) {
               return (await lsPlugin.requestWithLock(
