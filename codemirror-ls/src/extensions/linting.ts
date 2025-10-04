@@ -107,7 +107,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
           if (params.version !== lsPlugin.documentVersion) return;
 
           const diagnosticResults = params.diagnostics.map((diagnostic) =>
-            this.lazyLoadCodemirrorDiagnostic(diagnostic),
+            this.lazyLoadCodemirrorDiagnostic(diagnostic, newCodeActionQueryAbortController.signal),
           );
 
           const diagnosticsWithoutActions = diagnosticResults.map(
@@ -149,6 +149,7 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
          */
         private lazyLoadCodemirrorDiagnostic(
           diagnostic: LSP.Diagnostic,
+          signal: AbortSignal,
         ): [Diagnostic, Promise<Diagnostic>] {
           const lsPlugin = LSCore.ofOrThrow(this.#view);
 
@@ -181,6 +182,11 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
                 clearTimeout(this.#codeActionDebounceTimeout);
               }
               this.#codeActionDebounceTimeout = window.setTimeout(async () => {
+                if (signal.aborted) {
+                  resolve(currentDiagnostic);
+                  return;
+                }
+
                 const { actions, resolveAction } =
                   await this.requestCodeActions(diagnostic);
 
