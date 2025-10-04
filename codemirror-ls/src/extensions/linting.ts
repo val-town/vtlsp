@@ -114,7 +114,8 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
             ([immediate]) => immediate,
           );
 
-          if (versionAtNotification !== lsPlugin.documentVersion) return;
+          // Between the time we received the notification and now, no async
+          // functions were called, so no more checks are needed right here
           view.dispatch(setDiagnostics(view.state, diagnosticsWithoutActions));
 
           // Queue code actions resolution for each diagnostic
