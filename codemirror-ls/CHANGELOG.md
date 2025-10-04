@@ -1,5 +1,11 @@
 # @valtown/codemirror-ls
 
+## 0.2.1
+
+### Patch Changes
+
+- 6d70aac: Only use p-timeout and p-queue dependencies when necessary
+
 ## 0.2.0
 
 ### Minor Changes
