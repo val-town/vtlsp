@@ -1,5 +1,11 @@
 # @valtown/codemirror-ls
 
+## 0.2.3
+
+### Patch Changes
+
+- 2adf7bc: Instantly apply diagnostics, then lazily query for code actions
+
 ## 0.2.2
 
 ### Patch Changes
