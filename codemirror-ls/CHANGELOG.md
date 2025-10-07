@@ -1,5 +1,11 @@
 # @valtown/codemirror-ls
 
+## 0.2.4
+
+### Patch Changes
+
+- e0fef62: Adopt OIDC for publishing
+
 ## 0.2.3
 
 ### Patch Changes

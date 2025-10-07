@@ -1,5 +1,11 @@
 # @valtown/ls-ws-server
 
+## 0.0.26
+
+### Patch Changes
+
+- e0fef62: Adopt OIDC for publishing
+
 ## 0.0.25
 
 ### Patch Changes
