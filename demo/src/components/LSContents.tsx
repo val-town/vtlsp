@@ -102,7 +102,7 @@ function MarkdownContent({
                   {...props}
                 >
                   {
-                    // @ts-ignore: react types don't type these.
+                    // @ts-expect-error: react types don't type these.
                     toJsxRuntime(tree, { Fragment, jsx, jsxs })
                   }
                 </code>
@@ -154,7 +154,7 @@ export function LowLightCodeBlock({
     return (
       <code className={`whitespace-pre-wrap break-words hljs ${className}`}>
         {
-          // @ts-ignore: react types don't type these.
+          // @ts-expect-error: react types don't type these.
           toJsxRuntime(tree, { Fragment, jsx, jsxs })
         }
       </code>

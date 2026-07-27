@@ -77,7 +77,9 @@ export class LSMockTransport implements LSITransport {
   }
 
   simulateNotification(method: string, params?: unknown): void {
-    this.notificationHandlers.forEach((handler) => handler(method, params));
+    this.notificationHandlers.forEach((handler) => {
+      handler(method, params);
+    });
   }
 
   simulateRequest(method: string, params?: unknown): unknown {
@@ -88,6 +90,8 @@ export class LSMockTransport implements LSITransport {
   }
 
   simulateError(error: unknown): void {
-    this.errorHandlers.forEach((handler) => handler(error));
+    this.errorHandlers.forEach((handler) => {
+      handler(error);
+    });
   }
 }

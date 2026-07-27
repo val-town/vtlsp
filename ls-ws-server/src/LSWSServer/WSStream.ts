@@ -92,7 +92,9 @@ class WebSocketReadableStream extends Readable {
       "WebSocketReadableStream is getting destroyed",
     );
 
-    this.#cleanupCbs.forEach((cb) => cb());
+    this.#cleanupCbs.forEach((cb) => {
+      cb();
+    });
 
     callback(error);
   }
