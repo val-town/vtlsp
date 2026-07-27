@@ -12,9 +12,9 @@ describe("chunkByteArray", () => {
 
     // Should result in 3 chunks: [0,1], [2,3], [4,5]
     expect(chunks.length).toBe(3);
-    expect(chunks[0]).toEqual(new Uint8Array([0, 1]));
-    expect(chunks[1]).toEqual(new Uint8Array([2, 3]));
-    expect(chunks[2]).toEqual(new Uint8Array([4, 5]));
+    expect(chunks[0]).toEqual(new Uint8Array([0, 1]).buffer);
+    expect(chunks[1]).toEqual(new Uint8Array([2, 3]).buffer);
+    expect(chunks[2]).toEqual(new Uint8Array([4, 5]).buffer);
   });
 
   it("can handle non-evenly divisible chunks", () => {
@@ -26,9 +26,9 @@ describe("chunkByteArray", () => {
 
     // Should result in 3 chunks: [0,1,2], [3,4,5], [6]
     expect(chunks.length).toBe(3);
-    expect(chunks[0]).toEqual(new Uint8Array([0, 1, 2]));
-    expect(chunks[1]).toEqual(new Uint8Array([3, 4, 5]));
-    expect(chunks[2]).toEqual(new Uint8Array([6]));
+    expect(chunks[0]).toEqual(new Uint8Array([0, 1, 2]).buffer);
+    expect(chunks[1]).toEqual(new Uint8Array([3, 4, 5]).buffer);
+    expect(chunks[2]).toEqual(new Uint8Array([6]).buffer);
   });
 });
 
@@ -60,7 +60,9 @@ describe("WSStream", () => {
       server.send("pong");
     });
 
-    const expectPromise = expect(server).toReceiveMessage(Buffer.from("ping"));
+    const expectPromise = expect(server).toReceiveMessage(
+      Buffer.from("ping").buffer,
+    );
     writable.write("ping");
     await expectPromise;
 
