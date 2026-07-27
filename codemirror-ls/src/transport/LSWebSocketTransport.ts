@@ -359,7 +359,7 @@ class WebSocketWritableStream implements RAL.WritableStream {
 
       // Chunk after we've loaded up the full content length header + body Uint8Array
       for (const chunk of chunkByteArray(combinedData, this.#chunkSize)) {
-        this.#socket.send(chunk.buffer);
+        this.#socket.send(chunk);
       }
 
       // Reset state
@@ -368,7 +368,7 @@ class WebSocketWritableStream implements RAL.WritableStream {
     } else {
       // Send normally if no pending content length
       for (const chunk of chunkByteArray(uint8Data, this.#chunkSize)) {
-        this.#socket.send(chunk.buffer);
+        this.#socket.send(chunk);
       }
     }
   }
@@ -461,9 +461,9 @@ function createWebSocketConnection(
 function* chunkByteArray(
   byteArray: Uint8Array,
   chunkSize: number,
-): Generator<Uint8Array> {
+): Generator<ArrayBuffer> {
   const totalSize = byteArray.byteLength;
   for (let i = 0; i < totalSize; i += chunkSize) {
-    yield byteArray.slice(i, Math.min(totalSize, i + chunkSize));
+    yield byteArray.slice(i, Math.min(totalSize, i + chunkSize)).buffer;
   }
 }
