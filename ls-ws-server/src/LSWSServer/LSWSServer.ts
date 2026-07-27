@@ -163,6 +163,7 @@ export class LSWSServer {
       onProcExit: async (sessionId, code, signal, proc): Promise<void> => {
         const logLineCount = Number.parseInt(
           process.env.CRASH_LOG_LINE_COUNT ?? "1000",
+          10,
         );
 
         // biome-ignore lint/suspicious/noConsole: for crash reporting

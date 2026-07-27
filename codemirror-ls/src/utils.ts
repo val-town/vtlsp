@@ -57,7 +57,9 @@ export function defaultContentFormatter(
     contents
       .map((c) => defaultContentFormatter(c))
       .filter(Boolean)
-      .forEach((child) => element.appendChild(child));
+      .forEach((child) => {
+        element.appendChild(child);
+      });
     return element;
   }
   if (typeof contents === "string") {
