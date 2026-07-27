@@ -202,15 +202,17 @@ export class LSWebSocketTransport implements LSITransport {
       };
       this.connection?.addEventListener("close", onCloseCb);
 
-      const onErrorCb = ((error: ErrorEvent) => {
+      const onErrorCb: EventListener = (error: Event) => {
         this.#errorIfDisposed();
 
         this.connection?.removeEventListener("open", onOpenCb);
         this.connection?.removeEventListener("error", onErrorCb);
-        this.onWSError?.(error);
+        if (error instanceof ErrorEvent) {
+          this.onWSError?.(error);
+        }
         this.#connectingPromise = null;
         reject(error);
-      }) as EventListener;
+      };
       this.connection?.addEventListener("error", onErrorCb);
     });
 
