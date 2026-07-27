@@ -202,15 +202,17 @@ export class LSWebSocketTransport implements LSITransport {
       };
       this.connection?.addEventListener("close", onCloseCb);
 
-      const onErrorCb = ((error: ErrorEvent) => {
+      const onErrorCb: EventListener = (error: Event) => {
         this.#errorIfDisposed();
 
         this.connection?.removeEventListener("open", onOpenCb);
         this.connection?.removeEventListener("error", onErrorCb);
-        this.onWSError?.(error);
+        if (error instanceof ErrorEvent) {
+          this.onWSError?.(error);
+        }
         this.#connectingPromise = null;
         reject(error);
-      }) as EventListener;
+      };
       this.connection?.addEventListener("error", onErrorCb);
     });
 
@@ -359,7 +361,7 @@ class WebSocketWritableStream implements RAL.WritableStream {
 
       // Chunk after we've loaded up the full content length header + body Uint8Array
       for (const chunk of chunkByteArray(combinedData, this.#chunkSize)) {
-        this.#socket.send(chunk.buffer);
+        this.#socket.send(chunk);
       }
 
       // Reset state
@@ -368,7 +370,7 @@ class WebSocketWritableStream implements RAL.WritableStream {
     } else {
       // Send normally if no pending content length
       for (const chunk of chunkByteArray(uint8Data, this.#chunkSize)) {
-        this.#socket.send(chunk.buffer);
+        this.#socket.send(chunk);
       }
     }
   }
@@ -461,9 +463,9 @@ function createWebSocketConnection(
 function* chunkByteArray(
   byteArray: Uint8Array,
   chunkSize: number,
-): Generator<Uint8Array> {
+): Generator<ArrayBuffer> {
   const totalSize = byteArray.byteLength;
   for (let i = 0; i < totalSize; i += chunkSize) {
-    yield byteArray.slice(i, Math.min(totalSize, i + chunkSize));
+    yield byteArray.slice(i, Math.min(totalSize, i + chunkSize)).buffer;
   }
 }

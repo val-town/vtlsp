@@ -50,17 +50,15 @@ class WebSocketReadableStream extends Readable {
       ws.removeEventListener("message", messageHandler),
     );
 
-    const errorHandler = (event: ErrorEvent) => {
+    const errorHandler = (event: Event) => {
       defaultLogger.error(
         { event },
         "WebSocketReadableStream received error event",
       );
       this.emit("error", event);
     };
-    ws.addEventListener("error", errorHandler as EventListener);
-    this.#cleanupCbs.push(() =>
-      ws.removeEventListener("error", errorHandler as EventListener),
-    );
+    ws.addEventListener("error", errorHandler);
+    this.#cleanupCbs.push(() => ws.removeEventListener("error", errorHandler));
 
     const closeHandler = (event: CloseEvent) => {
       defaultLogger.info(
@@ -254,11 +252,11 @@ export function createWebSocketStreams(
 export function* chunkByteArray(
   byteArray: Uint8Array,
   chunkSize: number,
-): Generator<Uint8Array> {
+): Generator<ArrayBuffer> {
   const totalSize = byteArray.byteLength;
 
   for (let i = 0; i < totalSize; i += chunkSize) {
     const chunkEnd = Math.min(totalSize, i + chunkSize);
-    yield byteArray.slice(i, chunkEnd);
+    yield byteArray.slice(i, chunkEnd).buffer;
   }
 }
