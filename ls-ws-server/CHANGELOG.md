@@ -1,5 +1,20 @@
 # @valtown/ls-ws-server
 
+## 0.0.27
+
+### Patch Changes
+
+- f0a1709: Remove extraneous `package-lock.json` files
+
+  This repo uses workspaces, so the lockfile is managed centrally in `./`.
+  Subdirectories had lockfiles which were extraneous and causing the dependabot
+  alerts to give false reports.
+
+- b137a31: Switch from ESLint to Biome and update to TypeScript 7
+
+  This is mostly a security issue: biome is a much simpler dependency, and we don't
+  have to deal with transitive security problems caused by ESLint's dependency chain.
+
 ## 0.0.26
 
 ### Patch Changes
