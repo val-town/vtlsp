@@ -409,3 +409,140 @@ describe("pipeLsInToLsOut", () => {
     });
   });
 });
+
+describe("ToLSTransform regression tests (H2/H3 fixes)", () => {
+  const collect = (
+    inputChunks: (string | Buffer)[],
+    options?: ConstructorParameters<typeof ToLSTransform.createStream>[1],
+  ) => {
+    const input = new Readable();
+    for (const c of inputChunks) {
+      input.push(Buffer.isBuffer(c) ? c : Buffer.from(c, "utf8"));
+    }
+    input.push(null);
+    const transform = ToLSTransform.createStream(input, options);
+    const data: string[] = [];
+    const errors: Error[] = [];
+    transform.on("data", (d) => data.push(d.toString()));
+    transform.on("error", (e) => errors.push(e));
+    return new Promise<{ data: string[]; errors: Error[] }>((resolve) => {
+      input.on("end", () => setTimeout(() => resolve({ data, errors }), 20));
+    });
+  };
+
+  it("accepts a spec-valid multi-header frame (Content-Length + Content-Type)", async () => {
+    const { data, errors } = await collect([
+      "Content-Length: 5\r\nContent-Type: application/vscode-jsonrpc; charset=utf-8\r\n\r\nhello",
+    ]);
+    expect(errors).toHaveLength(0);
+    expect(data).toEqual(["hello"]);
+  });
+
+  it("accepts a valid header split across chunks (previously crashed)", async () => {
+    const { data, errors } = await collect([
+      "Content-Length: 12345",
+      `\r\n\r\n${"x".repeat(12345)}`,
+    ]);
+    expect(errors).toHaveLength(0);
+    expect(data).toEqual(["x".repeat(12345)]);
+  });
+
+  it("accepts LF-only line endings", async () => {
+    const { data, errors } = await collect(["Content-Length: 5\n\nhello"]);
+    expect(errors).toHaveLength(0);
+    expect(data).toEqual(["hello"]);
+  });
+
+  it("accepts byte-split header fragments", async () => {
+    const { data, errors } = await collect([
+      "Content-Len",
+      "gth: 10\r\n",
+      "\r\n",
+      "0123456789",
+    ]);
+    expect(errors).toHaveLength(0);
+    expect(data).toEqual(["0123456789"]);
+  });
+
+  it("still buffers incomplete bodies across chunks", async () => {
+    const { data, errors } = await collect([
+      "Content-Length: 10\r\n\r\n0123",
+      "456789",
+    ]);
+    expect(errors).toHaveLength(0);
+    expect(data).toEqual(["0123456789"]);
+  });
+
+  it("rejects a Content-Length above maxContentLength (H3)", async () => {
+    const { data, errors } = await collect(
+      [`Content-Length: 101\r\n\r\n${"x".repeat(101)}`],
+      { maxContentLength: 100 },
+    );
+    expect(data).toHaveLength(0);
+    expect(errors[0]?.message).toContain("exceeds maximum");
+  });
+
+  it("defaults to a finite maxContentLength (unbounded-accumulation fix)", async () => {
+    const { errors } = await collect([
+      `Content-Length: ${1024 * 1024}\r\n\r\n`,
+    ]);
+    // 1 MiB > default 500 KB cap; the declared length alone is rejected before any body
+    expect(errors[0]?.message).toContain("exceeds maximum");
+  });
+
+  it("errors cleanly on an oversized unterminated header", async () => {
+    const { errors } = await collect(["X".repeat(70 * 1024)], {
+      maxHeaderSize: 64 * 1024,
+    });
+    expect(errors[0]?.message).toContain("Bad header");
+  });
+
+  it("still reports clearly malformed header values as Bad header", async () => {
+    const { errors } = await collect(["Content-Length: invalid\r\n\r\n{}"]);
+    expect(errors[0]?.message).toContain("Bad header");
+    const { errors: e2 } = await collect(["this line has no colon\r\n\r\n{}"]);
+    expect(e2[0]?.message).toContain("Bad header");
+  });
+});
+
+describe("pipeLsInToLsOut error wiring (H2)", () => {
+  it("surfaces a parse error on the output stream instead of crashing", async () => {
+    const input = new Readable();
+    input.push("Content-Length: invalid\r\n\r\n{}");
+    input.push(null);
+    const output = new Writable({
+      write(_chunk, _encoding, callback) {
+        callback();
+      },
+    });
+    const errors: Error[] = [];
+    output.on("error", (e: Error) => errors.push(e));
+
+    pipeLsInToLsOut(input, output);
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0]?.message).toContain("Bad header");
+  });
+
+  it("forwards middleware parse failures to the output stream", async () => {
+    const input = new Readable();
+    input.push("Content-Length: 5\r\n\r\nhello");
+    input.push(null);
+    const output = new Writable({
+      write(_chunk, _encoding, callback) {
+        callback();
+      },
+    });
+    const errors: Error[] = [];
+    output.on("error", (e: Error) => errors.push(e));
+
+    pipeLsInToLsOut(input, output, () => {
+      throw new Error("middleware boom");
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0]?.message).toContain("middleware boom");
+  });
+});

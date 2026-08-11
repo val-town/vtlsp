@@ -101,11 +101,23 @@ export class LSProcManager {
     const existing = this.procs.get(sessionId);
 
     if (existing) {
-      this.#logger.info(
-        { sessionId, pid: existing.pid },
-        "Reusing existing LS process",
-      );
-      return existing;
+      // The entry may be a tombstone: the child exited and its handle was
+      // cleared (pid === null) while async exit cleanup was still in flight.
+      // Never hand a dead process back to a reconnecting client (H4) — drop
+      // the stale entry and spawn a fresh one.
+      if (existing.pid === null) {
+        this.#logger.info(
+          { sessionId },
+          "Replacing dead LS process for session",
+        );
+        this.procs.delete(sessionId);
+      } else {
+        this.#logger.info(
+          { sessionId, pid: existing.pid },
+          "Reusing existing LS process",
+        );
+        return existing;
+      }
     }
 
     const lsProc = this.#spawn(sessionId);
@@ -141,7 +153,12 @@ export class LSProcManager {
         await this.onProcExit?.(sessionId, code, signal, lsProc);
 
         this.#logger.info({ sessionId, code }, "LS process exited");
-        this.procs.delete(sessionId);
+        // Identity-guard the delete: a newer process may have been spawned for
+        // the same sessionId while this exit chain was in flight (reconnect /
+        // eviction). Only remove the entry if it still refers to THIS process.
+        if (this.procs.get(sessionId) === lsProc) {
+          this.procs.delete(sessionId);
+        }
       },
       onError: async (error) => {
         await this.onProcError?.(sessionId, error);
@@ -179,7 +196,9 @@ export class LSProcManager {
         { sessionId, pid: proc.pid, spawnTime: proc.spawnedAt },
         "Killing oldest LS process to make room for new one",
       );
-      proc.kill();
+      // Fire-and-forget: kill() always settles now (even for dead/tombstoned
+      // procs), so eviction no longer leaks pending promises (M12).
+      void proc.kill();
       this.procs.delete(sessionId);
     }
   }

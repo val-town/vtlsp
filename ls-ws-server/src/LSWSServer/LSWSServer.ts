@@ -330,10 +330,14 @@ export class LSWSServer {
       );
 
       // Connect the WebSocket input to the stdin producer through connection-specific middleware
+      // maxMessageSize is enforced on the INBOUND direction: this is the documented
+      // "Maximum message size for stream processing" cap, previously only applied to
+      // the outbound chunk size, leaving inbound framing unbounded (memory DoS).
       pipeLsInToLsOut(
         webSocketIn,
         stdinProducer,
         this.#createInboundMiddleware(connData),
+        { maxContentLength: this.maxMessageSize },
       );
 
       // Set up error handling for the streams
