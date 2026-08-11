@@ -1,24 +1,56 @@
+name: Deploy Demo
+
 on:
   push:
     branches:
       - main
 
+permissions:
+  # Checkout + build only: Cloudflare auth is via CLOUDFLARE_API_TOKEN,
+  # scoped to the `production` environment below (M9: was unpinned wrangler +
+  # write-default permissions).
+  contents: read
+
+concurrency:
+  group: demo-deploy
+  cancel-in-progress: true
+
 jobs:
   deploy:
+    # Secrets for this job come from the `production` environment. Configure
+    # environment protection rules (required reviewers / deployments) in
+    # repo Settings -> Environments to gate deploys; rotate the token at the
+    # environment level rather than granting a long-lived repo-wide token.
+    environment: production
+
     defaults:
       run:
         working-directory: demo
 
     runs-on: ubuntu-latest
-    # Cloudflare has [worker builds](https://developers.cloudflare.com/workers/wrangler/) but 
+    # Cloudflare has [worker builds](https://developers.cloudflare.com/workers/wrangler/) but
     # we also need to deploy a container to Cloudflare Containers and a durable object.
     steps:
-      - uses: actions/checkout@v4
-      - uses: jdx/mise-action@v2
-      - run: npm ci
-      - run: npm run build
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install mise
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+
+      # No package-lock.json is committed for demo, so `npm ci` would fail here;
+      # `npm install` resolves from the pin in demo/package.json (wrangler is an
+      # exact-version devDependency — no more `wrangler@latest`). For fully
+      # hermetic installs, commit a demo lockfile.
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
       - name: Wrangler deploy
-        run: npx wrangler@latest deploy # TODO: properly pin
+        # Uses the pinned local wrangler (demo/package.json devDependency),
+        # NOT `wrangler@latest` (M9).
+        run: npx wrangler deploy
         env:
           NODE_ENV: production
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

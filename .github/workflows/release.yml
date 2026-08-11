@@ -5,12 +5,21 @@ on:
     branches:
       - main
 
+# The FIFO group serializes release runs on main so two concurrent pushes
+# cannot both run `changesets` against the same branch (M13: also keeps the
+# write-scoped GITHUB_TOKEN from racing itself).
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 permissions:
+  # `contents: write` + `pull-requests: write` are required by the changesets
+  # flow (it commits version bumps / publish-tag commits and opens/updates the
+  # release PR). Mitigate the write scope with branch protection on main
+  # (require PR review; the version PR is CI-tested before merge).
+  # `id-token: write` is intentionally NOT granted: nothing here uses OIDC /
+  # npm trusted publishing. Restore it only when npm Provenance is configured
+  # (it requires `publish`-time OIDC).
   contents: write
   pull-requests: write
-  id-token: write
 
 jobs:
   release:
@@ -18,23 +27,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Setup Node.js 22
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 22
 
       - name: update npm
         run: npm update -g npm
 
+      # No root package-lock.json is committed (removed in #50/#51), so `npm ci`
+      # is not an option here; `npm install` resolves @changesets/cli from the
+      # exact pin in package.json. Consider committing a lockfile for hermetic
+      # installs.
       - name: Install Dependencies
         run: npm install
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
-        uses: changesets/action@v1
+        # Pinned to a full commit SHA (was: floating `@v1` tag) (M13).
+        # The bundled @changesets/cli inside the action is pinned by this SHA.
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1
         with:
           publish: npx @changesets/cli publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Set NPM_TOKEN (or npm OIDC + `id-token: write`) before `publish`
+          # can actually run; today no npm credential is configured, so the
+          # publish step only runs the version-and-PR half of changesets.

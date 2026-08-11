@@ -3,19 +3,22 @@ name: Test All Packages
 on:
   push:
 
+permissions:
+  contents: read
+
 jobs:
-  test: 
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-        
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
       - name: Install mise
-        uses: jdx/mise-action@v2
-        
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Lint code
         run: npm run lint
 
@@ -25,13 +28,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-        
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
       - name: Install mise
-        uses: jdx/mise-action@v2
-        
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: TypeScript check
         run: npm run ci:tsc
