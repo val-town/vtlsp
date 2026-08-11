@@ -4,6 +4,26 @@ import { URI } from "vscode-uri";
 const FILE_URI_PATTERN = /(file:\/\/[^\s"']+)/g;
 
 /**
+ * Whether `candidate` resolves to `dir` or a descendant of it, using
+ * canonicalized absolute paths and a path-separator boundary. This is the
+ * single containment predicate for both URI conversions: it rejects prefix
+ * siblings (`/tmp/x-evil/…` vs `/tmp/x`), `..` escapes and encoded dot
+ * segments that naive `startsWith(dir)` checks miss.
+ *
+ * @param candidate A (possibly relative) filesystem path.
+ * @param dir The directory to test containment against.
+ * @returns True if `path.resolve(candidate)` is `dir` or a child of it.
+ */
+function isPathInside(candidate: string, dir: string): boolean {
+  const normCandidate = path.resolve(candidate);
+  const normDir = path.resolve(dir);
+  return (
+    normCandidate === normDir ||
+    normCandidate.startsWith(`${normDir}${path.sep}`)
+  );
+}
+
+/**
  * Recursively process both keys and values of an object to update all file URIs in all keys
  * and values.
  *
@@ -80,47 +100,61 @@ export function isLspRespLike(
 /**
  * Convert a virtual URI/path to a real temp file URI.
  *
- * Examples:
+ * Only `file://` URIs and plain paths can be materialized as local files.
+ * Any other URI scheme (http, untitled, …) is rejected with `undefined` —
+ * previously it was returned unchanged, which let callers write
+ * `new URL(uri).pathname` as an absolute host path (arbitrary file
+ * write / container RCE).
+ *
+ * The result is always a `file://` URI whose pathname is strictly inside
+ * `tempDir`; inputs that would escape (raw or encoded `..`, prefix siblings)
+ * are rejected with `undefined`.
+ *
+ * Examples (tempDir = "/tmp/dir"):
  * - "file://foobar.tsx" -> "file:///tmp/dir/foobar.tsx"
  * - "/foobar.tsx" -> "file:///tmp/dir/foobar.tsx"
  * - "foobar.tsx" -> "file:///tmp/dir/foobar.tsx"
- * - "http://example.com/foobar.tsx" -> "http://example.com/foobar.tsx" (unchanged)
- * - "file:///tmp/dir/foobar.tsx" -> "file:///tmp/dir/foobar.tsx" (unchanged if already temp)
+ * - "file:///tmp/dir/foobar.tsx" -> unchanged (already temp)
+ * - "http://example.com/foobar.tsx" -> undefined (rejected)
+ * - "file:///tmp/dir/../etc/passwd" -> undefined (rejected)
  */
 export function virtualUriToTempDirUri(
   pathOrUri: string,
   tempDir: string,
 ): string | undefined {
-  // If it's a non-file URI, return as is
+  // Reject non-file URI schemes: they cannot be mapped into the temp dir and
+  // must never reach a filesystem sink (C1).
   if (/^\w+:/i.test(pathOrUri) && !pathOrUri.startsWith("file://")) {
-    return pathOrUri;
+    return undefined;
   }
 
   try {
-    let virtualPath: string;
+    const virtualPath = pathOrUri.startsWith("file://")
+      ? URI.parse(pathOrUri).fsPath
+      : pathOrUri;
 
-    if (pathOrUri.startsWith("file://")) {
-      const parsedUri = URI.parse(pathOrUri);
-      // If already in temp dir, return as is
-      if (parsedUri.fsPath.startsWith(tempDir)) {
-        return pathOrUri;
-      }
-      virtualPath = parsedUri.fsPath;
-    } else {
-      // Handle absolute or relative paths
-      if (pathOrUri.startsWith(tempDir)) {
-        return URI.from({ scheme: "file", path: pathOrUri }).toString();
-      }
-      virtualPath = pathOrUri;
+    // Already inside the temp dir: canonicalize before returning so that any
+    // `..` / encoded-dot segments are resolved at parse time — they must not
+    // survive into a later `new URL(...).pathname` re-normalization (P7-004).
+    if (isPathInside(virtualPath, tempDir)) {
+      return URI.from({
+        scheme: "file",
+        path: path.resolve(virtualPath),
+      }).toString();
     }
 
-    // Ensure virtual path starts with /
-    if (!virtualPath.startsWith("/")) {
-      virtualPath = `/${virtualPath}`;
+    // Join into the temp dir, then verify the joined result stays inside.
+    // `path.join`/`resolve` normalize `..` and absolute ingredients, so an
+    // escaping input resolves outside the tree and is rejected instead of
+    // being written.
+    const joined = virtualPath.startsWith("/")
+      ? virtualPath
+      : `/${virtualPath}`;
+    const realPath = path.resolve(path.join(tempDir, joined));
+    if (!isPathInside(realPath, tempDir)) {
+      return undefined;
     }
 
-    // Join with temp directory and return as URI
-    const realPath = path.join(tempDir, virtualPath);
     return URI.from({ scheme: "file", path: realPath }).toString();
   } catch {
     return undefined;
@@ -130,7 +164,11 @@ export function virtualUriToTempDirUri(
 /**
  * Convert a real temp file URI/path to a virtual URI.
  *
- * Examples:
+ * Non-file URIs are passed through; temp-dir paths are mapped back to their
+ * virtual form using the same canonical containment predicate (so prefix
+ * siblings like `/tmp/dir-evil/…` are left alone rather than mis-mapped).
+ *
+ * Examples (tempDir = "/tmp/dir"):
  * - "file:///tmp/dir/foobar.tsx" -> "file:///foobar.tsx"
  * - "/tmp/dir/foobar.tsx" -> "file:///foobar.tsx"
  * - "/foobar.tsx" -> "file:///foobar.tsx" (unchanged if not temp)
@@ -146,27 +184,21 @@ export function tempDirUriToVirtualUri(
     return pathOrUri;
   }
 
-  let actualPath: string;
+  const actualPath = pathOrUri.startsWith("file://")
+    ? URI.parse(pathOrUri).path
+    : pathOrUri;
 
-  if (pathOrUri.startsWith("file://")) {
-    const uri = URI.parse(pathOrUri);
-    actualPath = uri.path;
-  } else {
-    actualPath = pathOrUri;
+  // Only strip the temp prefix for paths that canonically live inside tempDir.
+  const resolved = path.resolve(actualPath);
+  if (isPathInside(resolved, tempDir)) {
+    const normDir = path.resolve(tempDir);
+    const relativePath = resolved.substring(normDir.length);
+    return URI.from({ scheme: "file", path: relativePath || "/" }).toString();
   }
 
-  // If it's in the temp directory, remove the temp prefix
-  if (actualPath.startsWith(tempDir)) {
-    const relativePath = actualPath.substring(tempDir.length);
-    return URI.from({
-      scheme: "file",
-      path: relativePath || "/",
-    }).toString();
-  }
-
-  // If not a temp path, ensure it starts with / and return as file URI
+  // Not a temp path: ensure it starts with / and return as file URI
   if (!actualPath.startsWith("/")) {
-    actualPath = `/${actualPath}`;
+    return URI.from({ scheme: "file", path: `/${actualPath}` }).toString();
   }
 
   return URI.from({ scheme: "file", path: actualPath }).toString();

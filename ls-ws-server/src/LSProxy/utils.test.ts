@@ -1,7 +1,11 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: useful for tests */
 
 import { describe, expect, it } from "vitest";
-import { replaceFileUris } from "./utils.ts";
+import {
+  replaceFileUris,
+  tempDirUriToVirtualUri,
+  virtualUriToTempDirUri,
+} from "./utils.ts";
 
 describe("replaceFileUris", () => {
   const uriConverter = (uri: string) => `converted:${uri}`;
@@ -138,6 +142,126 @@ describe("replaceFileUris", () => {
     );
     expect(convertedComplex.project.config.dependencies[1]).toBe(
       "converted:file:///node_modules/dependency2",
+    );
+  });
+});
+
+describe("virtualUriToTempDirUri containment (C1 regression)", () => {
+  const TEMP = "/tmp/vtlsp-proxy-abc";
+  const pathnameOf = (uri: string) => new URL(uri).pathname;
+  const inside = (uri: string) =>
+    pathnameOf(uri).startsWith(`${TEMP}/`) || pathnameOf(uri) === TEMP;
+
+  it("keeps mapping legitimate virtual file URIs into the temp dir (regression guard)", () => {
+    expect(virtualUriToTempDirUri("foobar.tsx", TEMP)).toBe(
+      "file:///tmp/vtlsp-proxy-abc/foobar.tsx",
+    );
+    expect(virtualUriToTempDirUri("/foobar.tsx", TEMP)).toBe(
+      "file:///tmp/vtlsp-proxy-abc/foobar.tsx",
+    );
+    expect(virtualUriToTempDirUri("file:///Users/tmcw/x/foo.ts", TEMP)).toBe(
+      "file:///tmp/vtlsp-proxy-abc/Users/tmcw/x/foo.ts",
+    );
+  });
+
+  it("returns an already-temp file URI unchanged (canonical path)", () => {
+    const result = virtualUriToTempDirUri(
+      "file:///tmp/vtlsp-proxy-abc/foo.ts",
+      TEMP,
+    );
+    expect(result).toBe("file:///tmp/vtlsp-proxy-abc/foo.ts");
+    const raw = virtualUriToTempDirUri("/tmp/vtlsp-proxy-abc/foo.ts", TEMP);
+    expect(raw).toBe("file:///tmp/vtlsp-proxy-abc/foo.ts");
+  });
+
+  it("rejects non-file URI schemes (was: passthrough -> arbitrary write)", () => {
+    expect(virtualUriToTempDirUri("http://example.com/foobar.tsx", TEMP)).toBe(
+      undefined,
+    );
+    expect(virtualUriToTempDirUri("http://x/../../etc/passwd", TEMP)).toBe(
+      undefined,
+    );
+    expect(virtualUriToTempDirUri("untitled:Untitled-1", TEMP)).toBe(undefined);
+  });
+
+  it("neutralizes .. traversal escapes (result never escapes tempDir)", () => {
+    // `..` / encoded-dot segments are canonicalized away before any URI is
+    // returned; a returned URI must always stay inside the temp dir. (Pure
+    // anchor escapes are additionally rejected outright below.)
+    const cases = [
+      "file:///tmp/vtlsp-proxy-abc/../etc/passwd",
+      "file:///tmp/vtlsp-proxy-abc/%2e%2e/etc/passwd",
+      "file:///tmp/vtlsp-proxy-abc/%2e./etc/passwd",
+      "file:///tmp/vtlsp-proxy-abc/x/../../y.ts",
+    ];
+    for (const c of cases) {
+      const result = virtualUriToTempDirUri(c, TEMP);
+      if (result) expect(inside(result)).toBe(true);
+    }
+    // Anchor escapes that would climb out of the joined tree are rejected.
+    expect(virtualUriToTempDirUri("/../../etc/passwd", TEMP)).toBe(undefined);
+    expect(virtualUriToTempDirUri("file:///../../etc/passwd", TEMP)).toBe(
+      undefined,
+    );
+  });
+
+  it("rejects prefix-sibling directories (was: startsWith fast-path bypass)", () => {
+    const result = virtualUriToTempDirUri(
+      "file:///tmp/vtlsp-proxy-abc-evil/foo.ts",
+      TEMP,
+    );
+    // Must not map to /tmp/vtlsp-proxy-abc-evil/foo.ts outside the temp dir.
+    expect(result ? pathnameOf(result) : undefined).not.toBe(
+      "/tmp/vtlsp-proxy-abc-evil/foo.ts",
+    );
+    if (result) expect(inside(result)).toBe(true);
+  });
+
+  it("rejects Windows-style / encoded escapes and keeps single-dot inside after canonicalization", () => {
+    // single %2e collapses in the canonical parent dir (contained, not a traversal)
+    const singleDot = virtualUriToTempDirUri(
+      "file:///tmp/vtlsp-proxy-abc/%2e/etc/passwd",
+      TEMP,
+    );
+    expect(singleDot).toBeTruthy();
+    expect(inside(singleDot!)).toBe(true);
+  });
+
+  it("never returns a temp URI whose pathname escapes the temp dir", () => {
+    const cases = [
+      "file:///Users/x/a.ts",
+      "file:///tmp/vtlsp-proxy-abc/deep/nested.ts",
+      "file:///tmp/vtlsp-proxy-abc/../x.ts",
+      "file:///tmp/vtlsp-proxy-abc/x/../../y.ts",
+      "file:///tmp/vtlsp-proxy-abc-evil/x.ts",
+      "/a/b/c.ts",
+      "deep/../../escape.ts",
+    ];
+    for (const c of cases) {
+      const result = virtualUriToTempDirUri(c, TEMP);
+      if (result) expect(inside(result)).toBe(true);
+    }
+  });
+});
+
+describe("tempDirUriToVirtualUri inverse mapping (boundary-correct)", () => {
+  const TEMP = "/tmp/vtlsp-proxy-abc";
+
+  it("strips the temp prefix for contained paths", () => {
+    expect(
+      tempDirUriToVirtualUri("file:///tmp/vtlsp-proxy-abc/foo.ts", TEMP),
+    ).toBe("file:///foo.ts");
+  });
+
+  it("does not strip the prefix for sibling directories (was: mis-mapped)", () => {
+    expect(
+      tempDirUriToVirtualUri("file:///tmp/vtlsp-proxy-abc-evil/foo.ts", TEMP),
+    ).toBe("file:///tmp/vtlsp-proxy-abc-evil/foo.ts");
+  });
+
+  it("passes non-file URIs through", () => {
+    expect(tempDirUriToVirtualUri("http://example.com/x.ts", TEMP)).toBe(
+      "http://example.com/x.ts",
     );
   });
 });
