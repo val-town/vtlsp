@@ -26,7 +26,23 @@ interface LSProcOptions {
    * it to a file is often useful for debugging.
    **/
   lsStderrLogPath?: string;
+  /**
+   * How long to wait after SIGTERM before escalating to SIGKILL, in ms.
+   * Defaults to 5000.
+   */
+  killGraceMs?: number;
+  /**
+   * How long to wait after SIGKILL before giving up, in ms.
+   * Defaults to 2000.
+   */
+  killForceMs?: number;
 }
+
+const DEFAULT_KILL_GRACE_MS = 5_000;
+const DEFAULT_KILL_FORCE_MS = 2_000;
+
+const delay = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /**
  * The LSProc class manages a Language Server process, allowing for spawning,
@@ -51,6 +67,12 @@ export class LSProc {
   ) => void | Promise<void>;
   public readonly onError?: (error: Error) => void | Promise<void>;
 
+  readonly #killGraceMs: number;
+  readonly #killForceMs: number;
+
+  /** Set synchronously when the child exits, before async cleanup completes. */
+  #exited = false;
+
   constructor({
     lsCommand,
     lsArgs,
@@ -58,6 +80,8 @@ export class LSProc {
     onError,
     lsStdoutLogPath,
     lsStderrLogPath,
+    killGraceMs = DEFAULT_KILL_GRACE_MS,
+    killForceMs = DEFAULT_KILL_FORCE_MS,
   }: LSProcOptions) {
     this.lsCommand = lsCommand;
     this.lsArgs = lsArgs;
@@ -65,6 +89,8 @@ export class LSProc {
     this.lsStderrLogPath = lsStderrLogPath;
     this.onExit = onExit;
     this.onError = onError;
+    this.#killGraceMs = killGraceMs;
+    this.#killForceMs = killForceMs;
   }
 
   public get pid(): number | null {
@@ -83,26 +109,62 @@ export class LSProc {
     return this.proc?.stderr ?? null;
   }
 
+  /**
+   * Stop the managed process and settle — never hang.
+   *
+   * - If the process has already exited (`#exited` set, or Node reports an exit
+   *   code), returns immediately: there is no future 'exit' event to await and
+   *   the async `onExit` chain (which may itself call back into `kill()` via
+   *   session cleanup) is left to complete on its own.
+   * - Otherwise SIGTERM, wait up to `killGraceMs`, escalate to SIGKILL, wait up
+   *   to `killForceMs`, then settle regardless. `onExit` is invoked exactly once,
+   *   by the completion handler, not by `kill()`.
+   */
   public async kill(): Promise<void> {
-    if (!this.proc) return;
+    const proc = this.proc;
+    if (!proc) return;
+
+    // Already exited (exit event fired — async cleanup may still be in flight,
+    // e.g. `onExit` chains that call back into `kill()` via closeSession).
+    if (this.#exited || proc.exitCode !== null || proc.signalCode !== null) {
+      return;
+    }
+
+    let resolveExit: () => void = () => {};
+    const exitPromise = new Promise<void>((resolve) => {
+      resolveExit = resolve;
+    });
+    const onExitListener = () => resolveExit();
+    proc.once("exit", onExitListener);
 
     try {
-      this.proc.kill("SIGTERM");
-
-      await new Promise<void>((resolve) => {
-        this.proc!.once("exit", async () => {
-          await this.onExit?.(
-            this.proc?.exitCode || null,
-            this.proc?.signalCode || null,
-          );
-          resolve();
-        });
-      });
-    } catch (error) {
-      if (!(error instanceof Error)) {
-        throw new Error(`Unknown error when killing process: ${error}`);
+      // Graceful stop first: SIGTERM, wait a bounded period.
+      try {
+        proc.kill("SIGTERM");
+      } catch {
+        // Signal not deliverable (process already gone); fall through to settle.
       }
-      this.onError?.(error);
+      const exitedGracefully = await Promise.race([
+        exitPromise.then(() => true as const),
+        delay(this.#killGraceMs).then(() => false as const),
+      ]);
+      if (exitedGracefully) return;
+
+      // Escalate to SIGKILL for processes ignoring SIGTERM; wait once more,
+      // then settle regardless (the process is outside our control).
+      try {
+        proc.kill("SIGKILL");
+      } catch {
+        // ignore
+      }
+      await Promise.race([
+        exitPromise.then(() => true as const),
+        delay(this.#killForceMs).then(() => false as const),
+      ]);
+    } catch (error) {
+      this.onError?.(new Error(`Unknown error when killing process: ${error}`));
+    } finally {
+      proc.removeListener("exit", onExitListener);
     }
   }
 
@@ -171,13 +233,18 @@ export class LSProc {
     if (!this.proc) return;
 
     this.proc.on("exit", async (code, signal) => {
+      // Mark the child as gone synchronously and clear the handle BEFORE any
+      // async cleanup: downstream code (reconnect liveness checks, kill(),
+      // getOrCreateProc) must never observe a dead process as alive (H4:
+      // session tombstoning) or await an 'exit' event that already fired.
+      this.#exited = true;
+      this.proc = null;
+
       await this.onExit?.(code, signal);
 
       // Close log files
       this.stdoutLogFile?.end();
       this.stderrLogFile?.end();
-
-      this.proc = null;
     });
 
     this.proc.on("error", async (error) => {

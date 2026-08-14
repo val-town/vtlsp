@@ -17,9 +17,9 @@
   "author": "Val Town",
   "license": "ISC",
   "devDependencies": {
-    "@biomejs/biome": "2.5.5",
-    "@changesets/cli": "^2.31.1",
-    "happy-dom": "^20.11.1",
+    "@biomejs/biome": "2.5.8",
+    "@changesets/cli": "3.0.0",
+    "happy-dom": "^20.11.2",
     "typescript": "^7.0.2",
     "vitest": "^4.1.10",
     "vitest-websocket-mock": "^0.7.0"

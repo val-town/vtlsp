@@ -1,7 +1,29 @@
+import * as path from "node:path";
 import { LSProxy } from "@valtown/ls-ws-server";
 import { utils } from "@valtown/ls-ws-server/proxy";
 
 const TEMP_DIR = await Deno.makeTempDir({ prefix: "vtlsp-proxy" });
+const TEMP_DIR_RESOLVED = path.resolve(TEMP_DIR);
+
+/**
+ * Defense in depth for the virtual-FS materialization sinks (C1).
+ *
+ * `virtualUriToTempDirUri` now guarantees its result stays inside TEMP_DIR, but
+ * this layer re-verifies the *derived* filesystem path (after `new URL(...).pathname`
+ * re-normalization) before any read/write/mkdir, so a future regression in the
+ * mapping can never become an arbitrary absolute-path write again.
+ *
+ * Requires a strict child of TEMP_DIR (not the root itself).
+ *
+ * @returns The verified absolute path, or null if it escapes the temp dir.
+ */
+const safeTempFilePath = (tempFilePath: string): string | null => {
+  const filePath = path.resolve(new URL(tempFilePath).pathname);
+  if (filePath.startsWith(`${TEMP_DIR_RESOLVED}${path.sep}`)) {
+    return filePath;
+  }
+  return null;
+};
 
 const onExit = async () => await Deno.remove(TEMP_DIR, { recursive: true });
 Deno.addSignalListener("SIGINT", onExit);
@@ -25,8 +47,8 @@ const proxy = new LSProxy({
         params.textDocument.uri,
         TEMP_DIR,
       );
-      if (tempFilePath) {
-        const filePath = new URL(tempFilePath).pathname;
+      const filePath = tempFilePath ? safeTempFilePath(tempFilePath) : null;
+      if (filePath) {
         await Deno.mkdir(filePath.substring(0, filePath.lastIndexOf("/")), {
           recursive: true,
         });
@@ -40,8 +62,8 @@ const proxy = new LSProxy({
         params.textDocument.uri,
         TEMP_DIR,
       );
-      if (tempFilePath) {
-        const filePath = new URL(tempFilePath).pathname;
+      const filePath = tempFilePath ? safeTempFilePath(tempFilePath) : null;
+      if (filePath) {
         // Apply content changes to get the full text
         const existingContent = await Deno.readTextFile(filePath).catch(
           () => "",
@@ -65,7 +87,10 @@ const proxy = new LSProxy({
       return utils.tempDirUriToVirtualUri(uriString, TEMP_DIR);
     },
     toProcUri: (uriString: string) => {
-      return utils.virtualUriToTempDirUri(uriString, TEMP_DIR)!;
+      // Fall back to the original URI when the mapping is rejected: keeps
+      // message payloads intact (no `undefined` injection into JSON-RPC params)
+      // while materialization sinks stay safe.
+      return utils.virtualUriToTempDirUri(uriString, TEMP_DIR) ?? uriString;
     },
   },
 });
