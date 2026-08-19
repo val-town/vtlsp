@@ -27,7 +27,7 @@
     "@valtown/codemirror-ls": "^0.0.18",
     "codemirror": "^6.0.2",
     "hast-util-to-jsx-runtime": "^2.3.6",
-    "hono": "^4.9.0",
+    "hono": "^4.12.34",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.539.0",
     "react": "^19.1.1",
