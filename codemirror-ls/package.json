@@ -51,9 +51,9 @@
   "type": "module",
   "main": "./dist/index.js",
   "dependencies": {
-    "p-queue": "^8.1.0",
-    "p-timeout": "^7.0.0",
+    "p-queue": "^9.3.3",
+    "p-timeout": "^7.0.1",
     "vscode-jsonrpc": "^8.2.1",
-    "vscode-languageserver-protocol": "^3.17.5"
+    "vscode-languageserver-protocol": "^3.18.2"
   }
 }

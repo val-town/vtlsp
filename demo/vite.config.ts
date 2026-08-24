@@ -7,7 +7,10 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      "@valtown/codemirror-ls": resolve(__dirname, "../codemirror-ls/src"),
+      "@valtown/codemirror-ls": resolve(
+        import.meta.dirname,
+        "../codemirror-ls/src",
+      ),
     },
   },
 });

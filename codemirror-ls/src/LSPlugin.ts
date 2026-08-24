@@ -258,9 +258,11 @@ export class LSCore extends LSCoreBase implements PluginValue {
           "textDocument" in change &&
           change.textDocument.uri === this.documentUri,
       );
-      editsForThisDocument = changesForThisDocument.flatMap(
-        (change) => change.edits,
-      );
+      editsForThisDocument = changesForThisDocument
+        .flatMap((change) => change.edits)
+        // Snippet edits (LSP 3.18) carry a `snippet` rather than `newText`
+        // and aren't applicable here.
+        .filter((edit): edit is LSP.TextEdit => "newText" in edit);
     } else if (edit.changes) {
       editsForThisDocument = edit.changes[this.documentUri] ?? [];
     }
