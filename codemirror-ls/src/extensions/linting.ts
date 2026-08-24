@@ -164,16 +164,18 @@ export const getLintingExtensions: LSExtensionGetter<DiagnosticArgs> = ({
           const lsPlugin = LSCore.ofOrThrow(this.#view);
 
           const { range, message, severity } = diagnostic;
+          const messageText =
+            typeof message === "string" ? message : message.value;
 
           const currentDiagnostic: Diagnostic = {
             from: posToOffsetOrZero(this.#view.state.doc, range.start),
             to: posToOffsetOrZero(this.#view.state.doc, range.end),
             severity: severityMap[severity ?? LSP.DiagnosticSeverity.Error],
-            message,
+            message: messageText,
             renderMessage: render
               ? () => {
                   const dom = document.createElement("div");
-                  render(dom, message);
+                  render(dom, messageText);
                   return dom;
                 }
               : undefined,
