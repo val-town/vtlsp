@@ -1,5 +1,11 @@
 # @valtown/codemirror-ls
 
+## 0.2.6
+
+### Patch Changes
+
+- 2c6b3cc: Bump dependencies
+
 ## 0.2.5
 
 ### Patch Changes
