@@ -3,5 +3,9 @@
   "extends": ["config:recommended"],
   "minimumReleaseAge": "14 days",
   "timezone": "America/New_York",
-  "schedule": ["at 1:00 pm on the first day of the month"]
+  "schedule": ["at 1:00 pm on the first day of the month"],
+  "vulnerabilityAlerts": {
+    "schedule": ["at any time"],
+    "minimumReleaseAge": "0 days"
+  }
 }
