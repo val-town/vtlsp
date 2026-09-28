@@ -126,7 +126,7 @@ export class LSWebSocketTransport implements LSITransport {
     this.#errorIfDisposed();
 
     if (this.#messageConnection) {
-      this.#messageConnection.sendNotification(method, params);
+      this.#sendNotification(this.#messageConnection, method, params);
     } else {
       this.#notifyBuffer.push([method, params]);
     }
@@ -225,6 +225,26 @@ export class LSWebSocketTransport implements LSITransport {
     }
   }
 
+  /**
+   * Notifications are fire-and-forget: consumers (LSClient.notify and the
+   * editor plugins) do not await delivery, so they cannot handle failures.
+   * vscode-jsonrpc's sendNotification returns a promise that rejects when the
+   * underlying WebSocket has closed mid-flight (e.g. "WebSocket is not open"),
+   * and leaving that promise unhandled surfaces as an unhandled rejection in
+   * error trackers like Sentry. The message writer already routes write
+   * failures through the error channel (onError), so all this needs to do is
+   * keep the rejection from going unhandled.
+   */
+  #sendNotification(
+    connection: MessageConnection,
+    method: string,
+    params: unknown,
+  ): void {
+    connection.sendNotification(method, params).catch(() => {
+      // Already emitted on the error channel via the message writer.
+    });
+  }
+
   #setupMessageConnection(): void {
     if (!this.connection || this.connection.readyState !== WebSocket.OPEN) {
       return;
@@ -258,7 +278,7 @@ export class LSWebSocketTransport implements LSITransport {
     this.#messageConnection.listen();
 
     for (const [method, params] of this.#notifyBuffer) {
-      this.#messageConnection.sendNotification(method, params);
+      this.#sendNotification(this.#messageConnection, method, params);
     }
     this.#notifyBuffer = [];
 
