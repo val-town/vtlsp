@@ -485,7 +485,7 @@ export class LSProxy {
           resp,
           false, // This is proc-to-client, so we don't modify params
         );
-        if (result.ls_proxy_code === "cancel_response") return;
+        if (result?.ls_proxy_code === "cancel_response") return;
         return result;
       }
 
@@ -507,12 +507,15 @@ export class LSProxy {
     isClientToProc = true,
     // biome-ignore lint/suspicious/noExplicitAny: TODO: make this more specific
   ): Promise<any> {
-    let modifiedValue = result !== null ? result : params;
+    // Result middleware receives the response, even when it is `null` (a valid
+    // LSP response, e.g. "no completions"). Everything else receives params.
+    const isResultMiddleware = isRequest && !isClientToProc;
+    let modifiedValue = isResultMiddleware ? result : params;
 
     // Apply exact method middleware if available
     const exactMatch = middlewares[method];
     if (exactMatch) {
-      if (isClientToProc || !isRequest) {
+      if (!isResultMiddleware) {
         // For client-to-proc, or proc-to-client notifications, we modify params
         modifiedValue = await (exactMatch as ParamsMiddlewareFunction)(
           modifiedValue,
@@ -521,7 +524,7 @@ export class LSProxy {
           { method, params, modifiedValue },
           "Applied exact method middleware",
         );
-        if (modifiedValue.ls_proxy_code === "cancel_response")
+        if (modifiedValue?.ls_proxy_code === "cancel_response")
           return modifiedValue;
       } else {
         // For proc-to-client requests, we modify result with original params as context
@@ -533,7 +536,7 @@ export class LSProxy {
           { method, params, modifiedValue },
           "Applied exact method middleware",
         );
-        if (modifiedValue.ls_proxy_code === "cancel_response")
+        if (modifiedValue?.ls_proxy_code === "cancel_response")
           return modifiedValue;
       }
     }
@@ -546,7 +549,7 @@ export class LSProxy {
         { method, params, modifiedValue },
         "Applied request-specific catch-all middleware",
       );
-      if (modifiedValue.ls_proxy_code === "cancel_response")
+      if (modifiedValue?.ls_proxy_code === "cancel_response")
         return modifiedValue;
     }
 
@@ -560,7 +563,7 @@ export class LSProxy {
         { method, params, modifiedValue },
         "Applied notification-specific catch-all middleware",
       );
-      if (modifiedValue.ls_proxy_code === "cancel_response")
+      if (modifiedValue?.ls_proxy_code === "cancel_response")
         return modifiedValue;
     }
 
@@ -572,7 +575,7 @@ export class LSProxy {
         { method, params, modifiedValue },
         "Applied catch-all middleware",
       );
-      if (modifiedValue.ls_proxy_code === "cancel_response")
+      if (modifiedValue?.ls_proxy_code === "cancel_response")
         return modifiedValue;
     }
 
