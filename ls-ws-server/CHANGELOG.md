@@ -1,5 +1,12 @@
 # @valtown/ls-ws-server
 
+## 0.0.28
+
+### Patch Changes
+
+- 2c6b3cc: Bump dependencies
+- e40bc1a: Fix a potential deadlock on server shutdown, limit WebSocket chunk sizes, add layered defense around FS exploits, improve GitHub actions supply-chain security
+
 ## 0.0.27
 
 ### Patch Changes
