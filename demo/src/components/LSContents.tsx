@@ -15,7 +15,7 @@ export function LSContents({
   className?: string;
 }): JSX.Element {
   if (typeof contents === "string") {
-    return <MarkdownContent content={contents} />;
+    return <MarkdownContent content={contents} allowHtml={false} />;
   }
   if (isLSPMarkupContent(contents)) {
     return <MarkdownContent content={contents.value} />;
@@ -70,14 +70,16 @@ export function LSContents({
 function MarkdownContent({
   content,
   className: additionalClassNames,
+  allowHtml = true,
 }: {
   content: string;
   className?: string;
+  allowHtml?: boolean;
 }) {
   return (
     <ReactMarkdown
       allowedElements={allowedTags}
-      rehypePlugins={[rehypeRaw]}
+      rehypePlugins={allowHtml ? [rehypeRaw] : []}
       components={{
         code({ node, className, children, ...props }) {
           const match = /language-(\w+)/.exec(className || "");
